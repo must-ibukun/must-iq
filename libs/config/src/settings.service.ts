@@ -5,7 +5,7 @@
 // Cached in memory (TTL: 60s) — avoids a DB hit on every request
 // ============================================================
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../../db/src/generated-client";
 import {
   LLMSettings,
   LLMProvider,
