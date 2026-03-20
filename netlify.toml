@@ -1,0 +1,6 @@
+[build]
+  command = "npm install --include=dev --legacy-peer-deps && npx nx build web"
+  publish = "dist/apps/web/.next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
