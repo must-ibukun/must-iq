@@ -1,0 +1,247 @@
+// ============================================================
+// Must-IQ — Prisma Schema
+// PostgreSQL + pgvector extension
+// Vectors stored directly in Postgres — no Weaviate needed
+// Run: nx run db:migrate
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  output          = "../generated-client"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector, uuidOssp(map: "uuid-ossp")]
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  VIEWER
+}
+
+enum WorkspaceType {
+  SLACK
+  JIRA
+  GITHUB
+  GENERIC
+}
+
+model User {
+  id                  String        @id @default(cuid())
+  email               String        @unique
+  name                String
+  passwordHash        String
+  role                UserRole      @default(EMPLOYEE)
+  // Teams the user belongs to
+  teams               Team[]
+  tokenBudgetOverride Int?
+  isActive            Boolean       @default(true)
+  deepSearchEnabled   Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  lastActiveAt        DateTime?
+  sessions            ChatSession[]
+  tokenLogs           TokenLog[]
+  refreshTokens       RefreshToken[]
+  auditLogs           AuditLog[]
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model ChatSession {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String    @default("New Chat")
+  workspace        String    @default("general")
+  totalTokensUsed  Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  messages         Message[]
+  tokenLogs        TokenLog[]
+  @@index([userId])
+  @@index([createdAt])
+  @@index([workspace])
+  @@map("chat_sessions")
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  sessionId   String
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role        String
+  content     String      @db.Text
+  tokensUsed  Int         @default(0)
+  sources     Json?
+  createdAt   DateTime    @default(now())
+  @@index([sessionId])
+  @@map("messages")
+}
+
+model TokenLog {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  sessionId       String
+  session         ChatSession @relation(fields: [sessionId], references: [id])
+  queryTokens     Int
+  responseTokens  Int
+  totalTokens     Int
+  cached          Boolean     @default(false)
+  model           String
+  createdAt       DateTime    @default(now())
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("token_logs")
+}
+
+// ============================================================
+// DOCUMENTS + VECTOR EMBEDDINGS (pgvector)
+// Replaces Weaviate entirely — one DB for everything
+// ============================================================
+
+model Document {
+  id          String          @id @default(cuid())
+  filename    String
+  source      String
+  workspace   String          @default("general")
+  tags        String[]
+  chunkCount  Int             @default(0)
+  sizeBytes   Int             @default(0)
+  status      String          @default("processing")
+  uploadedBy  String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  chunks      DocumentChunk[]
+  @@index([workspace])
+  @@index([status])
+  @@map("documents")
+}
+
+// One row per chunk — embedding column is a pgvector type
+// Dimensions: 1536 for OpenAI, 768 for Gemini text-embedding-004
+// Change vector(1536) if switching embedding models
+model DocumentChunk {
+  id          String                        @id @default(cuid())
+  documentId  String
+  document    Document                      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content     String                        @db.Text
+  source      String
+  page        Int?
+  workspace   String
+  chunkIndex  Int
+  teamId      String?
+  team        Team?                         @relation("TeamChunks", fields: [teamId], references: [id], onDelete: SetNull)
+  metadata    Json?
+  // pgvector column — HNSW index added in migration SQL
+  embedding   Unsupported("vector(768)")?
+  createdAt   DateTime                      @default(now())
+  @@index([documentId])
+  @@index([workspace])
+  @@index([teamId])
+  @@map("document_chunks")
+}
+
+// ============================================================
+// SETTINGS TABLE
+// One-row-per-key store for admin-controlled configuration
+// Key "llm" stores the active LLM provider + model as JSON
+// ============================================================
+model Setting {
+  key       String   @id             // e.g. "llm", "token-budgets"
+  value     String   @db.Text        // JSON string
+  updatedAt DateTime @updatedAt
+  updatedBy String?                  // userId of last admin who changed it
+
+  @@map("settings")
+}
+
+// ============================================================
+// ADMIN MODELS
+// ============================================================
+
+model Workspace {
+  id           String        @id @default(cuid())
+  type         WorkspaceType @default(GENERIC)
+  name         String?       // Human-readable display name (e.g. Slack channel name)
+  identifier   String        // Human-readable identifier used for UI (e.g. project name)
+  externalId   String?       // API identifier used for ingestion (e.g. Slack channel ID)
+  tokenBudget  Int           @default(20000)
+  layer        String        @default("docs")
+  teams        Team[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("workspaces")
+}
+
+// Teams represent organisational units (formerly "Projects").
+// Each team can own multiple Workspace integration sources and
+// multiple users can be primary-assigned to a team.
+model Team {
+  id            String          @id @default(cuid())
+  name          String          @unique   // team names are globally unique
+  slackEnabled  Boolean         @default(false)
+  githubEnabled Boolean         @default(false)
+  jiraEnabled   Boolean         @default(false)
+  identifiers   String[]
+  ownerEmail    String?
+  createdById   String?
+  status        String          @default("active")
+  lastSyncAt    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  chunks        DocumentChunk[] @relation("TeamChunks")
+  workspaces    Workspace[]
+  users         User[]
+
+  @@map("projects")  // keep underlying table name to avoid data-loss migration
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String                  // e.g. "chat.query", "admin.llm_updated"
+  workspace  String?
+  tokensUsed Int?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model IngestionEvent {
+  id           String   @id @default(cuid())
+  sourceId     String                  // e.g. "INFRA-441", "#backend-help"
+  sourceType   String                  // "jira" | "slack" | "github" | "doc"
+  workspace    String   @default("general")
+  score        Float?
+  status       String   @default("stored") // "stored" | "skipped" | "error"
+  chunksStored Int      @default(0)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([workspace])
+  @@index([createdAt])
+  @@map("ingestion_events")
+}

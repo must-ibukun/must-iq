@@ -1,0 +1,47 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "module": "commonjs",
+        "declaration": false,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es2021",
+        "sourceMap": true,
+        "outDir": "../../dist/out-tsc",
+        "baseUrl": "./",
+        "incremental": true,
+        "skipLibCheck": true,
+        "strictNullChecks": false,
+        "noImplicitAny": false,
+        "strictBindCallApply": false,
+        "forceConsistentCasingInFileNames": false,
+        "paths": {
+            "@must-iq/shared-types": [
+                "../../libs/shared-types/src/index.ts"
+            ],
+            "@must-iq/shared-types/*": [
+                "../../libs/shared-types/src/*"
+            ],
+            "@must-iq/db": [
+                "../../libs/db/src/index.ts"
+            ],
+            "@must-iq/db/*": [
+                "../../libs/db/src/*"
+            ],
+            "@must-iq/config": [
+                "../../libs/config/src/index.ts"
+            ],
+            "@must-iq/config/*": [
+                "../../libs/config/src/*"
+            ],
+            "@must-iq/langchain": [
+                "../../langchain/src/index.ts"
+            ],
+            "@must-iq/langchain/*": [
+                "../../langchain/src/*"
+            ]
+        }
+    }
+}

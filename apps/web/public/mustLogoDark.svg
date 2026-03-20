@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 75 32" fill="none">
+  <!-- Must Company three-bar mark — dark-mode inverse -->
+  <!-- Left bar — white -->
+  <rect x="0" y="0" width="22" height="32" rx="2" fill="#ffffff"/>
+  <!-- Middle bar — light gray -->
+  <rect x="27" y="5" width="22" height="27" rx="2" fill="#a8a8a8"/>
+  <!-- Right bar — brand green -->
+  <rect x="54" y="10" width="21" height="22" rx="2" fill="#27ae60"/>
+</svg>

@@ -1,0 +1,22 @@
+{
+  "name": "langchain",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "langchain/src",
+  "projectType": "library",
+  "tags": ["scope:ai", "type:lib"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["langchain/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/langchain"],
+      "options": {
+        "jestConfig": "langchain/jest.config.ts"
+      }
+    }
+  }
+}

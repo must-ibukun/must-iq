@@ -1,0 +1,295 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg: #ffffff;
+  --surface: #f7fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --border-2: #cbd5e0;
+  --primary: #018038;
+  --primary-rgb: 1, 128, 56;
+  --green: #38a169;
+  --amber: #dd6b20;
+  --purple: #805ad5;
+  --red: #e53e3e;
+  --ink: #1a202c;
+  --ink-muted: #4a5568;
+  --ink-muted2: #718096;
+  --white: #ffffff;
+}
+
+.dark {
+  --bg: #05080f;
+  --surface: #090d16;
+  --card: #0c1220;
+  --border: #151e30;
+  --border-2: #1d2b42;
+  --primary: #018038;
+  --primary-rgb: 1, 128, 56;
+  --green: #00ff9d;
+  --amber: #ffb740;
+  --purple: #9d6fff;
+  --red: #ff4d6d;
+  --ink: #c8d4e8;
+  --ink-muted: #4a5568;
+  --ink-muted2: #2d3748;
+  --white: #f0f6ff;
+}
+
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-border-2: var(--border-2);
+  --color-primary: var(--primary);
+  --color-primary-dim: color-mix(in srgb, var(--primary) 10%, transparent);
+  --color-green: var(--green);
+  --color-amber: var(--amber);
+  --color-purple: var(--purple);
+  --color-red: var(--red);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-muted2: var(--ink-muted2);
+  --color-white: var(--white);
+
+  --font-serif: "DM Serif Display", Georgia, serif;
+  --font-body: Geist, system-ui, sans-serif;
+  --font-mono: "DM Mono", "Fira Code", monospace;
+
+  --background-image-grid-dots: radial-gradient(circle, rgba(var(--primary-rgb), 0.08) 1px, transparent 1px);
+  --background-image-grid-lines: linear-gradient(90deg, rgba(var(--primary-rgb), 0.04) 1px, transparent 1px), linear-gradient(0deg, rgba(var(--primary-rgb), 0.04) 1px, transparent 1px);
+
+  --background-size-dots: 28px 28px;
+  --background-size-lines: 80px 80px;
+
+  --box-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 212, 255, 0.04);
+  --box-shadow-glow-cyan: 0 0 30px rgba(0, 212, 255, 0.12);
+  --box-shadow-glow-green: 0 0 6px #00ff9d;
+
+  --animate-fade-up: fadeUp 0.25s ease forwards;
+  --animate-blink: blink 0.9s step-end infinite;
+  --animate-pulse-dot: pulse 1.4s ease-in-out infinite;
+  --animate-spin-slow: spin 0.7s linear infinite;
+  --animate-drift1: drift1 12s ease-in-out infinite alternate;
+  --animate-drift2: drift2 10s ease-in-out infinite alternate;
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 0.2;
+      transform: scale(0.8);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes drift1 {
+    from {
+      transform: translate(0, 0) scale(1);
+    }
+
+    to {
+      transform: translate(60px, 40px) scale(1.1);
+    }
+  }
+
+  @keyframes drift2 {
+    from {
+      transform: translate(0, 0) scale(1);
+    }
+
+    to {
+      transform: translate(-40px, -30px) scale(1.08);
+    }
+  }
+}
+
+body {
+  height: 100%;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1d2b42 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #1d2b42;
+  border-radius: 3px;
+}
+
+/* Grid dot background helper */
+.bg-dots {
+  background-image: var(--background-image-grid-dots);
+  background-size: var(--background-size-dots);
+}
+
+/* Streaming cursor */
+.cursor-blink {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: var(--primary);
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 0.9s step-end infinite;
+}
+
+/* Card top-line gradient */
+.card-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+}
+
+/* Typing dots */
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.4;
+  animation: tdot 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes tdot {
+
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Toggle switch (Premium Refinement) */
+.toggle-track {
+  width: 42px;
+  height: 22px;
+  border-radius: 12px;
+  background: var(--border-2);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.toggle-track.on {
+  background: var(--primary);
+  border-color: rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.2);
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-track.on::after {
+  transform: translateX(20px);
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.3s ease forwards;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+.glass-card {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card) 90%, transparent) 0%, color-mix(in srgb, var(--bg) 90%, transparent) 100%);
+  border: 1px solid var(--border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-card);
+  border-color: var(--primary);
+}
+/* Landing page specific styles migrated from inline */
+html { scroll-behavior:smooth }
+body { overflow-x:hidden }
+
+@keyframes floatA   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes floatB   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+
+.hov-lift:hover     { transform:translateY(-4px)!important; border-color:var(--primary)!important; box-shadow:0 20px 50px rgba(var(--primary-rgb),0.15)!important; }
+.hov-int:hover      { background:var(--border)!important; transform:translateY(-2px)!important; }
+.hov-nav:hover      { color:var(--primary)!important; opacity:1!important; }
+.btn-p:hover        { filter: brightness(1.2)!important; transform:translateY(-2px)!important; box-shadow:0 10px 30px rgba(var(--primary-rgb),0.4)!important; }
+.btn-g:hover        { background:var(--border)!important; }
+.nav-cta:hover      { filter: brightness(1.2)!important; transform:translateY(-1px)!important; box-shadow:0 6px 20px rgba(var(--primary-rgb),0.3)!important; }
+.footer-a:hover     { color:var(--primary)!important; opacity:1!important; }
