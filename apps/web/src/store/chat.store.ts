@@ -158,7 +158,6 @@ export const useChatStore = create<ChatState>()(
       },
 
       toggleTeam: (teamId) => {
-        if (teamId === 'general') return;
         set((s) => {
           const cur = new Set(s.selectedTeams);
           cur.has(teamId) ? cur.delete(teamId) : cur.add(teamId);
@@ -168,7 +167,6 @@ export const useChatStore = create<ChatState>()(
       setAvailableTeams: (teams) => set({ availableTeams: teams }),
 
       toggleWorkspace: (w) => {
-        if (w === 'general') return;
         set((s) => {
           const cur = new Set(s.selectedTeams);
           cur.has(w) ? cur.delete(w) : cur.add(w);

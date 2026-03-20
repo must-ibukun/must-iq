@@ -44,25 +44,41 @@ export function ScopeSelector() {
         )}
       </div>
 
-      {/* General — always on (only on page 1) */}
-      {page === 1 && (
-        <div
-          className="flex items-center gap-2.5 px-2 py-1.5 rounded-md mb-1 cursor-default"
-          style={{ background: 'rgba(255,255,255,0.03)' }}
-        >
+      {/* General — always on top (only on page 1) */}
+      {page === 1 && (() => {
+        const isActive = selectedTeams.includes('general');
+        return (
           <div
-            className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-            style={{ border: '1.5px solid var(--primary)', background: 'rgba(var(--primary-rgb),0.15)', color: 'var(--primary)' }}
+            onClick={() => toggleTeam('general')}
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-md mb-1 cursor-pointer transition-colors"
+            style={{ background: isActive ? 'rgba(255,255,255,0.03)' : undefined }}
+            onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
+            onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
           >
-            <IconLock size={10} />
+            {/* Checkbox */}
+            <div
+              className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 text-[10px] transition-all"
+              style={{
+                border: `1.5px solid ${isActive ? 'var(--primary)' : 'var(--border-2)'}`,
+                background: isActive ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                color: 'var(--primary)',
+              }}
+            >
+              {isActive && <IconCheck size={10} />}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div 
+                className="text-[12.5px] truncate" 
+                style={{ color: isActive ? 'var(--ink)' : 'var(--muted)', fontWeight: isActive ? 500 : 400 }}
+              >
+                General
+              </div>
+              <div className="text-[10px] font-mono" style={{ color: 'var(--muted)' }}>Global knowledge base</div>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[12.5px] font-medium" style={{ color: 'var(--ink)' }}>General</div>
-            <div className="text-[10px] font-mono" style={{ color: 'var(--muted)' }}>Global knowledge base</div>
-          </div>
-          <span className="text-[10px] font-mono" style={{ color: 'var(--primary)' }}>always</span>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Team scopes */}
       {paginatedTeams.map((team) => {
