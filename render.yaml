@@ -1,9 +1,7 @@
-/**
- * Render Blueprint Specification
- * -----------------------------
- * This file allows one-click deployment of the Must-IQ Backend to Render.com.
- * It expects a Supabase connection string for the database.
- */
+# Render Blueprint Specification
+# -----------------------------
+# This file allows one-click deployment of the Must-IQ Backend to Render.com.
+# It expects a Supabase connection string for the database.
 
 services:
   - type: web
