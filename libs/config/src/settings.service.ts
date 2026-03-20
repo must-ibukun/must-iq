@@ -203,20 +203,40 @@ export async function saveActiveSettings(
     for (const entry of updated.apiKeys) {
       if (!entry.key) continue;
 
-      // Check if the frontend sent us a masked key (e.g., "sk-abc...1234" or "AI...••••••4")
+      // Check if the frontend sent us a masked key (e.g., "sk-abc...1234")
       const isMasked = entry.key.includes("...") || entry.key.includes("•") || entry.key.includes("*");
       
       if (isMasked) {
-        // If masked, we MUST find the existing full key to preserve it
-        const existingEntry = current.apiKeys.find(k => k.id === entry.id);
+        // 1. Try to find by exact ID match
+        let existingEntry = current.apiKeys.find(k => k.id === entry.id);
+
+        // 2. If ID mismatch (e.g. seed vs env), try matching by provider + model if it was active
+        if (!existingEntry) {
+          existingEntry = current.apiKeys.find(k => k.provider === entry.provider && k.model === entry.model && k.isActive);
+        }
+
+        // 3. Fallback: match by provider only if only one key exists
+        if (!existingEntry) {
+          const providerKeys = current.apiKeys.filter(k => k.provider === entry.provider);
+          if (providerKeys.length === 1) {
+            existingEntry = providerKeys[0];
+          }
+        }
+
         if (existingEntry && existingEntry.key && !existingEntry.key.includes("...")) {
+          // Re-encrypt the original full key, but keep the new isActive/label/model from the frontend
           encryptedApiKeys.push({
             ...entry,
             key: encryptText(existingEntry.key)
           });
-          logger.debug(`Preserved existing encrypted key for ${entry.provider} (ID: ${entry.id})`);
+          logger.debug(`Preserved existing encrypted key for ${entry.provider} (Target ID: ${entry.id})`);
         } else {
-          logger.warn(`Masked key received for ${entry.provider} but no valid unmasked existing key found. Skipping.`);
+          // CRITICAL: If we can't find a matching unmasked key, DO NOT DROP IT if it was previously there.
+          // But if we truly can't find it, we skip with a loud warning.
+          logger.error(`MASKED KEY LOSS PREVENTED: Received masked key for ${entry.provider} but no unmasked original found in DB. Keeping DB version.`);
+          if (existingEntry) {
+             encryptedApiKeys.push({ ...existingEntry, key: encryptText(existingEntry.key) });
+          }
         }
       } else {
         // It's a fresh plain-text key (newly entered by user)
@@ -245,7 +265,7 @@ export async function saveActiveSettings(
     create: { key: "llm", value: JSON.stringify(safeToStore) },
   });
 
-  // 4. Invalidate Caches
+  // 5. Invalidate Caches
   const redis = getRedis();
   if (redis) {
     try {
@@ -256,9 +276,10 @@ export async function saveActiveSettings(
     }
   }
 
-  // Update L1 cache immediately
-  cachedSettings = updated;
-  lastLoadTime = Date.now();
+  // Clear L1 cache to force a fresh reload from DB (with decrypted keys) on next request.
+  // We DO NOT set cachedSettings = updated because 'updated' might contain masked keys from the frontend.
+  cachedSettings = null;
+  lastLoadTime = 0;
 }
 
 // ---------------------------------------------------------------

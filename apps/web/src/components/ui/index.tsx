@@ -158,6 +158,14 @@ export function Paginator({ page, setPage, total }: { page: number; setPage: (n:
   );
 }
 
+// ── SPINNER ────────────────────────────────────────────────────
+export function Spinner({ size = 24, color = 'var(--primary)', className = '' }: { size?: number; color?: string; className?: string }) {
+  return (
+    <div className={`animate-spin rounded-full border-2 border-t-transparent ${className}`} 
+         style={{ width: size, height: size, borderColor: `${color}40`, borderTopColor: color }} />
+  );
+}
+
 // ── MUST ICONS (Brand SVG library) ─────────────────────────────
 export * from './MustIcons';
 export * from './ConfirmModal';

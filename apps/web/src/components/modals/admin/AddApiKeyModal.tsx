@@ -57,7 +57,7 @@ export function AddApiKeyModal({ initialProvider = 'anthropic', onClose, onSave,
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={isSaving} onClick={handleSave}>{isSaving ? 'Saving...' : 'Save securely'}</Button>
+          <Button variant="primary" isLoading={isSaving} onClick={handleSave}>{isSaving ? 'Saving...' : 'Save securely'}</Button>
         </div>
       </div>
     </div>

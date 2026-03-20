@@ -303,7 +303,7 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
 
         <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12, background: 'var(--surface)' }}>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={isCreatingTeam} onClick={handleCreateTeam}>{isCreatingTeam ? 'Creating...' : 'Create Team →'}</Button>
+          <Button variant="primary" isLoading={isCreatingTeam} onClick={handleCreateTeam}>{isCreatingTeam ? 'Creating...' : 'Create Team →'}</Button>
         </div>
       </div>
     </div>

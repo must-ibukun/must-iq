@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 
-export function StatCard({ label, value, delta, accent, icon }: { label: string; value: string; delta: string; accent: string; icon: ReactNode }) {
+export function StatCard({ label, value, delta, accent, icon }: { label: string; value: React.ReactNode; delta: string; accent: string; icon: React.ReactNode }) {
     return (
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${accent},transparent)` }} />

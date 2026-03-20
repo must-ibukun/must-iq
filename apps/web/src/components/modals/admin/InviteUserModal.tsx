@@ -113,7 +113,7 @@ export function InviteUserModal({ teams, onClose, showToast, onSuccess }: Invite
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={isInviting} onClick={handleInviteUser}>
+          <Button variant="primary" isLoading={isInviting} onClick={handleInviteUser}>
             {isInviting ? 'Sending...' : 'Send Invite →'}
           </Button>
         </div>

@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAuthStore } from '@must-iq-web/store/auth.store';
-import { Badge, Button, Toggle, ProgressBar, Paginator, ConfirmModal } from '@must-iq-web/components/ui';
+import { Badge, Button, Toggle, ProgressBar, Paginator, ConfirmModal, Spinner } from '@must-iq-web/components/ui';
 import { paginate, totalPages } from '@must-iq-web/lib/pagination';
 import { guessLayer } from '@must-iq-web/lib/utils';
 import { getLLMSettings, saveLLMSettings, getAvailableProviders, getSystemSettings, saveSystemSettings } from '@must-iq-web/lib/api/admin/settings';
@@ -775,12 +775,17 @@ export default function AdminPage() {
         <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
 
           {/* ── OVERVIEW ── */}
-          {section === 'overview' && <>
+          {section === 'overview' && (sectionLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
+              <Spinner size={32} />
+            </div>
+          ) : (
+            <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
-              <StatCard label="Total Chunks" value={stats ? stats.chunksByWorkspace.reduce((s: number, d: any) => s + d.count, 0).toLocaleString() : (sectionLoading ? '...' : '0')} delta="Knowledge base" accent="var(--primary)" icon={<IconKnowledge />} />
-              <StatCard label="Active Users" value={stats ? stats.totalUsers.toLocaleString() : (sectionLoading ? '...' : '0')} delta="Registered accounts" accent="var(--green)" icon={<IconUsers />} />
-              <StatCard label="Tokens Today" value={stats ? (stats.tokensToday >= 1000 ? `${(stats.tokensToday / 1000).toFixed(0)}K` : stats.tokensToday.toString()) : (sectionLoading ? '...' : '0')} delta={`${stats?.cacheRate ?? 0}% cache hit`} accent="var(--amber)" icon={<IconTokens />} />
-              <StatCard label="Total Sessions" value={stats ? stats.totalSessions.toLocaleString() : (sectionLoading ? '...' : '0')} delta="Across all users" accent="var(--purple)" icon={<IconChat />} />
+              <StatCard label="Total Chunks" value={stats ? stats.chunksByWorkspace.reduce((s: number, d: any) => s + d.count, 0).toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Knowledge base" accent="var(--primary)" icon={<IconKnowledge />} />
+              <StatCard label="Active Users" value={stats ? stats.totalUsers.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Registered accounts" accent="var(--green)" icon={<IconUsers />} />
+              <StatCard label="Tokens Today" value={stats ? (stats.tokensToday >= 1000 ? `${(stats.tokensToday / 1000).toFixed(0)}K` : stats.tokensToday.toString()) : (sectionLoading ? <Spinner size={18} /> : '0')} delta={`${stats?.cacheRate ?? 0}% cache hit`} accent="var(--amber)" icon={<IconTokens />} />
+              <StatCard label="Total Sessions" value={stats ? stats.totalSessions.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Across all users" accent="var(--purple)" icon={<IconChat />} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
               <Panel title="Recent Activity" dot="var(--green)" action={<button onClick={() => setSection('audit')} style={{ fontSize: 11.5, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>}>
@@ -813,14 +818,18 @@ export default function AdminPage() {
                 ) : <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>No chunks yet</div>}
               </Panel>
             </div>
-          </>}
+          </>))}
 
 
 
           {/* ── TEAMS ── */}
           {section === 'teams' && (
             <Panel title={`Teams (${teams.length})`} action={user?.role === 'ADMIN' && <Button variant="primary" size="sm" onClick={() => setShowModal(true)}><IconPlus size={14} style={{ marginRight: 6 }} /> New Team</Button>}>
-              {sectionLoading ? <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>Loading…</div> :
+              {sectionLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 48, width: '100%' }}>
+                  <Spinner size={32} />
+                </div>
+              ) :
                 teams.length === 0 ?
                   <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>No teams yet. Click "+ New Team" to onboard your first team.</div> :
                   <>
@@ -886,7 +895,11 @@ export default function AdminPage() {
 
           {section === 'users' && (
             <Panel title={`Users (${users.length})`} action={user?.role === 'ADMIN' && <Button variant="primary" size="sm" onClick={() => setShowInviteModal(true)}><IconPlus size={14} style={{ marginRight: 6 }} /> Invite User</Button>}>
-              {sectionLoading ? <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>Loading…</div> :
+              {sectionLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 48, width: '100%' }}>
+                  <Spinner size={32} />
+                </div>
+              ) :
                 users.length === 0 ?
                   <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>No users found.</div> :
                   <>
@@ -1017,19 +1030,19 @@ export default function AdminPage() {
                     <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>{teamEditDraft.length} team(s) selected</span>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button
+                        <Button
+                          variant="secondary"
                           onClick={() => setTeamEditTarget(null)}
-                          style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontSize: 13 }}
                         >
                           Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="primary"
                           onClick={saveTeamMapping}
-                          disabled={isSavingUser}
-                          style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: isSavingUser ? 0.6 : 1 }}
+                          isLoading={isSavingUser}
                         >
                           {isSavingUser ? 'Saving...' : 'Save Teams'}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -1081,7 +1094,7 @@ export default function AdminPage() {
                           </span>
                         </div>
                         <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Token Budget</label>
+                          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Token Budget</label>
                           <input
                             type="number"
                             value={editUserBudget}
@@ -1102,19 +1115,19 @@ export default function AdminPage() {
                     </div>
 
                     <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                      <button
+                      <Button
+                        variant="secondary"
                         onClick={() => setEditUserTarget(null)}
-                        style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontSize: 13 }}
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="primary"
                         onClick={saveUserEdit}
-                        disabled={isSavingUserRef}
-                        style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: isSavingUserRef ? 0.6 : 1 }}
+                        isLoading={isSavingUserRef}
                       >
                         {isSavingUserRef ? 'Saving...' : 'Save Changes'}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1398,7 +1411,11 @@ export default function AdminPage() {
                   );
 
                   if (sectionLoading) {
-                    return <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>Loading…</div>;
+                    return (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: 48, width: '100%' }}>
+                        <Spinner size={32} />
+                      </div>
+                    );
                   }
 
                   if (filteredWorkspaces.length === 0) {
@@ -1471,7 +1488,11 @@ export default function AdminPage() {
           ))}
 
           {/* ── LLM & RAG SETTINGS ── */}
-          {section === 'llm' && (user?.role !== 'ADMIN' ? (
+          {section === 'llm' && (sectionLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
+              <Spinner size={32} />
+            </div>
+          ) : (user?.role !== 'ADMIN' ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
               <h3>Access Restricted</h3>
               <p>You do not have permission to manage LLM & RAG settings.</p>
@@ -1496,11 +1517,16 @@ export default function AdminPage() {
               handleActivateKey={handleActivateKey}
               handleDeleteKey={handleDeleteKey}
             />
-          ))}
+          )))}
 
 
           {/* ── TOKENS ── */}
-          {section === 'tokens' && <>
+          {section === 'tokens' && (sectionLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
+              <Spinner size={32} />
+            </div>
+          ) : (
+            <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
               <StatCard label="Total Today" value="841K" delta="18% vs yesterday" accent="var(--primary)" icon={<IconTokens />} />
               <StatCard label="Est. Cost Today" value="$4.20" delta="$0.60 vs yesterday" accent="var(--amber)" icon={<IconDollar />} />
@@ -1547,12 +1573,16 @@ export default function AdminPage() {
                 })()}
               </Panel>
             </div>
-          </>}
+          </>))}
 
           {/* ── AUDIT ── */}
           {section === 'audit' && (
             <Panel title="Audit Log">
-              {sectionLoading ? <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>Loading…</div> :
+              {sectionLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 48, width: '100%' }}>
+                  <Spinner size={32} />
+                </div>
+              ) :
                 auditData.length === 0 ?
                   <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>No audit events yet. Chat queries and admin actions will appear here.</div> :
                   <>
@@ -1566,14 +1596,18 @@ export default function AdminPage() {
                       ])
                     } />
                     <Paginator page={auditPage} setPage={setAuditPage} total={totalPages(auditData)} />
-                  </>
-              }
+                   </>
+               }
             </Panel>
           )}
 
           {/* ── PROFILE ── */}
           {section === 'profile' && <ProfileSection onBack={() => setSection('overview')} />}
-          {section === 'docs' && (
+          {section === 'docs' && (sectionLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
+              <Spinner size={32} />
+            </div>
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', animation: 'fade-in 0.4s ease' }}>
               <div style={{ padding: '0 32px 24px', borderBottom: '1px solid var(--border)', marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1696,7 +1730,7 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-          )}
+          ))}
           {section === 'knowledge' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1979,7 +2013,7 @@ export default function AdminPage() {
                   </div>
                   <Button
                     variant="primary"
-                    disabled={isIngesting}
+                    isLoading={isIngesting}
                     onClick={handleBulkIngestRequest}
                   >
                     {isIngesting ? '⚙ Syncing...' : '🚀 Start Targeted Sync'}
@@ -2104,7 +2138,11 @@ export default function AdminPage() {
           )}
 
           {/* ── SETTINGS ── */}
-          {section === 'settings' && (user?.role !== 'ADMIN' ? (
+          {section === 'settings' && (sectionLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
+              <Spinner size={32} />
+            </div>
+          ) : (user?.role !== 'ADMIN' ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
               <h3>Access Restricted</h3>
               <p>You do not have permission to manage global system settings.</p>
@@ -2147,6 +2185,30 @@ export default function AdminPage() {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* TTL Configuration */}
+                  <div style={{ padding: '20px', borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, background: 'rgba(var(--primary-rgb), 0.01)' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>L1 Cache TTL (ms)</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 10 }}>In-memory duration (local process)</div>
+                      <input
+                        type="number"
+                        value={llmSettings?.cacheL1Ttl ?? 60000}
+                        onChange={e => setLlmSettings({ ...llmSettings, cacheL1Ttl: parseInt(e.target.value) })}
+                        style={{ width: '100%', padding: '8px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>L2 Cache TTL (seconds)</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 10 }}>Shared Redis duration (cross-instance)</div>
+                      <input
+                        type="number"
+                        value={llmSettings?.cacheL2Ttl ?? 600}
+                        onChange={e => setLlmSettings({ ...llmSettings, cacheL2Ttl: parseInt(e.target.value) })}
+                        style={{ width: '100%', padding: '8px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Security & Compliance Group */}
@@ -2246,10 +2308,23 @@ export default function AdminPage() {
                     onClick={async () => {
                       setIsSavingSystem(true);
                       try {
+                        // 1. Save system settings (caching toggle, etc.)
                         await saveSystemSettings(systemSettings);
-                        setNotification({ title: 'System Settings Saved', message: 'Your updates are now active.', type: 'success' });
+                        
+                        // 2. Save LLM settings (L1/L2 TTLs are moved here)
+                        // We use silentSave = true to avoid unnecessary UI flickers
+                        if (llmSettings) {
+                          await handleSaveLLM(undefined, undefined, undefined, undefined, true);
+                        }
+                        
+                        setNotification({ 
+                          title: 'Settings Saved', 
+                          message: 'Both system and performance configurations have been updated.', 
+                          type: 'success' 
+                        });
                       } catch (err) {
-                        setNotification({ title: 'Error', message: 'Failed to save system settings.', type: 'error' });
+                        setNotification({ title: 'Error', message: 'Failed to save settings.', type: 'error' });
+                        console.error('Save settings failure:', err);
                       } finally {
                         setIsSavingSystem(false);
                       }
@@ -2316,10 +2391,8 @@ export default function AdminPage() {
                 </div>
 
               </div>
-
             </div>
-          ))}
-
+          )))}
         </div>
       </main>
 

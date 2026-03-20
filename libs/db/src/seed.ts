@@ -204,7 +204,6 @@ async function main() {
             { id: 'seed-gemini-2', provider: 'gemini', label: 'Must-IQ - Gemini (Primary Admin)', model: 'gemini-1.5-flash', key: 'AIzaSyAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxBNU0', isActive: false },
             { id: 'seed-gemini-3', provider: 'gemini', label: 'Must-IQ - Gemini (Secondary)', model: 'gemini-1.5-flash', key: 'AIzaSyAmxxxxxxxxxxxxxxxxxxxxxxxxxxxxSoLw', isActive: false },
             { id: 'seed-gemini-4', provider: 'gemini', label: 'Must-IQ - Gemini (DevOps)', model: 'gemini-1.5-flash', key: 'AIzaSyBtxxxxxxxxxxxxxxxxxxxxxxxxxxxxEJ_I', isActive: false },
-            { id: 'seed-gemini-6', provider: 'gemini', label: 'Must-IQ - Gemini (LIVE)', model: 'gemini-2.5-flash', key: 'AIzaSyCLiscWKOR425fKAXQDwV_czwH_rYz4yx8', isActive: true },
             // ── OpenAI ────────────────────────────────────────────
             { id: 'seed-openai-1', provider: 'openai', label: 'Must-IQ - OpenAI (Pro)', model: 'gpt-4o-mini', key: 'sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxvhwA', isActive: false },
             { id: 'seed-openai-2', provider: 'openai', label: 'Must-IQ - OpenAI (Backup)', model: 'gpt-4o', key: 'sk-proj-yyyyyyyyyyyyyyyyyyyyyyyyyyyyWqzP', isActive: false },

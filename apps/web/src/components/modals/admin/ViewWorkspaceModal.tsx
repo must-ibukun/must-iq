@@ -1,4 +1,4 @@
-import React from 'react';
+import { Button } from '@must-iq-web/components/ui';
 import { IconX } from '@must-iq-web/components/ui/MustIcons';
 
 export interface ViewWorkspaceModalProps {
@@ -39,8 +39,8 @@ export function ViewWorkspaceModal({ viewWs, onClose, onEditClick }: ViewWorkspa
           ))}
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button onClick={onEditClick} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Edit Budget</button>
-          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontSize: 13 }}>Close</button>
+          <Button variant="primary" onClick={onEditClick}>Edit Budget</Button>
+          <Button variant="ghost" onClick={onClose}>Close</Button>
         </div>
       </div>
     </div>

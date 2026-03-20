@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { IconX, IconSearch } from '@must-iq-web/components/ui/MustIcons';
+import { Button } from '@must-iq-web/components/ui';
+import { IconSearch, IconX } from '@must-iq-web/components/ui/MustIcons';
 import { updateTeam } from '@must-iq-web/lib/api/admin/teams';
 
 export interface EditTeamModalProps {
@@ -191,14 +192,14 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
           })()}
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-          <button
-            disabled={editTeamSaving}
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            isLoading={editTeamSaving}
             onClick={handleSave}
-            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editTeamSaving ? 0.6 : 1 }}
           >
             {editTeamSaving ? 'Saving…' : 'Save Changes'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

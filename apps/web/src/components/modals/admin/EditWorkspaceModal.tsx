@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@must-iq-web/components/ui';
 import { IconX } from '@must-iq-web/components/ui/MustIcons';
 import { updateWorkspace } from '@must-iq-web/lib/api/admin/workspaces';
 
@@ -83,14 +84,14 @@ export function EditWorkspaceModal({ editWs, onClose, showToast, onSuccess }: Ed
           </div>
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--ink)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-          <button
-            disabled={editWsSaving}
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            isLoading={editWsSaving}
             onClick={handleSave}
-            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editWsSaving ? 0.6 : 1 }}
           >
             {editWsSaving ? 'Saving…' : 'Save Changes'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
