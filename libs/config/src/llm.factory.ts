@@ -129,9 +129,12 @@ export async function createUtilityLLM(): Promise<BaseChatModel> {
 // Attempts to use local Ollama first to save API latency & cost.
 // Falls back to the standard Provider Utility LLM if Ollama is down.
 // ---------------------------------------------------------------
-export async function createFastClassifierLLM() {
-  const settings = await getActiveSettings();
+export async function createFastClassifierLLM(settings: LLMSettings) {
   const utilityLLM = await createUtilityLLM();
+
+  if (settings.provider !== "ollama") {
+    return utilityLLM;
+  }
 
   try {
     const localOllama = new ChatOllama({
@@ -169,7 +172,19 @@ async function buildLLM(
   const { provider, apiKeys } = settings;
   const modelName = settings.model;
 
-  const findActiveKey = (p: LLMProvider) => apiKeys.find(k => k.provider === p && k.isActive)?.key;
+  const findActiveKey = (p: LLMProvider) => {
+    const raw = apiKeys.find(k => k.provider === p && k.isActive)?.key;
+    if (!raw) return undefined;
+    const trimmed = raw.trim();
+    if (trimmed.includes("...") || trimmed.includes("••") || trimmed.includes("***")) {
+      logger.warn(`Found masked API key for ${p} in DB. Please re-enter the full key in settings.`);
+      return undefined;
+    }
+    return trimmed;
+  };
+
+  logger.log(`Building LLM for provider: ${provider} (model: ${modelName})`);
+
 
   switch (provider) {
     case "anthropic": {
@@ -196,7 +211,7 @@ async function buildLLM(
 
     case "gemini": {
       const apiKey = findActiveKey("gemini");
-      if (!apiKey) throw new Error("Gemini API key not found or not active");
+      if (!apiKey) throw new Error("Gemini API key not found or not active (it may be masked in DB)");
       return new ChatGoogleGenerativeAI({
         model: settings.model,
         temperature,
@@ -247,7 +262,18 @@ async function buildLLM(
 
 async function buildEmbeddings(settings: LLMSettings, taskType?: string): Promise<Embeddings> {
   const { embeddingProvider, apiKeys, embeddingDimensions } = settings;
-  const findActiveKey = (p: LLMProvider) => apiKeys.find(k => k.provider === p && k.isActive)?.key;
+  const findActiveKey = (p: LLMProvider) => {
+    const raw = apiKeys.find(k => k.provider === p && k.isActive)?.key;
+    if (!raw) return undefined;
+    const trimmed = raw.trim();
+    if (trimmed.includes("...") || trimmed.includes("••") || trimmed.includes("***")) {
+      logger.warn(`Found masked API key for ${p} in DB. Please re-enter the full key in settings.`);
+      return undefined;
+    }
+    return trimmed;
+  };
+
+  logger.log(`Building Embeddings for provider: ${embeddingProvider} (model: ${settings.embeddingModel})`);
 
   switch (embeddingProvider) {
     case "openai": {
@@ -262,12 +288,16 @@ async function buildEmbeddings(settings: LLMSettings, taskType?: string): Promis
 
     case "gemini": {
       const apiKey = findActiveKey("gemini");
-      if (!apiKey) throw new Error("Gemini API key for embeddings not found or not active");
+      if (!apiKey) throw new Error("Gemini API key for embeddings not found or not active (it may be masked in DB)");
+      
+      const maskedKey = apiKey.substring(0, 6) + "..." + apiKey.substring(apiKey.length - 4);
+      logger.debug(`Using Gemini Key: ${maskedKey} for embeddings`);
+
       // Use our custom class to force the dimensions if needed
       return new CustomGoogleGenerativeAIEmbeddings({
         model: settings.embeddingModel,
         apiKey,
-        taskType: taskType as any,
+        taskType: (taskType || "RETRIEVAL_QUERY") as any,
         outputDimensionality: embeddingDimensions || 768,
       });
     }

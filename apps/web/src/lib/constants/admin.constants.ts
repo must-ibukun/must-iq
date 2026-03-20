@@ -42,8 +42,10 @@ export const NAV = [
 ];
 
 export const AI_PROVIDERS = [
-    { id: 'openai', name: 'OpenAI GPT-4o', shortName: 'OpenAI', icon: 'openai', model: 'gpt-4o', modelId: 'gpt-4o', description: 'Advanced reasoning and versatility' },
-    { id: 'anthropic', name: 'Anthropic Claude 3.5 Sonnet', shortName: 'Claude', icon: 'anthropic', model: 'claude-3-5-sonnet-20240620', modelId: 'claude-3-5-sonnet-20240620', description: 'Excellent for complex logic and coding' },
-    { id: 'gemini', name: 'Gemini 1.5 Pro', shortName: 'Gemini', icon: 'gemini', model: 'gemini-1.5-pro', modelId: 'gemini-1.5-pro', description: 'High context window and multimodal capabilities' },
-    { id: 'ollama', name: 'Local Ollama (Llama 3)', shortName: 'Ollama', icon: 'ollama', model: 'llama3', modelId: 'llama3', description: 'Privacy-focused local inference' },
+    { id: 'openai', name: 'OpenAI', shortName: 'OpenAI', icon: 'openai', model: 'gpt-4o', modelId: 'gpt-4o', description: 'Advanced reasoning and versatility' },
+    { id: 'anthropic', name: 'Anthropic', shortName: 'Claude', icon: 'anthropic', model: 'claude-3-5-sonnet-20240620', modelId: 'claude-3-5-sonnet-20240620', description: 'Excellent for complex logic and coding' },
+    { id: 'gemini', name: 'Google Gemini', shortName: 'Gemini', icon: 'gemini', model: 'gemini-1.5-pro', modelId: 'gemini-1.5-pro', description: 'High context window and multimodal capabilities' },
+    { id: 'ollama', name: 'Ollama', shortName: 'Ollama', icon: 'ollama', model: 'llama3', modelId: 'llama3', description: 'Privacy-focused local inference' },
+    { id: 'xai', name: 'xAI (Grok)', shortName: 'xAI', icon: 'openai', model: 'grok-beta', modelId: 'grok-beta', description: 'Real-time knowledge from X' },
+    { id: 'azure-openai', name: 'Azure OpenAI', shortName: 'Azure', icon: 'openai', model: 'gpt-4o', modelId: 'gpt-4o', description: 'Enterprise-grade OpenAI integration' },
 ];

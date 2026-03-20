@@ -152,24 +152,30 @@ export async function saveActiveSettings(
   const encryptedApiKeys: APIKeyEntry[] = [];
   if (Array.isArray(updated.apiKeys)) {
     for (const entry of updated.apiKeys) {
-      if (entry.key) {
-        // Did the frontend send us a masked key (e.g., "sk-abc...1234" or "AI...••••••4")?
-        if (entry.key.includes("...") || entry.key.includes("•") || entry.key.includes("*")) {
-          // If so, retrieve the real, unmasked key from the current config so we don't overwrite it with mask
-          const existingKey = current.apiKeys.find(k => k.id === entry.id);
-          if (existingKey && existingKey.key) {
-            encryptedApiKeys.push({
-              ...entry,
-              key: encryptText(existingKey.key)
-            });
-          }
-        } else {
-          // It's a brand new plain-text key submitted by the user
+      if (!entry.key) continue;
+
+      // Check if the frontend sent us a masked key (e.g., "sk-abc...1234" or "AI...••••••4")
+      const isMasked = entry.key.includes("...") || entry.key.includes("•") || entry.key.includes("*");
+      
+      if (isMasked) {
+        // If masked, we MUST find the existing full key to preserve it
+        const existingEntry = current.apiKeys.find(k => k.id === entry.id);
+        if (existingEntry && existingEntry.key && !existingEntry.key.includes("...")) {
           encryptedApiKeys.push({
             ...entry,
-            key: encryptText(entry.key)
+            key: encryptText(existingEntry.key)
           });
+          logger.debug(`Preserved existing encrypted key for ${entry.provider} (ID: ${entry.id})`);
+        } else {
+          logger.warn(`Masked key received for ${entry.provider} but no valid unmasked existing key found. Skipping.`);
         }
+      } else {
+        // It's a fresh plain-text key (newly entered by user)
+        encryptedApiKeys.push({
+          ...entry,
+          key: encryptText(entry.key.trim())
+        });
+        logger.log(`Encrypted brand new key for provider: ${entry.provider}`);
       }
     }
   }

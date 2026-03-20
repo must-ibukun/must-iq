@@ -32,19 +32,35 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
       const vectorStore = await createVectorStore();
       const topK = settings.topK ?? 5;
 
-      // Optimization: Fast Intent Exit
+      // Optimization: Dynamic Intent Classification
       let taskType: string | undefined = undefined;
-      const shouldClassify = params.query.length > 15;
+      const threshold = settings.intentClassificationThreshold ?? 15;
+      const shouldClassify = settings.intentClassificationEnabled !== false && params.query.length > threshold;
+      const classifierPrompt = settings.intentClassificationPrompt || "Classify as 'GENERAL' or 'CODE'. Output one word.";
+
 
       if (shouldClassify) {
-        const classifier = await createFastClassifierLLM();
+        const classifier = await createFastClassifierLLM(settings);
         const classificationResult = await classifier.invoke([
-          new SystemMessage("Classify as 'GENERAL' or 'CODE'. Output one word."),
+          new SystemMessage(classifierPrompt),
           new HumanMessage(params.query)
         ]);
-        taskType = (classificationResult.content as string).toUpperCase().includes('CODE') ? 'CODE_RETRIEVAL_QUERY' : 'RETRIEVAL_QUERY';
+
+        const label = (classificationResult.content as string).toUpperCase().trim();
+        console.log(`Classifier Output: "${label}"`);
+
+        // Dynamic mapping via intentMap (JSON string)
+        try {
+          const map = JSON.parse(settings.intentMap || '{}');
+          // Find the value in the map that matches the output label
+          const mappedType = Object.entries(map).find(([key]) => label.includes(key.toUpperCase()))?.[1];
+          taskType = mappedType as string | undefined;
+        } catch (e) {
+          console.log(`Failed to parse intentMap: ${e.message}. Falling back to default.`);
+          taskType = label.includes('CODE') ? 'CODE_RETRIEVAL_QUERY' : 'RETRIEVAL_QUERY';
+        }
       }
-      console.log(`Task type: ${taskType}`);
+      console.log(`Final Task type: ${taskType || 'default'}`);
       const embeddings = await createEmbeddings(taskType);
       const queryVector = await embeddings.embedQuery(params.query);
 

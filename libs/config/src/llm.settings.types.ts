@@ -52,6 +52,12 @@ export interface LLMSettings {
   ollamaBaseUrl?: string;
   ollamaClassifierModel?: string; // e.g. 'llama3' or 'gemma:2b'
   autoCreateTeams?: boolean;
+
+  // Intent Classification Settings
+  intentClassificationEnabled?: boolean;
+  intentClassificationThreshold?: number;
+  intentClassificationPrompt?: string;
+  intentMap?: string; // JSON string mapping classifier labels to provider task types
 }
 
 // ---------------------------------------------------------------
@@ -133,4 +139,13 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   jiraIngestionEnabled: process.env.JIRA_INGESTION_ENABLED === "true",
   agenticReasoningEnabled: process.env.AGENTIC_REASONING_ENABLED === "true",
   autoCreateTeams: process.env.AUTO_CREATE_PROJECTS === "true",
+
+  // Default Intent Classification
+  intentClassificationEnabled: true,
+  intentClassificationThreshold: 15,
+  intentClassificationPrompt: "Classify as 'GENERAL' or 'CODE'. Output one word.",
+  intentMap: JSON.stringify({
+    "CODE": "CODE_RETRIEVAL_QUERY",
+    "GENERAL": "RETRIEVAL_QUERY"
+  }),
 };
