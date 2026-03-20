@@ -193,7 +193,6 @@ async function main() {
         logger.log(`User seeded: ${created.email} → team: ${teamLabel}`);
     }
 
-    ── Default LLM Settings ─────────────────────────────────────────────────
     const settingsValue = JSON.stringify({
         provider: 'gemini',
         model: 'gemini-2.5-flash',
