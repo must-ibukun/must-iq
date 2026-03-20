@@ -1,6 +1,6 @@
 [build]
-  command = "npm install --include=dev --legacy-peer-deps && npx nx build web && find /opt/build/repo -name '.next' -type d"
-  publish = "dist/apps/web/.next"
+  command = "npm install --include=dev --legacy-peer-deps && npx nx build web"
+  publish = "apps/web/.next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
