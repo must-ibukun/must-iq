@@ -29,6 +29,6 @@ export const ALLOWED_MIME_TYPES = [
 ];
 
 
-export const IGNORED_DIRECTORIES = ['node_modules', '.git', 'dist', 'build', '.nx', '__tests__', '__mocks__'];
-export const IGNORED_FILE_PATTERNS = ['.test.', '.spec.', '-test.', '-spec.', '.stories.'];
+export const IGNORED_DIRECTORIES = ['node_modules', '.git', 'dist', 'build', '.nx', '__tests__', '__mocks__', 'package', 'test', '.github', '.husky', '.vscode', 'android'];
+export const IGNORED_FILE_PATTERNS = ['.test.', '.spec.', '-test.', '-spec.', '.stories.', '_test.dart', '_tests.dart'];
 export const MAX_FILE_SIZE_MB = 2000;
