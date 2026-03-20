@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --include=dev --legacy-peer-deps && npx nx build web"
+  command = "npm install --include=dev --legacy-peer-deps && npx nx build web && find /opt/build/repo -name '.next' -type d"
   publish = "dist/apps/web/.next"
 
 [[plugins]]
