@@ -33,10 +33,10 @@ export async function buildRAGChain(rawWorkspaces: string[]) {
   // Resolve Team IDs into actual Workspace Identifiers for Vector DB filtering
   const workspaces = await resolveSearchScopes(rawWorkspaces);
 
-  const [llm, vectorStore] = await Promise.all([
-    createLLM(),                 // ← reads provider + model from DB settings
-    getVectorStore(),
-  ]);
+  // Run sequentially instead of Promise.all to prevent Prisma and 
+  // PGVector from fighting for initial Postgres connections on cold starts.
+  const llm = await createLLM();
+  const vectorStore = await getVectorStore();
 
   const retriever = vectorStore.asRetriever({
     k: 5,

@@ -191,7 +191,7 @@ export async function createVectorStore(taskType?: string): Promise<VectorStore>
                     instance = await RelationalPGVectorStore.initialize(embeddings, {
                         postgresConnectionOptions: {
                             connectionString: process.env.DATABASE_URL!,
-                            max: 5, // Limit connection pool strictly for Serverless
+                            max: 2, // Limit connection pool strictly for Serverless Session Mode
                         },
                         tableName: vectorIndex || "document_chunks",
                         columns: {

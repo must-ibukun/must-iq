@@ -16,9 +16,16 @@ class BasePrismaService
     private readonly logger = new Logger(BasePrismaService.name);
 
     constructor() {
+        let finalUrl = process.env.DATABASE_URL;
+        if (finalUrl && !finalUrl.includes('connection_limit')) {
+            finalUrl = finalUrl.includes('?') 
+                ? `${finalUrl}&connection_limit=3` 
+                : `${finalUrl}?connection_limit=3`;
+        }
+
         super({
             datasources: {
-                db: { url: process.env.DATABASE_URL },
+                db: { url: finalUrl },
             },
         });
 
