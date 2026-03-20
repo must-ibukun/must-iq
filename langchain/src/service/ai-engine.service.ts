@@ -1,7 +1,7 @@
 import { buildRAGChain } from "../chains/rag-chain";
 import { runAgent } from "../agent/index";
 import { getSessionMemory, loadMemoryFromHistory } from "../memory/session-memory";
-import { getActiveSettings, createVectorStore, createEmbeddings, createFastClassifierLLM } from "@must-iq/config";
+import { getActiveSettings, createEmbeddings, createFastClassifierLLM } from "@must-iq/config";
 import { AIQueryParams, AIQueryResult } from "@must-iq/shared-types";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { resolveSearchScopes } from "./scope-resolution.helper";
@@ -29,10 +29,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
   if (settings.ragEnabled !== false) {
     try {
-      const vectorStore = await createVectorStore();
-      const topK = settings.topK ?? 5;
-
-      // Optimization: Dynamic Intent Classification
+      // ── Optimization: Dynamic Intent Classification ──────────────────
       let taskType: string | undefined = undefined;
       const threshold = settings.intentClassificationThreshold ?? 15;
       const shouldClassify = settings.intentClassificationEnabled !== false && params.query.length > threshold;
@@ -61,22 +58,25 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         }
       }
       console.log(`Final Task type: ${taskType || 'default'}`);
+
+      // ── Embed query → retrieve via Prisma (no second pg-pool) ────────
+      // retrieveChunks uses the shared Prisma client, avoiding the
+      // MaxClientsInSessionMode error caused by LangChain's own pg-pool.
+      const { retrieveChunks } = await import('@must-iq/db');
       const embeddings = await createEmbeddings(taskType);
       const queryVector = await embeddings.embedQuery(params.query);
+      const topK = settings.topK ?? 5;
 
-      // Perform retrieval using the specific queryVector (respects taskType)
+      const chunks = await retrieveChunks(queryVector, workspaces, topK);
 
-      const docsWithScores = await vectorStore.similaritySearchVectorWithScore(
-        queryVector,
-        topK,
-        { workspace: { in: workspaces } }
-      );
+      if (chunks.length > 0) {
+        context = chunks
+          .map((d, i) => `[${i + 1}] (${d.source || 'unknown'})\n${d.content}`)
+          .join("\n\n");
 
-      if (docsWithScores.length > 0) {
-        context = docsWithScores.map(([d], i) => `[${i + 1}] (${d.metadata?.source || 'unknown'})\n${d.pageContent}`).join("\n\n");
-        sources = docsWithScores.map(([d, score]) => {
-          const sourceStr = typeof d.metadata?.source === 'string' ? d.metadata.source : '';
-          const idStr = typeof d.metadata?.id === 'string' ? d.metadata.id : 'unknown';
+        sources = chunks.map((d) => {
+          const sourceStr = d.source || '';
+          const idStr = d.id || 'unknown';
           let sType = 'kb';
           if (sourceStr.toLowerCase().includes('.md') || sourceStr.toLowerCase().includes('doc')) sType = 'doc';
           if (idStr.toLowerCase().includes('jira') || sourceStr.toLowerCase().includes('jira')) sType = 'jira';
@@ -87,9 +87,9 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
             source: sourceStr,
             title: sourceStr ? sourceStr.split('/').pop() || 'Document' : 'Document',
             sourceType: sType,
-            score,
-            content: d.pageContent,
-            meta: `Workspace: ${d.metadata?.workspace || 'general'}`
+            score: d.score,
+            content: d.content,
+            meta: `Workspace: ${d.workspace || 'general'}`
           };
         });
       }

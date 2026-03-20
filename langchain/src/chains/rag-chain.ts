@@ -1,47 +1,28 @@
 // ============================================================
-// Must-IQ RAG Chain — LangChain + PGVectorStore
+// Must-IQ RAG Chain — LangChain
 // Active LLM driven by settings (DB → .env fallback)
 // No hardcoded provider imports — swap model from admin UI
 // ============================================================
 
-import { VectorStore } from "@langchain/core/vectorstores";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
-import { Document } from "@langchain/core/documents";
-import { createLLM, createEmbeddings, createVectorStore } from "@must-iq/config";
-import { getActiveSettings } from "@must-iq/config";
+import { createLLM } from "@must-iq/config";
 import { getPromptForWorkspace } from "../prompts/must-iq-rag.prompt";
 import * as dotenv from "dotenv";
 import { resolveSearchScopes } from "../service/scope-resolution.helper";
 dotenv.config();
 
-// VectorStore initialised lazily so it reads current settings
-let _vectorStore: VectorStore | null = null;
-
-async function getVectorStore(): Promise<VectorStore> {
-  if (_vectorStore) return _vectorStore;
-  _vectorStore = await createVectorStore();
-  return _vectorStore;
-}
-
 // ---------------------------------------------------------------
 // Build a workspace-scoped RAG chain
-// LLM is resolved from active settings — NOT hardcoded
+// Context is always pre-built by the engine via Prisma (retrieveChunks),
+// so no VectorStore connection is needed here.
 // ---------------------------------------------------------------
 export async function buildRAGChain(rawWorkspaces: string[]) {
-  // Resolve Team IDs into actual Workspace Identifiers for Vector DB filtering
+  // Resolve Team IDs into actual Workspace Identifiers
   const workspaces = await resolveSearchScopes(rawWorkspaces);
 
-  // Run sequentially instead of Promise.all to prevent Prisma and 
-  // PGVector from fighting for initial Postgres connections on cold starts.
   const llm = await createLLM();
-  const vectorStore = await getVectorStore();
-
-  const retriever = vectorStore.asRetriever({
-    k: 5,
-    filter: { workspace: { in: workspaces } },
-  });
 
   // Use primary workspace for prompt selection (first item in array or fallback)
   const primaryWorkspace = rawWorkspaces[0] || "general";
@@ -49,10 +30,9 @@ export async function buildRAGChain(rawWorkspaces: string[]) {
 
   const chain = RunnableSequence.from([
     {
+      // Context is always pre-built by runAIQuery; pass through directly.
       context: (input: { question: string; chat_history?: any[]; context?: string }) =>
-        input.context || retriever.invoke(input.question).then((docs) => docs.map(d =>
-          `[Layer: ${(d.metadata.layer || 'docs').toUpperCase()}] [Source: ${d.metadata.source || 'unknown'}] [Team: ${d.metadata.workspace || 'general'}]\n${d.pageContent}`
-        ).join("\n\n---\n\n")),
+        input.context ?? "",
       question: (input: { question: string; chat_history?: any[]; context?: string }) => input.question,
       chat_history: (input: { question: string; chat_history?: any[]; context?: string }) => input.chat_history ?? [],
     },
@@ -79,5 +59,3 @@ export async function streamRAGResponse(
     onChunk(chunk);
   }
 }
-
-

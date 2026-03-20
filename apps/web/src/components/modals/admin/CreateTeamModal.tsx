@@ -18,12 +18,12 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
   const [newTeamSlack, setNewTeamSlack] = useState<string[]>([]);
   const [newTeamJira, setNewTeamJira] = useState<string[]>([]);
   const [newTeamGithub, setNewTeamGithub] = useState<string[]>([]);
-  
+
   const [newTeamSlackEnabled, setNewTeamSlackEnabled] = useState(false);
   const [newTeamJiraEnabled, setNewTeamJiraEnabled] = useState(false);
   const [newTeamGithubEnabled, setNewTeamGithubEnabled] = useState(false);
-  
-  const [openDropdown, setOpenDropdown] = useState<'slack'|'jira'|'github'|null>(null);
+
+  const [openDropdown, setOpenDropdown] = useState<'slack' | 'jira' | 'github' | null>(null);
   const [slackSearch, setSlackSearch] = useState('');
   const [jiraSearch, setJiraSearch] = useState('');
   const [githubSearch, setGithubSearch] = useState('');
@@ -96,7 +96,7 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
         githubEnabled: newTeamGithubEnabled,
         identifiers,
       });
-      
+
       showToast('✓ Team created successfully');
       onSuccess();
       onClose();

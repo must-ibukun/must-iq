@@ -18,10 +18,15 @@ const logger = new Logger('PGVectorStore');
 // -------------------------------------------------------------------
 export async function retrieveChunks(
   queryVector: number[],
-  workspace: string,
+  workspace: string | string[],
   topK = 5
 ): Promise<DocumentChunk[]> {
   try {
+    // Normalise workspace(s) into a de-duped array that always includes 'general'
+    const scopes = Array.from(
+      new Set([...(Array.isArray(workspace) ? workspace : [workspace]), 'general'])
+    );
+
     // Format vector for PostgreSQL: [0.1, 0.2, ...]
     const vectorLiteral = `[${queryVector.join(",")}]`;
 
@@ -47,7 +52,7 @@ export async function retrieveChunks(
         embedding <=> ${vectorLiteral}::vector AS distance
       FROM document_chunks
       WHERE
-        workspace IN (${workspace}, 'general')
+        workspace = ANY(${scopes})
         AND embedding IS NOT NULL
       ORDER BY distance ASC
       LIMIT ${topK}
