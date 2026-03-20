@@ -9,8 +9,8 @@ services:
   - type: web
     name: must-iq-api
     env: node
-    plan: starter # Change to 'free' if preferred
-    buildCommand: npm install && npx nx build api
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npx nx build api
     startCommand: node dist/apps/api/main.js
     envVars:
       - key: NODE_ENV
