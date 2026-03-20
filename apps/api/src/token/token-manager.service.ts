@@ -4,15 +4,82 @@
 // Enforces budgets. Caches responses. Compresses prompts.
 // ============================================================
 
-import { Injectable, HttpException, HttpStatus } from "@nestjs/common";
-import { InjectRedis } from "@nestjs-modules/ioredis";
+import { Injectable, HttpException, HttpStatus, Logger, OnModuleDestroy } from "@nestjs/common";
 import Redis from "ioredis";
 import { UserRole, TokenUsage } from "@must-iq/shared-types";
 import { getSystemSettings } from "@must-iq/config";
 
 @Injectable()
-export class TokenManagerService {
-  constructor(@InjectRedis() private readonly redis: Redis) { }
+export class TokenManagerService implements OnModuleDestroy {
+  private readonly logger = new Logger('TokenManagerService');
+  private redis?: Redis;
+  private memoryCache = new Map<string, { value: string | number, expiresAt: number }>();
+
+  constructor() {
+    if (process.env.REDIS_URL && process.env.REDIS_URL.trim() !== "") {
+      try {
+        this.redis = new Redis(process.env.REDIS_URL, {
+          maxRetriesPerRequest: 1,
+          retryStrategy: () => null // don't retry forever, fallback instantly
+        });
+        this.redis.on('error', (err) => {
+          this.logger.warn(`Redis error: ${err.message}. Falling back to in-memory cache.`);
+          this.redis = undefined; // Nullify redis so it falls back to memory
+        });
+        this.logger.log('Connected to Redis for token management & caching');
+      } catch (e) {
+        this.logger.warn('Failed to connect to Redis, using in-memory cache.');
+      }
+    } else {
+      this.logger.log('No REDIS_URL provided, using in-memory cache.');
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.redis) {
+      this.redis.disconnect();
+    }
+  }
+
+  // --- Map Fallback Helpers ---
+  private _get(key: string): string | null {
+    const item = this.memoryCache.get(key);
+    if (!item) return null;
+    if (item.expiresAt > 0 && Date.now() > item.expiresAt) {
+      this.memoryCache.delete(key);
+      return null;
+    }
+    return String(item.value);
+  }
+
+  private _setex(key: string, ttlSeconds: number, value: string) {
+    this.memoryCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+  }
+
+  private _incrby(key: string, value: number): number {
+    const current = Number(this._get(key)) || 0;
+    const next = current + value;
+    // Keep existing expiry if present
+    const existing = this.memoryCache.get(key);
+    this.memoryCache.set(key, { value: next, expiresAt: existing?.expiresAt || 0 });
+    return next;
+  }
+
+  private _ttl(key: string): number {
+    const item = this.memoryCache.get(key);
+    if (!item) return -2; // key does not exist
+    if (item.expiresAt === 0) return -1; // no expiry
+    const left = item.expiresAt - Date.now();
+    return left > 0 ? Math.floor(left / 1000) : -2;
+  }
+
+  private _expire(key: string, ttlSeconds: number) {
+    const item = this.memoryCache.get(key);
+    if (item) {
+      item.expiresAt = Date.now() + ttlSeconds * 1000;
+      this.memoryCache.set(key, item);
+    }
+  }
 
   // -------------------------------------------------------------------
   // Get today's usage key for a user
@@ -46,7 +113,8 @@ export class TokenManagerService {
     
     // 1. Global limit check (Fail-safe for entire system)
     const globalKey = `token:usage:global:${today}`;
-    const globalUsed = parseInt((await this.redis.get(globalKey)) ?? "0");
+    const globalUsedStr = this.redis ? await this.redis.get(globalKey).catch(() => this._get(globalKey)) : this._get(globalKey);
+    const globalUsed = parseInt(globalUsedStr ?? "0");
     if (sys.globalDailyTokenCap > 0 && globalUsed >= sys.globalDailyTokenCap) {
       throw new HttpException({
           statusCode: 429,
@@ -69,7 +137,8 @@ export class TokenManagerService {
       };
     }
 
-    const used = parseInt((await this.redis.get(this.usageKey(userId))) ?? "0");
+    const usedStr = this.redis ? await this.redis.get(this.usageKey(userId)).catch(() => this._get(this.usageKey(userId))) : this._get(this.usageKey(userId));
+    const used = parseInt(usedStr ?? "0");
     const percentUsed = used / budget;
     const remaining = budget - used;
 
@@ -102,28 +171,39 @@ export class TokenManagerService {
     const today = new Date().toISOString().split("T")[0];
     const globalKey = `token:usage:global:${today}`;
 
-    await this.redis.incrby(key, tokensUsed);
-    await this.redis.incrby(globalKey, tokensUsed);
+    if (this.redis) {
+      try {
+        await this.redis.incrby(key, tokensUsed);
+        await this.redis.incrby(globalKey, tokensUsed);
 
-    // Expire at end of day (86400 seconds max, set TTL if not already set)
-    const ttl = await this.redis.ttl(key);
-    if (ttl < 0) {
-      // Set to expire in 25 hours (buffer for timezone differences)
-      await this.redis.expire(key, 90_000);
+        const ttl = await this.redis.ttl(key);
+        if (ttl < 0) await this.redis.expire(key, 90_000);
+
+        const ttlGlobal = await this.redis.ttl(globalKey);
+        if (ttlGlobal < 0) await this.redis.expire(globalKey, 90_000);
+        return;
+      } catch (e) {
+        // silently fallback to memory if redis fails during request
+      }
     }
-    const ttlGlobal = await this.redis.ttl(globalKey);
-    if (ttlGlobal < 0) {
-      await this.redis.expire(globalKey, 90_000);
-    }
+
+    // Fallback to memory
+    this._incrby(key, tokensUsed);
+    this._incrby(globalKey, tokensUsed);
+    if (this._ttl(key) < 0) this._expire(key, 90_000);
+    if (this._ttl(globalKey) < 0) this._expire(globalKey, 90_000);
   }
 
   // -------------------------------------------------------------------
   // Try to get a cached response for this query
   // -------------------------------------------------------------------
   async getCachedResponse(query: string): Promise<{ response: string, sources?: any[] } | null> {
-    const ttl = parseInt(process.env.TOKEN_CACHE_TTL_SECONDS ?? "0");
-    if (ttl === 0) return null;
-    const str = await this.redis.get(this.cacheKey(query));
+    const ttl = parseInt(process.env.TOKEN_CACHE_TTL_SECONDS || "0");
+    if (isNaN(ttl) || ttl <= 0) return null;
+    
+    const k = this.cacheKey(query);
+    const str = this.redis ? await this.redis.get(k).catch(() => this._get(k)) : this._get(k);
+    
     if (!str) return null;
     try {
         return JSON.parse(str);
@@ -137,10 +217,16 @@ export class TokenManagerService {
   // Cache a response for future identical queries
   // -------------------------------------------------------------------
   async cacheResponse(query: string, response: string, sources: any[] = []): Promise<void> {
-    const ttl = parseInt(process.env.TOKEN_CACHE_TTL_SECONDS ?? "0");
-    if (ttl === 0) return;
+    const ttl = parseInt(process.env.TOKEN_CACHE_TTL_SECONDS || "0");
+    if (isNaN(ttl) || ttl <= 0) return;
     const payload = JSON.stringify({ response, sources });
-    await this.redis.setex(this.cacheKey(query), ttl, payload);
+    const k = this.cacheKey(query);
+    
+    if (this.redis) {
+      await this.redis.setex(k, ttl, payload).catch(() => this._setex(k, ttl, payload));
+    } else {
+      this._setex(k, ttl, payload);
+    }
   }
 
   // -------------------------------------------------------------------

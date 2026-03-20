@@ -17,10 +17,10 @@ import { randomUUID } from "crypto";
 const logger = new Logger("VectorFactory");
 
 /**
- * Module-level cache to reuse VectorStore instances and avoid "too many clients" DB errors.
- * Keyed by: provider:index:taskType
+ * Module-level cache to reuse VectorStore initialization promises and avoid "too many clients" DB errors.
+ * Keyed by: provider:index
  */
-const vectorStoreCache = new Map<string, VectorStore>();
+const vectorStorePromises = new Map<string, Promise<VectorStore>>();
 
 /**
  * Custom extension of PGVectorStore to support the Must-IQ relational schema.
@@ -176,58 +176,67 @@ export async function createVectorStore(taskType?: string): Promise<VectorStore>
     // By ignoring taskType in the cache key, we avoid redundant DB connection/table re-initialization.
     const cacheKey = `${vectorProvider}:${vectorIndex || 'default'}`;
 
-    if (vectorStoreCache.has(cacheKey)) {
-        logger.debug(`Reusing cached VectorStore instance for key: ${cacheKey}`);
-        return vectorStoreCache.get(cacheKey)!;
+    if (vectorStorePromises.has(cacheKey)) {
+        logger.debug(`Reusing initialization promise for VectorStore: ${cacheKey}`);
+        return vectorStorePromises.get(cacheKey)!;
     }
 
-    const embeddings = await createEmbeddings(taskType);
-    let instance: VectorStore;
+    const initPromise = (async () => {
+        try {
+            const embeddings = await createEmbeddings(taskType);
+            let instance: VectorStore;
 
-    switch (vectorProvider) {
-        case "pgvector": {
-            instance = await RelationalPGVectorStore.initialize(embeddings, {
-                postgresConnectionOptions: {
-                    connectionString: process.env.DATABASE_URL!
-                },
-                tableName: vectorIndex || "document_chunks",
-                columns: {
-                    idColumnName: "id",
-                    vectorColumnName: "embedding",
-                    contentColumnName: "content",
-                    metadataColumnName: "metadata",
-                },
-                distanceStrategy: "cosine",
-                dimensions: settings.embeddingDimensions || 768,
-            });
-            break;
+            switch (vectorProvider) {
+                case "pgvector": {
+                    instance = await RelationalPGVectorStore.initialize(embeddings, {
+                        postgresConnectionOptions: {
+                            connectionString: process.env.DATABASE_URL!,
+                            max: 5, // Limit connection pool strictly for Serverless
+                        },
+                        tableName: vectorIndex || "document_chunks",
+                        columns: {
+                            idColumnName: "id",
+                            vectorColumnName: "embedding",
+                            contentColumnName: "content",
+                            metadataColumnName: "metadata",
+                        },
+                        distanceStrategy: "cosine",
+                        dimensions: settings.embeddingDimensions || 768,
+                    });
+                    break;
+                }
+
+                case "weaviate": {
+                    const [host, port] = (process.env.WEAVIATE_HOST || "localhost:8080").split(":");
+                    const client = await weaviate.connectToCustom({
+                        httpHost: host,
+                        httpPort: port ? parseInt(port) : 8080,
+                        httpSecure: process.env.WEAVIATE_SCHEME === "https",
+                        authCredentials: process.env.WEAVIATE_API_KEY
+                            ? new weaviate.ApiKey(process.env.WEAVIATE_API_KEY)
+                            : undefined,
+                    });
+
+                    instance = new WeaviateStore(embeddings, {
+                        client: client as any,
+                        indexName: vectorIndex || "MustIQ",
+                        textKey: "content",
+                        metadataKeys: ["workspace", "source", "page"],
+                    });
+                    break;
+                }
+
+                default:
+                    throw new Error(`Unknown vector provider: "${vectorProvider}"`);
+            }
+            return instance;
+        } catch (e) {
+            // Delete failed promise so next request can retry
+            vectorStorePromises.delete(cacheKey);
+            throw e;
         }
+    })();
 
-        case "weaviate": {
-            const [host, port] = (process.env.WEAVIATE_HOST || "localhost:8080").split(":");
-            const client = await weaviate.connectToCustom({
-                httpHost: host,
-                httpPort: port ? parseInt(port) : 8080,
-                httpSecure: process.env.WEAVIATE_SCHEME === "https",
-                authCredentials: process.env.WEAVIATE_API_KEY
-                    ? new weaviate.ApiKey(process.env.WEAVIATE_API_KEY)
-                    : undefined,
-            });
-
-            instance = new WeaviateStore(embeddings, {
-                client: client as any, // Cast to any if there's still a slight type mismatch in LangChain's version
-                indexName: vectorIndex || "MustIQ",
-                textKey: "content",
-                metadataKeys: ["workspace", "source", "page"],
-            });
-            break;
-        }
-
-        default:
-            throw new Error(`Unknown vector provider: "${vectorProvider}"`);
-    }
-
-    // Cache the instance before returning
-    vectorStoreCache.set(cacheKey, instance);
-    return instance;
+    vectorStorePromises.set(cacheKey, initPromise);
+    return initPromise;
 }

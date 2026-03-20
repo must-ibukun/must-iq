@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { RedisModule } from '@nestjs-modules/ioredis';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { TokenModule } from './token/token.module';
@@ -13,10 +12,6 @@ import { IngestionModule } from './ingestion/ingestion.module';
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
-        RedisModule.forRoot({
-            type: 'single',
-            url: process.env.REDIS_URL || 'redis://localhost:6379',
-        }),
         DatabaseModule,
         AuthModule,
         TokenModule,
