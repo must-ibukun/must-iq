@@ -107,11 +107,23 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
   const memory = await getSessionMemory(params.sessionId);
   const vars = await memory.loadMemoryVariables({});
 
+  // ── Fix for Google GenAI Crash ("System message should be the first one") ──
+  // ConversationSummaryBufferMemory prepends summaries as a SystemMessage.
+  // Google GenAI strictly requires exactly ONE SystemMessage at the very beginning.
+  // We map the summary SystemMessage to a HumanMessage so the LLM still reads it
+  // without triggering the adapter's validation error.
+  const safeChatHistory = (vars.chat_history ?? []).map((msg: any) => {
+    if (typeof msg._getType === 'function' && msg._getType() === "system") {
+      return new HumanMessage(`[Conversation Summary]:\n${msg.content}`);
+    }
+    return msg;
+  });
+
   if (params.stream && params.onChunk) {
     let fullText = "";
     for await (const chunk of await chain.stream({
       question: params.query,
-      chat_history: vars.chat_history ?? [],
+      chat_history: safeChatHistory,
       context: context
     } as any)) {
       fullText += chunk;
@@ -123,7 +135,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
   const response = await chain.invoke({
     question: params.query,
-    chat_history: vars.chat_history ?? [],
+    chat_history: safeChatHistory,
     context: context
   } as any);
 
