@@ -8,7 +8,7 @@ services:
     name: must-iq-api
     env: node
     plan: free
-    buildCommand: npm install --include=dev --legacy-peer-deps && npx nx build api
+    buildCommand: npm install --include=dev --legacy-peer-deps && npx prisma generate --schema=libs/db/src/prisma/schema.prisma && npx nx build api
     startCommand: node dist/apps/api/main.js
     envVars:
       - key: NODE_ENV
