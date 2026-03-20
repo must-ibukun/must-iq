@@ -1031,7 +1031,7 @@ export default function AdminPage() {
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>{teamEditDraft.length} team(s) selected</span>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <Button
-                          variant="secondary"
+                          variant="ghost"
                           onClick={() => setTeamEditTarget(null)}
                         >
                           Cancel
@@ -1094,7 +1094,7 @@ export default function AdminPage() {
                           </span>
                         </div>
                         <div style={{ flex: 1 }}>
-                          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Token Budget</label>
+                          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Token Budget</label>
                           <input
                             type="number"
                             value={editUserBudget}
@@ -1116,7 +1116,7 @@ export default function AdminPage() {
 
                     <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                       <Button
-                        variant="secondary"
+                        variant="ghost"
                         onClick={() => setEditUserTarget(null)}
                       >
                         Cancel
