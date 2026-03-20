@@ -19,181 +19,181 @@ async function main() {
     const managerPassword = await hash('manager123', saltRounds);
     const employeePassword = await hash('employee123', saltRounds);
 
-    // // ── Clean up existing to prevent dupes during seed testing ──────────────
-    // await prisma.workspace.deleteMany({});
-    // await prisma.team.deleteMany({});
+    // ── Clean up existing to prevent dupes during seed testing ──────────────
+    await prisma.workspace.deleteMany({});
+    await prisma.team.deleteMany({});
 
-    // // ── Seed Teams (formerly Projects) with nested Workspace sources ────────
-    // const teamDefs = [
-    //     {
-    //         name: 'API Infrastructure',
-    //         githubEnabled: true,
-    //         slackEnabled: false,
-    //         jiraEnabled: false,
-    //         identifiers: ['must-iq/api', 'must-iq/core'],
-    //         status: 'active',
-    //         workspaces: [
-    //             { type: 'GITHUB' as const, identifier: 'must-iq/api', tokenBudget: 25000 },
-    //             { type: 'GITHUB' as const, identifier: 'must-iq/core', tokenBudget: 25000 },
-    //         ]
-    //     },
-    //     {
-    //         name: 'Frontend Excellence',
-    //         githubEnabled: true,
-    //         slackEnabled: true,
-    //         jiraEnabled: false,
-    //         identifiers: ['must-iq/web', '#frontend-dev'],
-    //         status: 'active',
-    //         workspaces: [
-    //             { type: 'GITHUB' as const, identifier: 'must-iq/web', tokenBudget: 30000 },
-    //             { type: 'SLACK' as const, identifier: '#frontend-dev', tokenBudget: 15000 },
-    //         ]
-    //     },
-    //     {
-    //         name: 'Onboarding Flow',
-    //         slackEnabled: true,
-    //         githubEnabled: false,
-    //         jiraEnabled: false,
-    //         identifiers: ['#hr-onboarding'],
-    //         status: 'active',
-    //         workspaces: [
-    //             { type: 'SLACK' as const, identifier: '#hr-onboarding', tokenBudget: 10000 },
-    //         ]
-    //     },
-    //     {
-    //         name: 'Security Audit',
-    //         jiraEnabled: true,
-    //         slackEnabled: false,
-    //         githubEnabled: false,
-    //         identifiers: ['Global MSQ'],
-    //         status: 'active',
-    //         workspaces: [
-    //             { type: 'JIRA' as const, identifier: 'Global MSQ', tokenBudget: 40000 },
-    //         ]
-    //     },
-    //     {
-    //         name: 'Compliance Center',
-    //         jiraEnabled: true,
-    //         slackEnabled: false,
-    //         githubEnabled: false,
-    //         identifiers: ['COMP'],
-    //         status: 'active',
-    //         workspaces: [
-    //             { type: 'JIRA' as const, identifier: 'COMP', tokenBudget: 45000 },
-    //             { type: 'GENERIC' as const, identifier: 'vault-v2', tokenBudget: 20000 },
-    //         ]
-    //     }
-    // ];
+    // ── Seed Teams (formerly Projects) with nested Workspace sources ────────
+    const teamDefs = [
+        {
+            name: 'API Infrastructure',
+            githubEnabled: true,
+            slackEnabled: false,
+            jiraEnabled: false,
+            identifiers: ['must-iq/api', 'must-iq/core'],
+            status: 'active',
+            workspaces: [
+                { type: 'GITHUB' as const, identifier: 'must-iq/api', tokenBudget: 25000 },
+                { type: 'GITHUB' as const, identifier: 'must-iq/core', tokenBudget: 25000 },
+            ]
+        },
+        {
+            name: 'Frontend Excellence',
+            githubEnabled: true,
+            slackEnabled: true,
+            jiraEnabled: false,
+            identifiers: ['must-iq/web', '#frontend-dev'],
+            status: 'active',
+            workspaces: [
+                { type: 'GITHUB' as const, identifier: 'must-iq/web', tokenBudget: 30000 },
+                { type: 'SLACK' as const, identifier: '#frontend-dev', tokenBudget: 15000 },
+            ]
+        },
+        {
+            name: 'Onboarding Flow',
+            slackEnabled: true,
+            githubEnabled: false,
+            jiraEnabled: false,
+            identifiers: ['#hr-onboarding'],
+            status: 'active',
+            workspaces: [
+                { type: 'SLACK' as const, identifier: '#hr-onboarding', tokenBudget: 10000 },
+            ]
+        },
+        {
+            name: 'Security Audit',
+            jiraEnabled: true,
+            slackEnabled: false,
+            githubEnabled: false,
+            identifiers: ['Global MSQ'],
+            status: 'active',
+            workspaces: [
+                { type: 'JIRA' as const, identifier: 'Global MSQ', tokenBudget: 40000 },
+            ]
+        },
+        {
+            name: 'Compliance Center',
+            jiraEnabled: true,
+            slackEnabled: false,
+            githubEnabled: false,
+            identifiers: ['COMP'],
+            status: 'active',
+            workspaces: [
+                { type: 'JIRA' as const, identifier: 'COMP', tokenBudget: 45000 },
+                { type: 'GENERIC' as const, identifier: 'vault-v2', tokenBudget: 20000 },
+            ]
+        }
+    ];
 
-    // // ── Pre-create shared workspaces for the seed ──────────────
-    // const sharedJira = await prisma.workspace.create({
-    //     data: { type: 'JIRA', identifier: 'Global MSQ', tokenBudget: 40000 }
-    // });
+    // ── Pre-create shared workspaces for the seed ──────────────
+    const sharedJira = await prisma.workspace.create({
+        data: { type: 'JIRA', identifier: 'Global MSQ', tokenBudget: 40000 }
+    });
 
-    // for (const t of teamDefs as any[]) {
-    //     const isSecurityOrCompliance = t.name === 'Security Audit' || t.name === 'Compliance Center';
+    for (const t of teamDefs as any[]) {
+        const isSecurityOrCompliance = t.name === 'Security Audit' || t.name === 'Compliance Center';
 
-    //     await prisma.team.create({
-    //         data: {
-    //             name: t.name,
-    //             githubEnabled: t.githubEnabled || false,
-    //             slackEnabled: t.slackEnabled || false,
-    //             jiraEnabled: t.jiraEnabled || false,
-    //             identifiers: t.identifiers || [],
-    //             status: t.status,
-    //             workspaces: {
-    //                 create: (t.workspaces ?? [])
-    //                     .filter((w: any) => w.identifier !== 'Global MSQ') // Don't create shared ones again
-    //                     .map((w: any) => ({
-    //                         type: w.type,
-    //                         identifier: w.identifier,
-    //                         tokenBudget: w.tokenBudget,
-    //                     })),
-    //                 connect: isSecurityOrCompliance && t.identifiers.includes('Global MSQ')
-    //                     ? [{ id: sharedJira.id }]
-    //                     : undefined
-    //             },
-    //         },
-    //     });
-    // }
-    // logger.log('Teams and Workspaces seeded.');
+        await prisma.team.create({
+            data: {
+                name: t.name,
+                githubEnabled: t.githubEnabled || false,
+                slackEnabled: t.slackEnabled || false,
+                jiraEnabled: t.jiraEnabled || false,
+                identifiers: t.identifiers || [],
+                status: t.status,
+                workspaces: {
+                    create: (t.workspaces ?? [])
+                        .filter((w: any) => w.identifier !== 'Global MSQ') // Don't create shared ones again
+                        .map((w: any) => ({
+                            type: w.type,
+                            identifier: w.identifier,
+                            tokenBudget: w.tokenBudget,
+                        })),
+                    connect: isSecurityOrCompliance && t.identifiers.includes('Global MSQ')
+                        ? [{ id: sharedJira.id }]
+                        : undefined
+                },
+            },
+        });
+    }
+    logger.log('Teams and Workspaces seeded.');
 
-    // // ── Load teams by name so we can assign team IDs to users ───────────────
-    // const teams = await prisma.team.findMany({ select: { id: true, name: true } });
-    // const teamByName = Object.fromEntries(teams.map(t => [t.name, t.id]));
-    // logger.log(`Teams loaded: ${teams.map(t => t.name).join(', ')}`);
+    // ── Load teams by name so we can assign team IDs to users ───────────────
+    const teams = await prisma.team.findMany({ select: { id: true, name: true } });
+    const teamByName = Object.fromEntries(teams.map(t => [t.name, t.id]));
+    logger.log(`Teams loaded: ${teams.map(t => t.name).join(', ')}`);
 
-    // // ── Seed Users — connect via teamId FK ──────────────────────────────────
-    // const users = [
-    //     {
-    //         email: 'admin@mustcompany.com',
-    //         password: adminPassword,
-    //         name: 'Must Admin',
-    //         role: 'ADMIN' as const,
-    //         teamName: null,   // Admins have access to all teams; no single primary team
-    //     },
-    //     {
-    //         email: 'manager@mustcompany.com',
-    //         password: managerPassword,
-    //         name: 'Must Manager',
-    //         role: 'MANAGER' as const,
-    //         teamName: 'API Infrastructure',
-    //     },
-    //     {
-    //         email: 'employee@mustcompany.com',
-    //         password: employeePassword,
-    //         name: 'Must Employee',
-    //         role: 'EMPLOYEE' as const,
-    //         teamName: 'Frontend Excellence',
-    //     },
-    //     {
-    //         email: 'hr@mustcompany.com',
-    //         password: employeePassword,
-    //         name: 'HR Lead',
-    //         role: 'MANAGER' as const,
-    //         teamName: 'Onboarding Flow',
-    //     },
-    //     {
-    //         email: 'security@mustcompany.com',
-    //         password: employeePassword,
-    //         name: 'Security Analyst',
-    //         role: 'EMPLOYEE' as const,
-    //         teamName: 'Security Audit',
-    //     },
-    //     {
-    //         email: 'compliance@mustcompany.com',
-    //         password: employeePassword,
-    //         name: 'Compliance Officer',
-    //         role: 'EMPLOYEE' as const,
-    //         teamName: 'Compliance Center',
-    //     },
-    // ];
+    // ── Seed Users — connect via teamId FK ──────────────────────────────────
+    const users = [
+        {
+            email: 'admin@mustcompany.com',
+            password: adminPassword,
+            name: 'Must Admin',
+            role: 'ADMIN' as const,
+            teamName: null,   // Admins have access to all teams; no single primary team
+        },
+        {
+            email: 'manager@mustcompany.com',
+            password: managerPassword,
+            name: 'Must Manager',
+            role: 'MANAGER' as const,
+            teamName: 'API Infrastructure',
+        },
+        {
+            email: 'employee@mustcompany.com',
+            password: employeePassword,
+            name: 'Must Employee',
+            role: 'EMPLOYEE' as const,
+            teamName: 'Frontend Excellence',
+        },
+        {
+            email: 'hr@mustcompany.com',
+            password: employeePassword,
+            name: 'HR Lead',
+            role: 'MANAGER' as const,
+            teamName: 'Onboarding Flow',
+        },
+        {
+            email: 'security@mustcompany.com',
+            password: employeePassword,
+            name: 'Security Analyst',
+            role: 'EMPLOYEE' as const,
+            teamName: 'Security Audit',
+        },
+        {
+            email: 'compliance@mustcompany.com',
+            password: employeePassword,
+            name: 'Compliance Officer',
+            role: 'EMPLOYEE' as const,
+            teamName: 'Compliance Center',
+        },
+    ];
 
-    // for (const u of users) {
-    //     const teamId = u.teamName ? teamByName[u.teamName] ?? null : null;
+    for (const u of users) {
+        const teamId = u.teamName ? teamByName[u.teamName] ?? null : null;
 
-    //     const created = await prisma.user.upsert({
-    //         where: { email: u.email },
-    //         update: {
-    //             name: u.name,
-    //             role: u.role,
-    //             teams: teamId ? { set: [{ id: teamId }] } : { set: [] },
-    //         },
-    //         create: {
-    //             email: u.email,
-    //             passwordHash: u.password,
-    //             name: u.name,
-    //             role: u.role,
-    //             teams: teamId ? { connect: [{ id: teamId }] } : undefined,
-    //         },
-    //         include: { teams: { select: { name: true } } },
-    //     });
+        const created = await prisma.user.upsert({
+            where: { email: u.email },
+            update: {
+                name: u.name,
+                role: u.role,
+                teams: teamId ? { set: [{ id: teamId }] } : { set: [] },
+            },
+            create: {
+                email: u.email,
+                passwordHash: u.password,
+                name: u.name,
+                role: u.role,
+                teams: teamId ? { connect: [{ id: teamId }] } : undefined,
+            },
+            include: { teams: { select: { name: true } } },
+        });
 
-    //     const teamLabel = created.teams?.[0]?.name ?? (u.role === 'ADMIN' ? 'ALL TEAMS' : 'none');
-    //     logger.log(`User seeded: ${created.email} → team: ${teamLabel}`);
-    // }
+        const teamLabel = created.teams?.[0]?.name ?? (u.role === 'ADMIN' ? 'ALL TEAMS' : 'none');
+        logger.log(`User seeded: ${created.email} → team: ${teamLabel}`);
+    }
 
-    // ── Default LLM Settings ─────────────────────────────────────────────────
+    ── Default LLM Settings ─────────────────────────────────────────────────
     const settingsValue = JSON.stringify({
         provider: 'gemini',
         model: 'gemini-2.5-flash',
@@ -234,6 +234,9 @@ async function main() {
             "CODE": "CODE_RETRIEVAL_QUERY",
             "GENERAL": "RETRIEVAL_QUERY"
         }),
+        cacheL1Ttl: 60000,
+        cacheL2Ttl: 600,
+        cacheL2Key: "must-iq:settings:llm"
     });
 
     await prisma.setting.upsert({

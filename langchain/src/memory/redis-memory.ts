@@ -9,16 +9,7 @@
 
 import { BufferMemory } from "@langchain/classic/memory";
 import { RedisChatMessageHistory } from "@langchain/community/stores/message/ioredis";
-import Redis from "ioredis";
-
-let redisClient: Redis | null = null;
-
-function getRedis(): Redis {
-  if (!redisClient) {
-    redisClient = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379");
-  }
-  return redisClient;
-}
+import { getRedis } from "@must-iq/config";
 
 // ---------------------------------------------------------------
 // Create Redis-backed memory for a session
@@ -27,10 +18,15 @@ function getRedis(): Redis {
 // ---------------------------------------------------------------
 export function createRedisMemory(sessionId: string): BufferMemory {
   const ttlSeconds = parseInt(process.env.MEMORY_TTL_SECONDS ?? "604800"); // 7 days
+  const redis = getRedis();
+
+  if (!redis) {
+    throw new Error("Redis is not available for RedisMemory. Check REDIS_URL.");
+  }
 
   const messageHistory = new RedisChatMessageHistory({
     sessionId: `must-iq:memory:${sessionId}`,
-    client: getRedis(),
+    client: redis,
     sessionTTL: ttlSeconds,
   });
 
@@ -47,5 +43,8 @@ export function createRedisMemory(sessionId: string): BufferMemory {
 // Clear a session's memory from Redis
 // ---------------------------------------------------------------
 export async function clearRedisMemory(sessionId: string): Promise<void> {
-  await getRedis().del(`must-iq:memory:${sessionId}`);
+  const redis = getRedis();
+  if (redis) {
+    await redis.del(`must-iq:memory:${sessionId}`);
+  }
 }

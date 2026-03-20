@@ -217,6 +217,36 @@ export function LLMSettingsSection({
           </div>
         </div>
 
+        {/* Caching & Performance */}
+        <div style={{ marginBottom: 24, padding: 16, background: 'rgba(var(--primary-rgb), 0.03)', borderRadius: 12, border: '1px dashed var(--border)' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconZap size={16} color="var(--primary)" />
+            Caching & Performance
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>L1 Cache TTL (ms)</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>In-memory duration (local process)</div>
+              <input
+                type="number"
+                value={llmSettings?.cacheL1Ttl ?? 60000}
+                onChange={e => setLlmSettings({ ...llmSettings, cacheL1Ttl: parseInt(e.target.value) })}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>L2 Cache TTL (seconds)</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Shared Redis duration (cross-instance)</div>
+              <input
+                type="number"
+                value={llmSettings?.cacheL2Ttl ?? 600}
+                onChange={e => setLlmSettings({ ...llmSettings, cacheL2Ttl: parseInt(e.target.value) })}
+                style={{ width: '100%', padding: '9px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+              />
+            </div>
+          </div>
+        </div>
+
 
         <Button variant="primary" onClick={() => handleSaveLLM()}>{llmSaving ? 'Saving…' : 'Saved ✓'}</Button>
       </div>

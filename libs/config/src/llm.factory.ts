@@ -289,7 +289,7 @@ async function buildEmbeddings(settings: LLMSettings, taskType?: string): Promis
     case "gemini": {
       const apiKey = findActiveKey("gemini");
       if (!apiKey) throw new Error("Gemini API key for embeddings not found or not active (it may be masked in DB)");
-      
+
       const maskedKey = apiKey.substring(0, 6) + "..." + apiKey.substring(apiKey.length - 4);
       logger.debug(`Using Gemini Key: ${maskedKey} for embeddings`);
 

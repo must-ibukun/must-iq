@@ -58,6 +58,11 @@ export interface LLMSettings {
   intentClassificationThreshold?: number;
   intentClassificationPrompt?: string;
   intentMap?: string; // JSON string mapping classifier labels to provider task types
+  
+  // Cache Settings
+  cacheL1Ttl?: number; // In-memory TTL (ms)
+  cacheL2Ttl?: number; // Redis TTL (seconds)
+  cacheL2Key?: string; // Redis key
 }
 
 // ---------------------------------------------------------------
@@ -145,7 +150,11 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   intentClassificationThreshold: 15,
   intentClassificationPrompt: "Classify as 'GENERAL' or 'CODE'. Output one word.",
   intentMap: JSON.stringify({
-    "CODE": "CODE_RETRIEVAL_QUERY",
     "GENERAL": "RETRIEVAL_QUERY"
   }),
+
+  // Cache Defaults
+  cacheL1Ttl: parseInt(process.env.CACHE_L1_TTL ?? "60000"),
+  cacheL2Ttl: parseInt(process.env.CACHE_L2_TTL ?? "600"),
+  cacheL2Key: process.env.CACHE_L2_KEY ?? "must-iq:settings:llm",
 };
