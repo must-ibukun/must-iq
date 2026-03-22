@@ -104,7 +104,6 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           : params.query;
 
         const queryVector = await embeddings.embedQuery(finalQueryForSearch);
-        console.log(`Query Vector: ${queryVector}`);
         const topK = settings.topK ?? 5;
 
         const chunks = await retrieveChunks(queryVector, workspaces, topK);
