@@ -185,6 +185,7 @@ model Workspace {
   externalId   String?       // API identifier used for ingestion (e.g. Slack channel ID)
   tokenBudget  Int           @default(20000)
   layer        String        @default("docs")
+  techStack    String?       // e.g., "TypeScript, NestJS, Prisma"
   teams        Team[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

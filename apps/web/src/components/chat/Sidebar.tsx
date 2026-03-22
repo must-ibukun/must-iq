@@ -8,6 +8,7 @@ import { ScopeSelector } from '@must-iq-web/components/chat/ScopeSelector';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
+import { Spinner } from '@must-iq-web/components/ui';
 
 export function Sidebar() {
   const { sessions, activeSessionId, tokenUsage, setActiveSession, newSession } = useChatStore();
@@ -19,17 +20,24 @@ export function Sidebar() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [sessionPage, setSessionPage] = useState(1);
+  const [isNavigatingAdmin, setIsNavigatingAdmin] = useState(false);
+  const [isNavigatingProfile, setIsNavigatingProfile] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => setMounted(true), []);
   const isDark = resolvedTheme === 'dark';
 
   const pct = Math.round((tokenUsage.used / tokenUsage.limit) * 100);
 
-  // Paginate sessions
+  // Paginated sessions
   const paginatedSessions = sessions.slice((sessionPage - 1) * 10, sessionPage * 10);
   const totalSessionPages = Math.ceil(sessions.length / 10);
 
-  function handleLogout() { logout(); router.push('/login'); }
+  function handleLogout() { 
+    setIsLoggingOut(true);
+    logout(); 
+    router.push('/login'); 
+  }
 
   return (
     <aside
@@ -98,15 +106,20 @@ export function Sidebar() {
       {/* Admin shortcut — visible to ADMIN and MANAGER users */}
       {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
         <button
-          onClick={() => router.push('/admin')}
-          className="mx-3.5 mb-2 flex items-center gap-2 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
+          onClick={() => {
+            setIsNavigatingAdmin(true);
+            router.push('/admin');
+          }}
+          disabled={isNavigatingAdmin}
+          className="mx-3.5 mb-2 flex flex-shrink-0 items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110 disabled:opacity-50"
           style={{
             background: 'rgba(255,183,64,0.08)',
             border: '1px solid rgba(255,183,64,0.3)',
             color: 'var(--amber)',
           }}
         >
-          <span>⚙</span> Go to Admin Dashboard
+          {isNavigatingAdmin ? <Spinner size={14} color="var(--amber)" /> : <span>⚙</span>}
+          {isNavigatingAdmin ? 'Loading...' : 'Go to Admin Dashboard'}
         </button>
       )}
 
@@ -114,16 +127,17 @@ export function Sidebar() {
       <div className="px-3.5 py-3 border-t flex items-center gap-2.5" style={{ borderColor: 'var(--border)' }}>
         <div
           onClick={() => {
+            setIsNavigatingProfile(true);
             const dest = (pathname.startsWith('/admin') || fromAdmin) ? '/profile?from=admin' : '/profile';
             router.push(dest);
           }}
-          className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-1 -ml-1 rounded-lg transition-colors"
+          className={`flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer p-1 -ml-1 rounded-lg transition-colors ${isNavigatingProfile ? 'opacity-50' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
         >
           <div
             className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-[11px] font-bold"
             style={{ background: 'linear-gradient(135deg,rgba(var(--primary-rgb),0.3),rgba(157,111,255,0.3))', border: '1px solid var(--border-2)', color: 'var(--primary)' }}
           >
-            {user?.initials || (user?.role === 'ADMIN' ? 'AD' : 'U')}
+            {isNavigatingProfile ? <Spinner size={12} color="var(--primary)" /> : (user?.initials || (user?.role === 'ADMIN' ? 'AD' : 'U'))}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[12.5px] font-medium truncate" style={{ color: 'var(--ink)' }}>{user?.name || (user?.role === 'ADMIN' ? 'Must Admin' : 'User')}</div>
@@ -141,10 +155,13 @@ export function Sidebar() {
 
         <button
           onClick={handleLogout}
+          disabled={isLoggingOut}
           title="Sign out"
-          className="text-[13px] opacity-40 hover:opacity-80 transition-opacity bg-transparent border-0 cursor-pointer"
+          className="text-[13px] opacity-40 hover:opacity-80 transition-opacity bg-transparent border-0 cursor-pointer disabled:opacity-20"
           style={{ color: 'var(--ink)' }}
-        >⏻</button>
+        >
+          {isLoggingOut ? <Spinner size={12} color="var(--ink)" /> : '⏻'}
+        </button>
       </div>
     </aside>
   );

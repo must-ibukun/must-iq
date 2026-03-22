@@ -12,6 +12,7 @@ export const chatApi = {
         sessionId: string | null,
         selectedWorkspaces: string[],
         mode: string,
+        image: string | null = null,
         onChunk: (chunk: string) => void,
         onSources: (sources: any[], tokensUsed?: number) => void,
         onTokenUsage: (usage: { used: number; limit: number }) => void,
@@ -28,7 +29,8 @@ export const chatApi = {
                 sessionId, 
                 workspaces: selectedWorkspaces, 
                 deepSearch: mode === 'agent', 
-                stream: true 
+                stream: true,
+                image
             }),
         });
 
@@ -62,6 +64,28 @@ export const chatApi = {
                 } catch { }
             }
         }
+    },
+
+    /** POST /chat/upload — Uploads a local file and returns a temporary reference URL */
+    uploadImage: async (file: File): Promise<{ url: string }> => {
+        const token = getToken();
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const res = await fetch(`${API_BASE}/chat/upload`, {
+            method: 'POST',
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error((err as any).message ?? `Upload error ${res.status}`);
+        }
+
+        return res.json();
     },
 
     /** GET /chat/sessions */

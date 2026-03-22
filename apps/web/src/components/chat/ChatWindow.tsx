@@ -10,6 +10,7 @@ import {
   IconSparkles, IconZap, IconPaperclip, IconSend, IconSearch 
 } from '@must-iq-web/components/ui/MustIcons';
 import remarkGfm from 'remark-gfm';
+import { getLocalImage } from '@must-iq-web/lib/utils/idb';
 
 // ── SOURCE BADGE ───────────────────────────────────────────────
 function SourceBadge({ type }: { type: Source['sourceType'] }) {
@@ -97,6 +98,14 @@ function SourceCitations({ sources }: { sources: Source[] }) {
 // ── MESSAGE BUBBLE ─────────────────────────────────────────────
 function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean }) {
   const isUser = msg.role === 'user';
+  const [localImg, setLocalImg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (msg.localImageId) {
+      getLocalImage(msg.localImageId).then(setLocalImg).catch(console.error);
+    }
+  }, [msg.localImageId]);
+
   return (
     <div className="flex gap-3.5 px-7 py-1.5 max-w-3xl mx-auto w-full animate-fade-up">
       {/* Avatar */}
@@ -119,6 +128,19 @@ function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean })
         >
           {isUser ? 'You' : 'Must-IQ'}
         </div>
+
+        {/* Local Image Render (IndexedDB Cache) */}
+        {localImg && (
+          <div className="mb-3 mt-1">
+            <img 
+              src={localImg} 
+              alt="Uploaded context" 
+              className="max-w-sm max-h-[300px] w-auto rounded-lg border shadow-sm" 
+              style={{ borderColor: 'var(--border-2)', objectFit: 'contain' }} 
+            />
+          </div>
+        )}
+
         <div className="text-[14px] leading-relaxed markdown-content" style={{ color: 'var(--ink)' }}>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}

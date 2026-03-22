@@ -40,6 +40,9 @@ export async function retrieveChunks(
         source: string;
         page: number | null;
         workspace: string;
+        layer: string | null;
+        language: string | null;
+        techStack: string | null;
         distance: number;
       }>
     >`
@@ -49,6 +52,9 @@ export async function retrieveChunks(
         source,
         page,
         workspace,
+        metadata->>'layer' AS layer,
+        metadata->>'language' AS language,
+        metadata->>'techStack' AS "techStack",
         embedding <=> ${vectorLiteral}::vector AS distance
       FROM document_chunks
       WHERE
@@ -64,6 +70,9 @@ export async function retrieveChunks(
       source: row.source,
       page: row.page ?? undefined,
       workspace: row.workspace,
+      layer: row.layer ?? undefined,
+      language: row.language ?? undefined,
+      techStack: row.techStack ?? undefined,
       score: 1 - row.distance, // convert distance → similarity
     }));
   } catch (err) {

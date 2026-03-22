@@ -54,8 +54,8 @@ export const useChatStore = create<ChatState>()(
         set({ activeSessionId: null, messages: [] });
       },
 
-      addUserMessage: (content) => set((s) => ({
-        messages: [...s.messages, { id: genId(), role: 'user', content, createdAt: new Date() }],
+      addUserMessage: (content, localImageId) => set((s) => ({
+        messages: [...s.messages, { id: genId(), role: 'user', content, localImageId, createdAt: new Date() }],
         isWaiting: true,
       })),
       addAssistantMessage: (content, sources = []) => set((s) => ({

@@ -7,6 +7,9 @@ export interface DocumentChunk {
     page?: number;
     score: number;        // relevance score 0-1
     workspace?: string;   // namespace isolation
+    layer?: string;       // architectural layer (mobile | backend | web | docs | etc.)
+    language?: string;    // programming language (ts, swift, python, etc.)
+    techStack?: string;   // specific frameworks or stack assigned to the workspace
 }
 
 // Define extended methods interface

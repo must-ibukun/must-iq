@@ -52,6 +52,7 @@ export async function processAndIngest(content: string, sourceType: IngestionSou
         where: { OR: [{ id: targetWorkspace }, { identifier: targetWorkspace }] }
     });
     const layer = wsRecord?.layer || 'docs';
+    const techStack = wsRecord?.techStack || null;
 
     // 1. Ingest into Vector Store
     await ingestDocument({
@@ -63,6 +64,7 @@ export async function processAndIngest(content: string, sourceType: IngestionSou
             workspace: targetWorkspace,
             projectId,
             layer,
+            techStack,
             tags: analysis.tags || [],
             knowledge_type: sourceType === 'slack' ? 'discussion' : sourceType === 'jira' ? 'solution' : 'decision'
         }

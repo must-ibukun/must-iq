@@ -22,17 +22,14 @@ const BASE_PROMPT = ChatPromptTemplate.fromMessages([
 // the chain explicitly and wrap it with RunnableWithMessageHistory.
 // ---------------------------------------------------------------
 export async function buildConversationalChain(sessionId: string) {
-  const [llm, memory] = await Promise.all([
-    createLLM(),
-    getSessionMemory(sessionId), // in-process or Redis (swap in redis-memory.ts)
-  ]);
+  const llm = await createLLM();
 
   // LCEL pipe: prompt → LLM → string
   const chain = BASE_PROMPT.pipe(llm).pipe(new StringOutputParser());
 
   return new RunnableWithMessageHistory({
     runnable: chain,
-    getMessageHistory: () => memory,
+    getMessageHistory: (sid) => getSessionMemory(sid),
     inputMessagesKey: "input",
     historyMessagesKey: "chat_history",
   });

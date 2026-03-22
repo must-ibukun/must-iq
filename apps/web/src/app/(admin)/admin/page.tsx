@@ -19,6 +19,7 @@ import { ViewTeamModal } from '@must-iq-web/components/modals/admin/ViewTeamModa
 import { EditTeamModal } from '@must-iq-web/components/modals/admin/EditTeamModal';
 import { ViewWorkspaceModal } from '@must-iq-web/components/modals/admin/ViewWorkspaceModal';
 import { EditWorkspaceModal } from '@must-iq-web/components/modals/admin/EditWorkspaceModal';
+import { TechStackPicker, TechStackDropdown } from '@must-iq-web/components/admin/TechStackPicker';
 import { getUsers, inviteUser, updateUser, updateUserTeams } from '@must-iq-web/lib/api/admin/users';
 import { getTokenUsage } from '@must-iq-web/lib/api/admin/tokens';
 import { getAuditLog } from '@must-iq-web/lib/api/admin/audit';
@@ -96,6 +97,8 @@ export default function AdminPage() {
   const [isSavingSystem, setIsSavingSystem] = useState(false);
   const [discoveryResults, setDiscoveryResults] = useState<any>({ jira: [], slack: [], github: [] });
   const [discoveredGuesses, setDiscoveredGuesses] = useState<Record<string, string>>({});
+  const [discoveredTechStacks, setDiscoveredTechStacks] = useState<Record<string, string>>({});
+  const [openStackPicker, setOpenStackPicker] = useState<string | null>(null);
   const [selectedToSync, setSelectedToSync] = useState<Record<string, boolean>>({});
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
@@ -104,6 +107,8 @@ export default function AdminPage() {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isNavigatingChat, setIsNavigatingChat] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => setMounted(true), []);
   const isDark = resolvedTheme === 'dark';
@@ -196,6 +201,7 @@ export default function AdminPage() {
   const [newWsId, setNewWsId] = useState('');
   const [newWsBudget, setNewWsBudget] = useState('');
   const [newWsLayer, setNewWsLayer] = useState('docs');
+  const [newWsTechStack, setNewWsTechStack] = useState('');
   const [workspaceIds, setWorkspaceIds] = useState<string[]>([]);
 
   // Search states for dropdowns
@@ -511,19 +517,19 @@ export default function AdminPage() {
       discoveryResults.slack.forEach((c: any) => {
         const key = `SLACK:${c.id}`;
         if (selectedToSync[key]) {
-          items.push({ identifier: c.name, externalId: c.id, type: 'SLACK', layer: discoveredGuesses[key] || 'docs' });
+          items.push({ identifier: c.name, externalId: c.id, type: 'SLACK', layer: discoveredGuesses[key] || 'docs', techStack: discoveredTechStacks[key] || undefined });
         }
       });
       discoveryResults.jira.forEach((p: any) => {
         const key = `JIRA:${p.key}`;
         if (selectedToSync[key]) {
-          items.push({ identifier: p.name, externalId: p.key, type: 'JIRA', layer: discoveredGuesses[key] || 'docs' });
+          items.push({ identifier: p.name, externalId: p.key, type: 'JIRA', layer: discoveredGuesses[key] || 'docs', techStack: discoveredTechStacks[key] || undefined });
         }
       });
       discoveryResults.github.forEach((r: any) => {
         const key = `GITHUB:${r.full_name}`;
         if (selectedToSync[key]) {
-          items.push({ identifier: r.name, externalId: r.full_name, type: 'GITHUB', layer: discoveredGuesses[key] || 'docs' });
+          items.push({ identifier: r.name, externalId: r.full_name, type: 'GITHUB', layer: discoveredGuesses[key] || 'docs', techStack: discoveredTechStacks[key] || undefined });
         }
       });
 
@@ -555,14 +561,16 @@ export default function AdminPage() {
     // Actually let's look at the callers below to fix them.
     const key = `${type}:${identifier}`;
     const layer = discoveredGuesses[key] || 'docs';
+    const techStack = discoveredTechStacks[key] || undefined;
     
     try {
       await createWorkspace({
         type,
-        identifier: originalName || id, // Name for UI
-        externalId: identifier, // API ID
+        identifier: originalName || id,
+        externalId: identifier,
         tokenBudget: 20000,
-        layer
+        layer,
+        techStack
       });
       
       showToast(`✓ ${type} source added`);
@@ -594,12 +602,14 @@ export default function AdminPage() {
         type: newWsType,
         identifier: newWsId,
         tokenBudget: parseInt(newWsBudget) || 20000,
-        layer: newWsLayer
+        layer: newWsLayer,
+        techStack: newWsTechStack.trim() || undefined
       });
       showToast('✓ Workspace added manually');
       // setShowAddWs(false); // Keep the form visible as requested
       setNewWsId('');
       setNewWsBudget('');
+      setNewWsTechStack('');
       // Refresh
       const d = await getWorkspacesGrouped();
       setGroupedWorkspaces(d);
@@ -732,11 +742,11 @@ export default function AdminPage() {
               <div style={{ fontSize: 10, color: 'var(--muted)' }}>{user?.role === 'MANAGER' ? 'Team Manager' : 'Super Admin'}</div>
             </div>
           </div>
-          <button onClick={() => router.push('/chat?from=admin')} title="Back to chat" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
-            <IconChat size={16} />
+          <button onClick={() => { setIsNavigatingChat(true); router.push('/chat?from=admin'); }} disabled={isNavigatingChat} title="Back to chat" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
+            {isNavigatingChat ? <Spinner size={16} /> : <IconChat size={16} />}
           </button>
-          <button onClick={() => { logout(); router.push('/login'); }} title="Sign out" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
-            <IconLogout size={16} />
+          <button onClick={() => { setIsLoggingOut(true); logout(); router.push('/login'); }} disabled={isLoggingOut} title="Sign out" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
+            {isLoggingOut ? <Spinner size={16} /> : <IconLogout size={16} />}
           </button>
         </div>
       </nav>
@@ -753,7 +763,16 @@ export default function AdminPage() {
               <IconRefresh size={14} style={{ marginRight: 6 }} /> {isDiscovering ? 'Discovering...' : 'Discover Sources'}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => router.push('/chat?from=admin')} style={{ color: 'var(--primary)', borderColor: 'rgba(var(--primary-rgb),0.3)' }}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              setIsNavigatingChat(true);
+              router.push('/chat?from=admin');
+            }} 
+            isLoading={isNavigatingChat}
+            style={{ color: 'var(--primary)', borderColor: 'rgba(var(--primary-rgb),0.3)' }}
+          >
             <IconChat size={14} style={{ marginRight: 6 }} /> Chat with Must IQ
           </Button>
           <Button variant="ghost" size="sm" onClick={() => showToast('Refreshing…')}>
@@ -1246,7 +1265,7 @@ export default function AdminPage() {
                         return (
                           <>
                             <Table
-                              headers={['', 'Source Name', 'Type', 'Architectural Layer', 'Actions']}
+                              headers={['', 'Source Name', 'Type', 'Architectural Layer', 'Tech Stack', 'Actions']}
                               rows={paginate(allFound, discoveryPage, 10).map((item: any) => [
                                 <input 
                                   key="chk" 
@@ -1277,6 +1296,29 @@ export default function AdminPage() {
                                   <option value="security">Security & Compliance</option>
                                   <option value="shared">Shared / Utilities</option>
                                 </select>,
+                                /* Per-row tech stack popover */
+                                <div key="ts" style={{ position: 'relative' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenStackPicker(prev => prev === item.key ? null : item.key)}
+                                    style={{ padding: '4px 10px', borderRadius: 20, border: '1px solid var(--border-2)', background: discoveredTechStacks[item.key] ? 'var(--primary)' : 'var(--bg)', color: discoveredTechStacks[item.key] ? '#fff' : 'var(--muted)', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                  >
+                                    {discoveredTechStacks[item.key] ? discoveredTechStacks[item.key].split(',')[0].trim() + (discoveredTechStacks[item.key].includes(',') ? ' +more' : '') : '+ Stack'}
+                                  </button>
+                                  {openStackPicker === item.key && (
+                                    <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, marginTop: 4, padding: 16, background: 'var(--card)', border: '1px solid var(--border-2)', borderRadius: 12, boxShadow: '0 16px 48px rgba(0,0,0,0.4)', width: 400 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Assign Tech Stack</span>
+                                        <button type="button" onClick={() => setOpenStackPicker(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, lineHeight: 1 }}>×</button>
+                                      </div>
+                                      <TechStackPicker
+                                        value={discoveredTechStacks[item.key] || ''}
+                                        onChange={v => setDiscoveredTechStacks(prev => ({ ...prev, [item.key]: v }))}
+                                        small
+                                      />
+                                    </div>
+                                  )}
+                                </div>,
                                 <Button 
                                   key="s" 
                                   variant="primary" 
@@ -1305,21 +1347,22 @@ export default function AdminPage() {
                 {showAddWs && (
                   <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 20, marginTop: 16 }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 18 }}>Add Workspace Manually</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16, marginBottom: 20, alignItems: 'end' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 20, alignItems: 'end' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Source Type *</label>
                         <select
-                          value={newWsType} onChange={e => setNewWsType(e.target.value)}
+                          value={newWsType} onChange={e => setNewWsType(e.target.value as any)}
                           style={{ width: '100%', padding: '9px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
                         >
                           <option value="SLACK">Slack</option>
                           <option value="JIRA">Jira</option>
                           <option value="GITHUB">GitHub</option>
+                          <option value="CUSTOM">Custom API</option>
                         </select>
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>
-                          {newWsType === 'SLACK' ? 'Slack Channel ID' : newWsType === 'JIRA' ? 'Jira Project Name' : newWsType === 'GITHUB' ? 'GitHub Repo (owner/repo)' : 'Identifier'} *
+                          {newWsType === 'SLACK' ? 'Slack Channel ID *' : newWsType === 'JIRA' ? 'Project Key *' : newWsType === 'GITHUB' ? 'GitHub Repo (owner/repo) *' : 'Identifier *'}
                         </label>
                         <input
                           value={newWsId}
@@ -1359,6 +1402,10 @@ export default function AdminPage() {
                           <option value="security">Security & Compliance</option>
                           <option value="shared">Shared / Utilities</option>
                         </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7, whiteSpace: 'nowrap' }}>Assigned Tech Stack (Optional)</label>
+                        <TechStackDropdown value={newWsTechStack} onChange={setNewWsTechStack} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
@@ -2438,11 +2485,11 @@ export default function AdminPage() {
           editWs={editWs}
           onClose={() => setEditWs(null)}
           showToast={showToast}
-          onSuccess={(id, budget, layer) => {
+          onSuccess={(id, budget, layer, techStack) => {
             setGroupedWorkspaces(prev => {
               const updated = { ...prev };
               Object.keys(updated).forEach(k => {
-                updated[k] = updated[k].map((x: any) => x.id === id ? { ...x, tokenBudget: budget, layer } : x);
+                updated[k] = updated[k].map((x: any) => x.id === id ? { ...x, tokenBudget: budget, layer, techStack } : x);
               });
               return updated;
             });
