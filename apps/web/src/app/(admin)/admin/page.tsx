@@ -104,6 +104,8 @@ export default function AdminPage() {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isNavigatingChat, setIsNavigatingChat] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => setMounted(true), []);
   const isDark = resolvedTheme === 'dark';
@@ -732,11 +734,11 @@ export default function AdminPage() {
               <div style={{ fontSize: 10, color: 'var(--muted)' }}>{user?.role === 'MANAGER' ? 'Team Manager' : 'Super Admin'}</div>
             </div>
           </div>
-          <button onClick={() => router.push('/chat?from=admin')} title="Back to chat" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
-            <IconChat size={16} />
+          <button onClick={() => { setIsNavigatingChat(true); router.push('/chat?from=admin'); }} disabled={isNavigatingChat} title="Back to chat" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
+            {isNavigatingChat ? <Spinner size={16} /> : <IconChat size={16} />}
           </button>
-          <button onClick={() => { logout(); router.push('/login'); }} title="Sign out" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
-            <IconLogout size={16} />
+          <button onClick={() => { setIsLoggingOut(true); logout(); router.push('/login'); }} disabled={isLoggingOut} title="Sign out" style={{ opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink)' }}>
+            {isLoggingOut ? <Spinner size={16} /> : <IconLogout size={16} />}
           </button>
         </div>
       </nav>
@@ -753,7 +755,16 @@ export default function AdminPage() {
               <IconRefresh size={14} style={{ marginRight: 6 }} /> {isDiscovering ? 'Discovering...' : 'Discover Sources'}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => router.push('/chat?from=admin')} style={{ color: 'var(--primary)', borderColor: 'rgba(var(--primary-rgb),0.3)' }}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              setIsNavigatingChat(true);
+              router.push('/chat?from=admin');
+            }} 
+            isLoading={isNavigatingChat}
+            style={{ color: 'var(--primary)', borderColor: 'rgba(var(--primary-rgb),0.3)' }}
+          >
             <IconChat size={14} style={{ marginRight: 6 }} /> Chat with Must IQ
           </Button>
           <Button variant="ghost" size="sm" onClick={() => showToast('Refreshing…')}>

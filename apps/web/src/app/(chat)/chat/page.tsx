@@ -10,6 +10,7 @@ import { InputBar } from '@must-iq-web/components/chat/InputBar';
 import { chatApi } from '@must-iq-web/lib/api/chat';
 import { Button } from '@must-iq-web/components/ui';
 import { IconSparkles, IconZap, IconChevronDown, IconChevronUp, IconCheck, IconX } from '@must-iq-web/components/ui/MustIcons';
+import { saveLocalImage } from '@must-iq-web/lib/utils/idb';
 
 import { IngestionResult, NotificationModalContent } from '@must-iq/shared-types';
 
@@ -62,20 +63,44 @@ export default function ChatPage() {
   }, []);
 
   // ── Chat submit ───────────────────────────────────────────────
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (image: string | null = null) => {
     const text = input.trim();
-    if (!text || isStreaming) return;
+    if ((!text && !image) || isStreaming) return;
     setInput('');
-    addUserMessage(text);
+    
+    let localImageId: string | undefined = undefined;
+    let serverImageUrl: string | null = null;
+    
+    // Process image: cache locally, upload binary to server
+    if (image) {
+      localImageId = crypto.randomUUID();
+      saveLocalImage(localImageId, image).catch(console.error);
+
+      try {
+        const res = await fetch(image);
+        const blob = await res.blob();
+        const file = new File([blob], `upload-${Date.now()}.png`, { type: blob.type });
+        const uploadResponse = await chatApi.uploadImage(file);
+        serverImageUrl = uploadResponse.url;
+      } catch (err: any) {
+        showNotification('error', 'Upload Failed', 'Could not upload the image file securely to the server.', err.message);
+        return;
+      }
+    }
+
+    // Fallback text if user sends only an image
+    const displayMessage = text || 'Please analyze this screenshot.';
+    addUserMessage(displayMessage, localImageId);
     addAssistantMessage('');
 
     try {
       let finalSessionId = activeSessionId;
       await chatApi.stream(
-        text,
+        displayMessage,
         activeSessionId,
         selectedTeams,
         mode,
+        serverImageUrl,
         (chunk) => {
           try {
             const p = JSON.parse(chunk);
@@ -133,7 +158,7 @@ export default function ChatPage() {
     <>
       <TopBar title={activeSession?.title ?? 'New conversation'} />
       <ChatWindow messages={messages} isStreaming={isStreaming} isWaiting={isWaiting} thought={thought} onSuggest={(t) => { setInput(t); }} />
-      <InputBar value={input} onChange={setInput} onSubmit={handleSubmit} disabled={isStreaming} />
+      <InputBar value={input} onChange={setInput} onSubmit={(img) => handleSubmit(img)} disabled={isStreaming} />
 
       {/* Notification Modal */}
       {notification && (

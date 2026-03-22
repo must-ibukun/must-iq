@@ -58,6 +58,7 @@ export interface Message {
   content: string;
   tokensUsed?: number;
   sources?: DocumentChunk[];  // RAG sources used
+  localImageId?: string;      // ID linking to an IndexedDB Base64 image
   createdAt: Date;
 }
 
@@ -129,6 +130,7 @@ export interface ChatRequest {
   stream?: boolean;
   deepSearch?: boolean;
   workspaces?: string[];  // e.g. ["general", "team-123"]
+  image?: string | null;  // Base64 data URL from frontend
 }
 
 export interface ChatResponse {
@@ -286,6 +288,7 @@ export interface AIQueryParams {
     stream?: boolean;
     onChunk?: (chunk: string) => void;
     workspaces?: string[]; // secondary workspaces for RAG
+    image?: string | null; // Base64 data URL for vision/OCR analysis
 }
 
 export interface AIQueryResult {

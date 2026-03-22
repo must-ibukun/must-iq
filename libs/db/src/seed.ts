@@ -227,11 +227,6 @@ async function main() {
         embeddingDimensions: 768,
         intentClassificationEnabled: true,
         intentClassificationThreshold: 15,
-        intentClassificationPrompt: "Classify as 'GENERAL' or 'CODE'. Output one word.",
-        intentMap: JSON.stringify({
-            "CODE": "CODE_RETRIEVAL_QUERY",
-            "GENERAL": "RETRIEVAL_QUERY"
-        }),
         cacheL1Ttl: 60000,
         cacheL2Ttl: 600,
         cacheL2Key: "must-iq:settings:llm"

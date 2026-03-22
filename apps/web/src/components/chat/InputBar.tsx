@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useChatStore } from '@must-iq-web/store/chat.store';
 import { useAuth } from '@must-iq-web/hooks/useAuth';
 import { IconSend, IconPaperclip, IconZap, IconSearch } from '@must-iq-web/components/ui/MustIcons';
@@ -6,7 +6,7 @@ import { IconSend, IconPaperclip, IconZap, IconSearch } from '@must-iq-web/compo
 interface InputBarProps {
   value: string;
   onChange: (v: string) => void;
-  onSubmit: () => void;
+  onSubmit: (image: string | null) => void;
   disabled?: boolean;
 }
 
@@ -14,6 +14,25 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
   const { selectedTeams, availableTeams, mode, setMode } = useChatStore();
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [image, setImage] = useState<string | null>(null);
+
+  const handleImageUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setImage(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) handleImageUpload(file);
+      }
+    }
+  };
 
   // Initialize mode from user preference on mount/user load
   useEffect(() => {
@@ -49,10 +68,11 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
   }
 
   const handleFinalSubmit = () => {
-    if (disabled || !value.trim()) return;
+    if (disabled || (!value.trim() && !image)) return;
     
     // Call original onSubmit
-    onSubmit();
+    onSubmit(image);
+    setImage(null);
 
     // Reset mode to user default if it was manually toggled for this query
     if (user) {
@@ -73,6 +93,21 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
         style={{ background: 'var(--card)', border: '1px solid var(--border-2)' }}
         onFocus={() => { }}
       >
+        {/* Image Preview Area */}
+        {image && (
+          <div className="px-4 pt-3 pb-1 border-b relative" style={{ borderColor: 'var(--border-2)' }}>
+            <div className="relative inline-block group">
+              <img src={image} alt="Upload preview" className="h-16 w-auto rounded-md object-cover border" style={{ borderColor: 'var(--border-2)' }} />
+              <button 
+                onClick={() => setImage(null)}
+                className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity border-0 cursor-pointer shadow-sm"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Textarea row */}
         <div className="flex items-end">
           <textarea
@@ -80,6 +115,7 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKey}
+            onPaste={handlePaste}
             placeholder={mode === 'agent' ? 'Deep Search: Agentic reasoning over Jira, Slack, GitHub…' : 'Quick Search: Fast responses across your selected silos…'}
             rows={1}
             className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed px-4 py-3.5"
@@ -87,16 +123,30 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
           />
           {/* Action icons */}
           <div className="flex items-center gap-1.5 px-3 py-2.5">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              accept="image/*" 
+              className="hidden" 
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+            />
             <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all cursor-pointer border-0"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all cursor-pointer border-0 hover:bg-black/5 dark:hover:bg-white/5"
               style={{ background: 'transparent', border: '1px solid var(--border-2)', color: 'var(--muted)' }}
               title="Attach file"
-            ><IconPaperclip size={18} /></button>
+            >
+              <IconPaperclip size={18} />
+            </button>
             <button
               onClick={handleFinalSubmit}
-              disabled={disabled || !value.trim()}
+              disabled={disabled || (!value.trim() && !image)}
               className="w-9 h-9 rounded-lg flex items-center justify-center text-sm transition-all cursor-pointer border-0"
-              style={{ background: disabled || !value.trim() ? 'rgba(var(--primary-rgb),0.3)' : 'var(--primary)', color: 'var(--bg)' }}
+              style={{ background: disabled || (!value.trim() && !image) ? 'rgba(var(--primary-rgb),0.3)' : 'var(--primary)', color: 'var(--bg)' }}
             >
               <IconSend size={15} />
             </button>

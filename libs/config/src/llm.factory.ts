@@ -113,7 +113,7 @@ export async function createLLM(overrides?: {
 // ---------------------------------------------------------------
 export async function createUtilityLLM(): Promise<BaseChatModel> {
   const settings = await getActiveSettings();
-
+  logger.log(`Building Utility LLM for provider: ${settings.provider} (model: ${settings.utilityModel})`);
   const utilitySettings: LLMSettings = {
     ...settings,
     model: settings.utilityModel,

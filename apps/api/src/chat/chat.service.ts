@@ -171,7 +171,8 @@ export class ChatService {
             history,
             workspaces: body.workspaces,
             useAgent: useDeepSearch || body.message.toLowerCase().includes('agent'),
-            stream: false
+            stream: false,
+            image: body.image
         });
 
         // ── 4. Persist interactions ───────────────────────────
@@ -306,6 +307,7 @@ export class ChatService {
                 workspaces: body.workspaces,
                 useAgent: useDeepSearch || body.message.toLowerCase().includes('agent'),
                 stream: true,
+                image: body.image,
                 onChunk: (chunk) => {
                     fullReply += chunk;
                     onChunk(JSON.stringify({ chunk }));

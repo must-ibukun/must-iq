@@ -17,6 +17,7 @@ export interface Message extends Omit<IBaseInterface, 'updatedAt'> {
     content: string;
     sources?: Source[];
     tokensUsed?: number;
+    localImageId?: string;
     createdAt: Date;
 }
 
@@ -64,7 +65,7 @@ export interface ChatState {
     setActiveSession: (id: string) => void;
     setMessages: (messages: Message[]) => void;
     newSession: () => void;
-    addUserMessage: (content: string) => void;
+    addUserMessage: (content: string, localImageId?: string) => void;
     addAssistantMessage: (content: string, sources?: Source[]) => void;
     updateLastAssistantMessage: (chunk: string) => void;
     finishStream: (sources?: Source[], tokensUsed?: number, sessionId?: string) => void;

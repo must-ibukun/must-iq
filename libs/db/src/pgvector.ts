@@ -40,6 +40,7 @@ export async function retrieveChunks(
         source: string;
         page: number | null;
         workspace: string;
+        layer: string | null;
         distance: number;
       }>
     >`
@@ -49,6 +50,7 @@ export async function retrieveChunks(
         source,
         page,
         workspace,
+        metadata->>'layer' AS layer,
         embedding <=> ${vectorLiteral}::vector AS distance
       FROM document_chunks
       WHERE
@@ -64,6 +66,7 @@ export async function retrieveChunks(
       source: row.source,
       page: row.page ?? undefined,
       workspace: row.workspace,
+      layer: row.layer ?? undefined,
       score: 1 - row.distance, // convert distance → similarity
     }));
   } catch (err) {

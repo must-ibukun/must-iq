@@ -4,9 +4,10 @@
 
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 
-import { MUST_IQ_RAG_GENERAL_PROMPT } from "./must-iq-rag-general.prompt";
-import { MUST_IQ_RAG_HR_PROMPT } from "./must-iq-rag-hr.prompt";
-import { MUST_IQ_RAG_IT_PROMPT } from "./must-iq-rag-it.prompt";
+import { MUST_IQ_RAG_GENERAL_PROMPT } from './must-iq-rag-general.prompt';
+import { MUST_IQ_RAG_HR_PROMPT } from './must-iq-rag-hr.prompt';
+import { MUST_IQ_RAG_IT_PROMPT } from './must-iq-rag-it.prompt';
+import { MUST_IQ_RAG_ENGINEERING_PROMPT } from './must-iq-rag-engineering.prompt';
 
 // Standard RAG prompt — used in rag-chain.ts
 export const RAG_PROMPT = ChatPromptTemplate.fromMessages([
@@ -29,11 +30,31 @@ export const IT_PROMPT = ChatPromptTemplate.fromMessages([
   ["human", "{question}"],
 ]);
 
-// Select prompt based on workspace
+// Engineering / Code — structured report and annotated code answers
+export const ENGINEERING_PROMPT = ChatPromptTemplate.fromMessages([
+  ['system', MUST_IQ_RAG_ENGINEERING_PROMPT],
+  new MessagesPlaceholder('chat_history'),
+  ['human', '{question}'],
+]);
+
+// Select prompt based on workspace name or domain classifier output
 export function getPromptForWorkspace(workspace: string): ChatPromptTemplate {
-  switch (workspace) {
-    case "hr": return HR_PROMPT;
-    case "it": return IT_PROMPT;
-    default: return RAG_PROMPT;
+  const ws = workspace.toLowerCase();
+  
+  // --- Direct domain classifier word matches (highest priority) ---
+  if (ws === 'hr' || ws.includes('hr') || ['payroll','leave','benefits','recruitment','onboarding','people','policy'].some(k => ws.includes(k))) {
+    return HR_PROMPT;
   }
+  if (ws === 'it' || ['helpdesk','support','infrastructure','devops','access','ticket','setup'].some(k => ws.includes(k))) {
+    return IT_PROMPT;
+  }
+  // 'operations' domain → Engineering prompt (uses Operational Request format)
+  if (ws === 'operations' || ['reset','revoke','export','excel','bulk','transfer'].some(k => ws.includes(k))) {
+    return ENGINEERING_PROMPT;
+  }
+  // Engineering-type workspaces
+  if (['engineering', 'mobile', 'admin', 'platform', 'security', 'code', 'backend', 'frontend', 'api', 'app'].some(k => ws.includes(k))) {
+    return ENGINEERING_PROMPT;
+  }
+  return RAG_PROMPT;
 }

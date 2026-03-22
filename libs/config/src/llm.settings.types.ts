@@ -56,8 +56,6 @@ export interface LLMSettings {
   // Intent Classification Settings
   intentClassificationEnabled?: boolean;
   intentClassificationThreshold?: number;
-  intentClassificationPrompt?: string;
-  intentMap?: string; // JSON string mapping classifier labels to provider task types
   
   // Cache Settings
   cacheL1Ttl?: number; // In-memory TTL (ms)
@@ -148,10 +146,6 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   // Default Intent Classification
   intentClassificationEnabled: true,
   intentClassificationThreshold: 15,
-  intentClassificationPrompt: "Classify as 'GENERAL' or 'CODE'. Output one word.",
-  intentMap: JSON.stringify({
-    "GENERAL": "RETRIEVAL_QUERY"
-  }),
 
   // Cache Defaults
   cacheL1Ttl: parseInt(process.env.CACHE_L1_TTL ?? "60000"),
