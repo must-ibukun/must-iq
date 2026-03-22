@@ -17,7 +17,7 @@ import { IngestionResult, NotificationModalContent } from '@must-iq/shared-types
 export default function ChatPage() {
   const [input, setInput] = useState('');
   const {
-    messages, isStreaming, isWaiting, selectedTeams, mode, thought,
+    messages, isStreaming, isWaiting, selectedTeams, availableTeams, mode, thought,
     sessions, activeSessionId,
     addUserMessage, addAssistantMessage, updateLastAssistantMessage,
     finishStream, setTokenUsage, setStreaming, setThought,
@@ -95,10 +95,26 @@ export default function ChatPage() {
 
     try {
       let finalSessionId = activeSessionId;
+      // Derive workspace identifiers from selected teams.
+      // This avoids the backend needing to do a DB lookup (resolveSearchScopes) on every message.
+      const workspaceIdentifiers = [
+        ...new Set([
+          // 'general' + 'vault-v2' are the Global Knowledge Base — only include if user selected them
+          ...(selectedTeams.includes('general') ? ['general', 'vault-v2'] : []),
+          // Expand each selected team into its workspace identifiers
+          ...selectedTeams
+            .filter(id => id !== 'general')
+            .flatMap(teamId => {
+              const team = availableTeams.find(t => t.id === teamId);
+              return team ? team.workspaces.map(w => w.id) : [];
+            })
+        ])
+      ];
+
       await chatApi.stream(
         displayMessage,
         activeSessionId,
-        selectedTeams,
+        workspaceIdentifiers,
         mode,
         serverImageUrl,
         (chunk) => {

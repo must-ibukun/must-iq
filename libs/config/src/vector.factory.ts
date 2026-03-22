@@ -191,11 +191,10 @@ export async function createVectorStore(taskType?: string): Promise<VectorStore>
                     instance = await RelationalPGVectorStore.initialize(embeddings, {
                         postgresConnectionOptions: {
                             connectionString: process.env.DATABASE_URL!,
-                            // 1 connection is sufficient for the ingestion path.
-                            // The chat/RAG path bypasses this pool entirely (uses Prisma).
-                            max: 1,
-                            idleTimeoutMillis: 10_000,    // release idle connections after 10 s
-                            connectionTimeoutMillis: 5_000, // fail fast if pool is saturated
+                            // Allow a few connections when multiple chunks ingest concurrently.
+                            max: 3,
+                            idleTimeoutMillis: 30_000,      // release idle connections after 30 s
+                            connectionTimeoutMillis: 30_000, // allow 30 s to connect to Supabase pooler
                         },
                         tableName: vectorIndex || "document_chunks",
                         columns: {

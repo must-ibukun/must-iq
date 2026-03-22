@@ -129,7 +129,7 @@ export interface ChatRequest {
   sessionId?: string;     // null = new session
   stream?: boolean;
   deepSearch?: boolean;
-  workspaces?: string[];  // e.g. ["general", "team-123"]
+  workspaces?: string[];  // Pre-resolved workspace identifiers (e.g. ["#backend-help", "vault-v2"]) — derived by the frontend from availableTeams
   image?: string | null;  // Base64 data URL from frontend
 }
 
@@ -210,6 +210,7 @@ export interface AdminWorkspace {
   externalId?: string; // API identifier used for ingestion
   tokenBudget: number;
   layer: string;
+  techStack?: string | null;
   teamIds: string[];
   userCount: number;
   chunkCount: number;

@@ -9,8 +9,7 @@ import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
 import { RecursiveCharacterTextSplitter, SupportedTextSplitterLanguage } from "@langchain/textsplitters";
 import { createVectorStore, createEmbeddings, getActiveSettings } from "@must-iq/config";
 import { prisma } from "@must-iq/db";
-import { CODE_EXTENSIONS, ALLOWED_FILE_EXTENSIONS } from "@must-iq/shared-types";
-import { IGNORED_DIRECTORIES } from "../../../apps/api/src/common/constants/ingestion.constants";
+import { CODE_EXTENSIONS } from "@must-iq/shared-types";
 import path from "path";
 import * as dotenv from "dotenv";
 import { Logger } from "@nestjs/common";
@@ -45,13 +44,19 @@ export async function ingestFile(filePath: string, workspace = "general", taskTy
   logger.log(`Loading ${filePath}...`);
   const docs = await loader.load();
 
+  // Fetch workspace metadata
+  const wsRecord = await prisma.workspace.findFirst({
+    where: { OR: [{ id: workspace }, { identifier: workspace }] }
+  });
+  const techStack = wsRecord?.techStack || null;
+
   // Tag every chunk with workspace + source
   const sourceName = relativeFilePath || path.basename(filePath);
   const langId = CODE_EXTENSIONS[ext] || "text";
 
   const tagged = docs.map((doc: any) => ({
     ...doc,
-    metadata: { ...doc.metadata, workspace, source: sourceName, language: langId, layer },
+    metadata: { ...doc.metadata, workspace, source: sourceName, language: langId, layer, techStack },
   }));
 
   const splitter = getSplitterForFile(ext);

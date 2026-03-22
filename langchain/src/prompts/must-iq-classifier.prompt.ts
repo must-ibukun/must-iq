@@ -13,8 +13,9 @@ export const DOMAIN_CLASSIFIER_PROMPT =
   "engineering = code bugs, features, architecture, mobile, backend, frontend.\n" +
   "hr = leave, policy, benefits, payroll, recruitment, onboarding.\n" +
   "it = laptop, access, password, setup, infrastructure, helpdesk.\n" +
-  "operations = account reset, data export, excel report, status check, refund, revoke.\n" +
-  "general = anything else.\n" +
+  "operations = account reset, data export, excel report, status check, refund, revoke, bulk update, abuse case, buyback, transaction hash, tx, approval, admin request, [Requester], [Department], [Expected Result], [Description], [Due Date], [Assigned to], [Solution], [High], [Medium], [Low].\n" +
+  "general = anything else.\n\n" +
+  "IMPORTANT RULE: If the message contains structured Jira/Slack ticket tags like [Expected Result], [Requester], [Description], or [Department], you MUST classify it as operations, even if it mentions databases, scripts, or APIs.\n\n" +
   "Output ONLY the single word, lowercase, no punctuation.";
 
 /**

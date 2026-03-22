@@ -56,7 +56,7 @@ export interface LLMSettings {
   // Intent Classification Settings
   intentClassificationEnabled?: boolean;
   intentClassificationThreshold?: number;
-  
+
   // Cache Settings
   cacheL1Ttl?: number; // In-memory TTL (ms)
   cacheL2Ttl?: number; // Redis TTL (seconds)
@@ -123,8 +123,8 @@ export const EMBEDDING_MODELS: Record<EmbeddingProvider, { model: string; dimens
 // ---------------------------------------------------------------
 export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   provider: (process.env.LLM_PROVIDER as LLMProvider) ?? "gemini",
-  model: process.env.LLM_MODEL ?? "gemini-1.5-flash",
-  utilityModel: process.env.LLM_UTILITY_MODEL ?? "gemini-1.5-flash",
+  model: process.env.LLM_MODEL ?? "gemini-2.5-flash",
+  utilityModel: process.env.LLM_UTILITY_MODEL ?? "gemini-2.5-flash",
   temperature: parseFloat(process.env.LLM_TEMPERATURE ?? "0.3"),
   maxTokens: parseInt(process.env.LLM_MAX_TOKENS ?? "2048"),
   embeddingProvider: (process.env.EMBEDDING_PROVIDER as EmbeddingProvider) ?? "gemini",

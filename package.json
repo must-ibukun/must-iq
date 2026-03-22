@@ -103,9 +103,6 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.4.0"
   },
-  "prisma": {
-    "schema": "libs/db/src/prisma/schema.prisma"
-  },
   "engines": {
     "node": ">= 20.0.0",
     "npm": ">= 10.0.0"

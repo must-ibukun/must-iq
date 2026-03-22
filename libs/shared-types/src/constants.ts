@@ -29,6 +29,7 @@ export const ALLOWED_MIME_TYPES = [
 ];
 
 
-export const IGNORED_DIRECTORIES = ['node_modules', '.git', 'dist', 'build', '.nx', '__tests__', '__mocks__', 'package', 'test', '.github', '.husky', '.vscode', 'android'];
-export const IGNORED_FILE_PATTERNS = ['.test.', '.spec.', '-test.', '-spec.', '.stories.', '_test.dart', '_tests.dart'];
+export const IGNORED_DIRECTORIES = ['node_modules', '.git', 'dist', 'build', '.nx', '__tests__', '__mocks__', 'package', 'test', '.github', '.husky', '.vscode', 'package'];
+export const IGNORED_FILE_PATTERNS = ['.test.', '.spec.', '-test.', '-spec.', '.stories.', '_test.dart', '_tests.dart', 'google-services.json', 'GoogleService-Info.plist',
+  'pubspec.yaml', 'pubspec.lock', 'package-lock.json'];
 export const MAX_FILE_SIZE_MB = 2000;

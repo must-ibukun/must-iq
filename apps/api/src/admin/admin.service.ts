@@ -413,7 +413,7 @@ export class AdminService {
         }));
     }
 
-    async createWorkspace(data: { type: string; identifier: string; externalId?: string; name?: string; tokenBudget?: number; layer?: string }) {
+    async createWorkspace(data: { type: string; identifier: string; externalId?: string; name?: string; tokenBudget?: number; layer?: string; techStack?: string }) {
         const item = await this.prisma.workspace.create({
             data: {
                 type: data.type as any,
@@ -421,7 +421,8 @@ export class AdminService {
                 identifier: data.identifier,
                 externalId: data.externalId || null,
                 tokenBudget: data.tokenBudget ?? 20000,
-                layer: data.layer ?? 'docs'
+                layer: data.layer ?? 'docs',
+                techStack: data.techStack || null
             }
         });
 
@@ -437,12 +438,13 @@ export class AdminService {
         return convertPrismaModelToIInterface<AdminWorkspace>(item as any);
     }
 
-    async updateWorkspace(id: string, data: { tokenBudget?: number; layer?: string }) {
+    async updateWorkspace(id: string, data: { tokenBudget?: number; layer?: string; techStack?: string | null }) {
         const item = await this.prisma.workspace.update({
             where: { id },
             data: {
                 tokenBudget: data.tokenBudget,
-                layer: data.layer
+                layer: data.layer,
+                techStack: data.techStack !== undefined ? data.techStack : undefined
             }
         });
 
