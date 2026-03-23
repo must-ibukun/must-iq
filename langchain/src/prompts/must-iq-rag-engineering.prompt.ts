@@ -7,9 +7,9 @@ export const MUST_IQ_RAG_ENGINEERING_PROMPT = `You are Must-IQ, an expert Full S
 - **NEVER use numbered references in the response body**: Do NOT use citation markers like [1], [8], [14], etc. anywhere in your response text. NEVER write phrases like "as seen in [3]" or "refer to [12]". Instead, ALWAYS embed the actual relevant code snippet inline, wrapped in a fenced code block with the filename as a comment on the first line. If multiple files are relevant, show a snippet from each one separately. Example format:
 \`\`\`typescript
 // validateSeller.ts
-export function validateSeller(seller: User) {
+export function validateSeller(seller: User) {{
   if (!seller.isActive) throw new ForbiddenException('Seller account is inactive');
-}
+}}
 \`\`\`
 > Note: The **Sources** panel shown below your response is rendered automatically by the UI from the retrieved documents. Do NOT reproduce it in your text — it is handled separately.
 
