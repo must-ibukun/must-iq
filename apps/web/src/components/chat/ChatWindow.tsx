@@ -5,6 +5,8 @@ import { SUGGESTED_PROMPTS } from '@must-iq-web/lib/constants/landing.constant';
 import { Badge } from '@must-iq-web/components/ui';
 import ReactMarkdown from 'react-markdown';
 import { CodeBlock } from './CodeBlock';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { 
   IconBrain, IconChat, IconKnowledge, IconAudit, IconPlus, 
   IconSparkles, IconZap, IconPaperclip, IconSend, IconSearch 
@@ -65,7 +67,7 @@ function SourceCitations({ sources }: { sources: Source[] }) {
           {/* Hover Preview Tooltip */}
           {hoveredIndex === i && (
             <div 
-              className="absolute bottom-full left-0 mb-2 w-64 p-3 rounded-xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
+              className="absolute bottom-full left-0 mb-2 w-80 p-3 rounded-xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
               style={{ 
                 background: 'var(--surface)', 
                 border: '1px solid var(--border)',
@@ -76,11 +78,21 @@ function SourceCitations({ sources }: { sources: Source[] }) {
                 <div className="text-[11px] font-bold truncate max-w-[180px]" style={{ color: 'var(--ink)' }}>{src.title}</div>
                 <Badge variant="muted" style={{ fontSize: '9px' }}>{src.sourceType}</Badge>
               </div>
-              <div 
-                className="text-[12px] leading-relaxed line-clamp-4 italic"
-                style={{ color: 'var(--muted)' }}
-              >
-                &quot;{src.content}&quot;
+              <div className="mt-2 rounded-md overflow-hidden border max-h-[200px] overflow-y-auto" style={{ borderColor: 'var(--border)' }}>
+                <SyntaxHighlighter
+                  language={src.title?.split('.').pop() || 'text'}
+                  style={atomDark}
+                  customStyle={{
+                    margin: 0,
+                    padding: '0.75rem',
+                    fontSize: '0.7rem',
+                    lineHeight: '1.4',
+                    background: '#1e1e1e',
+                  }}
+                  wrapLongLines={true}
+                >
+                  {src.content && src.content.length > 500 ? src.content.slice(0, 500) + '...' : src.content}
+                </SyntaxHighlighter>
               </div>
               {src.meta && (
                 <div className="mt-2 pt-2 border-t text-[9px] opacity-40 uppercase tracking-tighter" style={{ borderColor: 'var(--border)' }}>
