@@ -45,7 +45,7 @@ export function LLMSettingsSection({
   handleActivateKey,
   handleDeleteKey,
 }: LLMSettingsSectionProps) {
-  const [localTopK, setLocalTopK] = React.useState(llmSettings?.topK ?? 41);
+  const [localTopK, setLocalTopK] = React.useState(llmSettings?.topK ?? 100);
 
   React.useEffect(() => {
     if (llmSettings?.topK) setLocalTopK(llmSettings.topK);
@@ -72,46 +72,56 @@ export function LLMSettingsSection({
           Enable advanced agentic reasoning (Deep Search) for complex queries. This allows the AI to perform multiple search steps and reason more deeply about the results.
         </div>
 
+
         {(() => {
-          // Calculate dynamic green: saturation increases (30% -> 100%), lightness decreases for richness (60% -> 40%)
-          const fraction = (localTopK - 1) / 49;
+          // Color shifts from muted green (small context) to vivid green (large context)
+          const fraction = (localTopK - 5) / 45; // 0.0 at 5, 1.0 at 50
           const sat = 30 + (fraction * 70);
           const lit = 60 - (fraction * 20);
           const dynamicGreen = `hsl(142, ${sat}%, ${lit}%)`;
           const dynamicGreenBg = `hsla(142, ${sat}%, ${lit}%, 0.15)`;
-
           return (
             <>
+              {/* Stage 1: Candidate Pool */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Context Window Size</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.05em' }}>TOPK</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Context Size (Top-K)</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.05em' }}>NUMBER OF CHUNKS RETRIEVED</div>
                 </div>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: dynamicGreenBg, color: dynamicGreen, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 600, transition: 'all 0.2s' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: dynamicGreenBg, color: dynamicGreen, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, transition: 'all 0.2s' }}>
                   {localTopK}
                 </div>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, marginTop: 12 }}>
-                How many semantically similar past days are fetched and sent to the LLM as context. Higher values give the AI more signal but increase prompt size.
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, marginTop: 8 }}>
+                How many codebase chunks are sent to the LLM to answer the query. A larger number provides more context but increases latency and token cost.
               </div>
-
               <input
                 ref={topKRef}
                 type="range"
-                min="1"
+                min="5"
                 max="50"
+                step="5"
                 value={localTopK}
-                onChange={(e) => setLocalTopK(parseInt(e.target.value))}
-                style={{ width: '100%', marginBottom: 12, accentColor: dynamicGreen, transition: 'accent-color 0.2s' }}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value);
+                  setLocalTopK(v);
+                  setLlmSettings({ ...llmSettings, topK: v });
+                }}
+                style={{ width: '100%', marginBottom: 8, accentColor: dynamicGreen, transition: 'accent-color 0.2s' }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', marginBottom: 24 }}>
-                <span>1 — Minimum</span>
+                <span>5 — Precise</span>
+                <span>15</span>
                 <span>25</span>
-                <span>50 — Maximum</span>
+                <span>35</span>
+                <span>50 — Broad</span>
               </div>
+
+
             </>
           );
         })()}
+
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, marginBottom: 24 }}>
           <div>

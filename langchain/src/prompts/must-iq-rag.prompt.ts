@@ -34,7 +34,7 @@ export const IT_PROMPT = ChatPromptTemplate.fromMessages([
 export const ENGINEERING_PROMPT = ChatPromptTemplate.fromMessages([
   ['system', MUST_IQ_RAG_ENGINEERING_PROMPT],
   new MessagesPlaceholder('chat_history'),
-  ['human', '{question}'],
+  ['human', "{question}\n\n=== CRITICAL REMINDER ===\nYou MUST output your response strictly using the exact Markdown format matching the category of this request (e.g., Operational / Admin Request, Debug Request) as defined in your System Prompt. Under no circumstances should you reply with casual conversation or ignore the mandated markdown headers."],
 ]);
 
 // Select prompt based on workspace name or domain classifier output

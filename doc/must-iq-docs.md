@@ -18,13 +18,13 @@
 9. [LangChain Implementation (langchain/)](#9-langchain-implementation)
 10. [Shared Libraries (libs/)](#10-shared-libraries)
 11. [Database: PostgreSQL + pgvector](#11-database-postgresql--pgvector)
-12. [Cache & Memory: Redis](#12-cache--memory-redis)
+12. [Cache &amp; Memory: Redis](#12-cache--memory-redis)
 13. [LLM Settings — Provider Switching](#13-llm-settings--provider-switching)
 14. [Team Knowledge Base](#14-team-knowledge-base)
 15. [Agent Integrations](#15-agent-integrations)
 16. [Security Model](#16-security-model)
 17. [Token Management](#17-token-management)
-18. [Infrastructure & Deployment](#18-infrastructure--deployment)
+18. [Infrastructure &amp; Deployment](#18-infrastructure--deployment)
 19. [Developer Guide](#19-developer-guide)
 20. [Environment Variables Reference](#20-environment-variables-reference)
 21. [Data Flow Diagrams](#21-data-flow-diagrams)
@@ -40,14 +40,14 @@ Every query employees send to Must-IQ stays inside Must Company's infrastructure
 
 ### Core Capabilities
 
-| Capability | Description |
-|---|---|
-| **Document Q&A** | Ask questions about HR policies, IT runbooks, legal templates, finance procedures |
-| **Team Knowledge** | Ask what any internal team does, who owns it, what stack it uses |
-| **Cross-Team Discovery** | Find out if another team has already solved a problem |
-| **Task Automation** | Lookup Jira ticket status, summarise Slack threads, query GitHub — via natural language |
-| **Living Documentation** | Every answered question is saved back to the knowledge base |
-| **Provider Flexibility** | Switch between Claude, GPT-4o, Gemini, or local Ollama from the admin UI |
+| Capability                     | Description                                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| **Document Q&A**         | Ask questions about HR policies, IT runbooks, legal templates, finance procedures        |
+| **Team Knowledge**       | Ask what any internal team does, who owns it, what stack it uses                         |
+| **Cross-Team Discovery** | Find out if another team has already solved a problem                                    |
+| **Task Automation**      | Lookup Jira ticket status, summarise Slack threads, query GitHub — via natural language |
+| **Living Documentation** | Every answered question is saved back to the knowledge base                              |
+| **Provider Flexibility** | Switch between Claude, GPT-4o, Gemini, or local Ollama from the admin UI                 |
 
 ### Design Principles
 
@@ -70,6 +70,7 @@ When employees use ChatGPT or Claude.ai directly, every query — including sens
 In most technology companies, institutional knowledge lives in three places: people's heads, scattered Slack messages, and outdated Confluence pages. New joiners spend weeks figuring out what teams exist. Colleagues interrupt team leads with repeat questions. Teams unknowingly build duplicate solutions.
 
 Must-IQ solves this by maintaining a **Team Knowledge Base** — a living store of:
+
 - What every team is and does
 - Who owns it and how to contact them
 - What technology stack it uses
@@ -193,14 +194,14 @@ Agent summarises the findings → employee sees the answer
 
 ### Layer Responsibilities
 
-| Layer | Technology | Responsibility |
-|---|---|---|
-| **Web UI** | Next.js 14 | Chat interface, streaming display, token badge |
-| **API Gateway** | NestJS | Auth, RBAC, token enforcement, AI routing |
-| **AI Core** | LangChain | RAG, agent, memory, tool calls, unified engine |
-| **Database** | PostgreSQL + pgvector | All persistent data + vector embeddings |
-| **Cache** | Redis | Token quotas, response cache, session memory |
-| **LLM** | Configurable | Language model inference |
+| Layer                 | Technology            | Responsibility                                 |
+| --------------------- | --------------------- | ---------------------------------------------- |
+| **Web UI**      | Next.js 14            | Chat interface, streaming display, token badge |
+| **API Gateway** | NestJS                | Auth, RBAC, token enforcement, AI routing      |
+| **AI Core**     | LangChain             | RAG, agent, memory, tool calls, unified engine |
+| **Database**    | PostgreSQL + pgvector | All persistent data + vector embeddings        |
+| **Cache**       | Redis                 | Token quotas, response cache, session memory   |
+| **LLM**         | Configurable          | Language model inference                       |
 
 ---
 
@@ -389,20 +390,24 @@ Incoming HTTP Request
 ### Key Modules
 
 **AuthModule** (`apps/api/src/auth/`)
+
 - `AuthController` — `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
 - `JwtAuthGuard` — validates Bearer token on every protected route
 - `RolesGuard` — checks `@Roles('ADMIN', 'MANAGER')` decorator
 
 **ChatModule** (`apps/api/src/chat/`)
+
 - `ChatController` — `POST /chat/message`, `GET /chat/sessions`, `GET /chat/history/:id`
 - Forwards to `AIEngineService`, streams SSE back
 
 **TokenModule** (`apps/api/src/token/`)
+
 - `TokenManagerService` — Redis key: `token:usage:{userId}:{YYYY-MM-DD}`
 - Checks budget before each call, records usage after
 - Emits warning event at 80%, hard stop at 100%
 
 **SettingsModule** (`apps/api/src/settings/`)
+
 - `GET /settings/llm` — current active configuration (no API keys)
 - `PUT /settings/llm` — update provider/model (ADMIN only)
 - `GET /settings/llm/providers` — available providers and their models
@@ -496,6 +501,7 @@ Two memory implementations are provided:
 **`session-memory.ts` — Development (in-process)**
 
 Uses `BaseChatMessageHistory` from `@langchain/core`, consumed via `RunnableWithMessageHistory`:
+
 - Stores message objects (HumanMessage, AIMessage) per session
 - Stored in a `Map<sessionId, BaseChatMessageHistory>` in process memory
 - Swapped at runtime for the Redis implementation in production
@@ -503,6 +509,7 @@ Uses `BaseChatMessageHistory` from `@langchain/core`, consumed via `RunnableWith
 **`redis-memory.ts` — Production**
 
 Uses `RedisChatMessageHistory` from `@langchain/community`:
+
 - Messages stored in Redis at key: `must-iq:memory:{sessionId}`
 - TTL: 7 days (configurable via `MEMORY_TTL_SECONDS`)
 - Shared session state across multiple API instances.
@@ -510,6 +517,7 @@ Uses `RedisChatMessageHistory` from `@langchain/community`:
 ### 9.4 Prompts (`prompts/must-iq-prompts.ts`)
 
 Workspace-specific `ChatPromptTemplate` instances. Each prompt:
+
 - Sets the assistant's identity and scope ("You are Must-IQ...")
 - Restricts answers to provided context ("Answer ONLY using the internal documents...")
 - Instructs citation ("Always cite which document your answer came from...")
@@ -644,7 +652,6 @@ The full schema is in `libs/db/src/prisma/schema.prisma`. Key models:
 
 **`teams`** (mapped to `projects` table) — Organisational units. Each team has an `identifiers: String[]` array listing all linked workspace identifiers, plus boolean flags `slackEnabled`, `githubEnabled`, `jiraEnabled`.
 
-
 ### Vector Column
 
 ```prisma
@@ -759,13 +766,13 @@ return BaseChatModel
 
 ### Supported Providers
 
-| Provider | Models | Notes |
-|---|---|---|
+| Provider      | Models                                               | Notes                                              |
+| ------------- | ---------------------------------------------------- | -------------------------------------------------- |
 | `anthropic` | claude-opus-4-5, claude-sonnet-4-6, claude-haiku-4-5 | Recommended for HR/legal/compliance. 200K context. |
-| `openai` | gpt-4o, gpt-4o-mini, gpt-4-turbo | Best ecosystem. Dual-model strategy saves cost. |
-| `gemini` | gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash | 1M token context. Multimodal capable. |
-| `ollama` | llama3, mistral, phi3, mixtral | Fully local. Zero API cost. No external traffic. |
-| `xai` | grok-3-mini, grok-beta | Competitive alternative; fast inference. |
+| `openai`    | gpt-4o, gpt-4o-mini, gpt-4-turbo                     | Best ecosystem. Dual-model strategy saves cost.    |
+| `gemini`    | gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash   | 1M token context. Multimodal capable.              |
+| `ollama`    | llama3, mistral, phi3, mixtral                       | Fully local. Zero API cost. No external traffic.   |
+| `xai`       | grok-3-mini, grok-beta                               | Competitive alternative; fast inference.           |
 
 ### Changing the Active Model
 
@@ -789,12 +796,12 @@ The change takes effect on the next request after the 60-second cache expires (o
 
 For background tasks (conversation summarisation, document classification), Must-IQ automatically uses the cheapest available model for the active provider:
 
-| Active Provider | Utility Model |
-|---|---|
-| anthropic | claude-haiku-4-5 |
-| openai | gpt-4o-mini |
-| gemini | gemini-1.5-flash |
-| ollama | same as primary (free) |
+| Active Provider | Utility Model          |
+| --------------- | ---------------------- |
+| anthropic       | claude-haiku-4-5       |
+| openai          | gpt-4o-mini            |
+| gemini          | gemini-1.5-flash       |
+| ollama          | same as primary (free) |
 
 This prevents expensive primary models from being used for summarisation tasks.
 
@@ -907,47 +914,47 @@ The agent reads each tool's `description` to decide which tool(s) to call. Good 
 
 ### Jira Integration
 
-| Capability | Description |
-|---|---|
-| Read ticket | `"What is the status of ATLAS-123?"` → retrieves issue details |
-| Read comments | `"Summarise the discussion on ATLAS-124"` → extracts comment thread |
-| Search tickets | `"Find tickets assigned to Sarah"` → searches by assignee |
-| Query sprint | `"What's left in the current sprint?"` → returns open issues |
-| Get board status | `"What's the status of the payments board?"` → sprint summary |
+| Capability       | Description                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| Read ticket      | `"What is the status of ATLAS-123?"` → retrieves issue details      |
+| Read comments    | `"Summarise the discussion on ATLAS-124"` → extracts comment thread |
+| Search tickets   | `"Find tickets assigned to Sarah"` → searches by assignee           |
+| Query sprint     | `"What's left in the current sprint?"` → returns open issues        |
+| Get board status | `"What's the status of the payments board?"` → sprint summary       |
 
 **API used:** Jira Cloud REST API v3. Credentials: `JIRA_HOST`, `JIRA_EMAIL`, `JIRA_API_TOKEN`.
 
 ### Slack Integration
 
-| Capability | Description |
-|---|---|
-| Read channel context | Reads recent messages to understand current discussions |
-| Search threads | `"Has anyone discussed the 502 error in #backend today?"` |
-| Summarise thread | `"Summarise the deployment discussion from yesterday"` |
-| Find links | `"Find the design doc link shared in #product"` |
+| Capability           | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| Read channel context | Reads recent messages to understand current discussions     |
+| Search threads       | `"Has anyone discussed the 502 error in #backend today?"` |
+| Summarise thread     | `"Summarise the deployment discussion from yesterday"`    |
+| Find links           | `"Find the design doc link shared in #product"`           |
 
 **API used:** Slack Web API. Credentials: `SLACK_BOT_TOKEN`.
 
 ### GitHub Integration
 
-| Capability | Description |
-|---|---|
-| List open PRs | `"What PRs are open on the auth repo?"` |
-| Summarise commits | `"What changed in payments-service this week?"` |
-| Check CI/CD | `"Is the main branch build green?"` |
-| Find owners | `"Who owns the notifications service?"` → reads CODEOWNERS |
-| Ingest README | Auto-ingests README into team knowledge base |
+| Capability        | Description                                                   |
+| ----------------- | ------------------------------------------------------------- |
+| List open PRs     | `"What PRs are open on the auth repo?"`                     |
+| Summarise commits | `"What changed in payments-service this week?"`             |
+| Check CI/CD       | `"Is the main branch build green?"`                         |
+| Find owners       | `"Who owns the notifications service?"` → reads CODEOWNERS |
+| Ingest README     | Auto-ingests README into team knowledge base                  |
 
 **API used:** GitHub REST API v3 + GraphQL. Credentials: `GITHUB_TOKEN`.
 
 ### Confluence Integration
 
-| Capability | Description |
-|---|---|
-| Search docs | `"Is there documentation on the onboarding process?"` |
-| Ingest page | Converts Confluence pages to document chunks in pgvector |
-| Read spaces | `"List all spaces matching 'Engineering'"` |
-| Read page tree | `"What pages are under the Onboarding section?"` |
+| Capability     | Description                                              |
+| -------------- | -------------------------------------------------------- |
+| Search docs    | `"Is there documentation on the onboarding process?"`  |
+| Ingest page    | Converts Confluence pages to document chunks in pgvector |
+| Read spaces    | `"List all spaces matching 'Engineering'"`             |
+| Read page tree | `"What pages are under the Onboarding section?"`       |
 
 **API used:** Confluence Cloud REST API v2. Credentials: `CONFLUENCE_HOST`, `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`.
 
@@ -980,12 +987,12 @@ Refresh tokens are stored in the `refresh_tokens` table with an expiry. Token ro
 
 Four roles with increasing privilege:
 
-| Role | Workspaces Available in Scope Selector | Token Limit | Can Change Settings | Can Ingest Docs |
-|---|---|---|---|---|
-| `VIEWER` | General only | 5,000/day | No | No |
-| `EMPLOYEE` | General + own dept + any granted | 20,000/day | No | No |
-| `MANAGER` | General + own dept + sub-depts | 100,000/day | No | Yes (own dept) |
-| `ADMIN` | All workspaces | Unlimited | Yes | Yes (all depts) |
+| Role         | Workspaces Available in Scope Selector | Token Limit | Can Change Settings | Can Ingest Docs |
+| ------------ | -------------------------------------- | ----------- | ------------------- | --------------- |
+| `VIEWER`   | General only                           | 5,000/day   | No                  | No              |
+| `EMPLOYEE` | General + own dept + any granted       | 20,000/day  | No                  | No              |
+| `MANAGER`  | General + own dept + sub-depts         | 100,000/day | No                  | Yes (own dept)  |
+| `ADMIN`    | All workspaces                         | Unlimited   | Yes                 | Yes (all depts) |
 
 > Users only see checkboxes for workspaces they have access to. They cannot select a workspace not in their list.
 
@@ -994,6 +1001,7 @@ Four roles with increasing privilege:
 Rather than automatically restricting search to a user's own workspace, Must-IQ gives employees a **Scope Selector** — a checkbox panel in the chat UI where they choose which workspace silos to include in their search before asking a question.
 
 **Defaults on first open:**
+
 - `☑ General Knowledge` — always pre-checked and cannot be unchecked
 - All other workspaces the user has been granted access to are listed and unchecked by default
 
@@ -1045,6 +1053,7 @@ app.enableCors({
 ### API Keys
 
 API keys for LLM providers are stored in `.env` only. They are never:
+
 - Written to the database
 - Returned by any API endpoint
 - Logged in audit logs
@@ -1053,8 +1062,9 @@ The `getActiveSettings()` function always strips `apiKeys` before returning to c
 
 ### PII Masking (Data Loss Prevention)
 
-Must-IQ intercepts all data (both user prompts and retrieved RAG context) right before it is formatted for the LLM and processes it through a highly optimized PII Masker. 
+Must-IQ intercepts all data (both user prompts and retrieved RAG context) right before it is formatted for the LLM and processes it through a highly optimized PII Masker.
 It utilizes Regex, Lookarounds, and Checksums (Luhn algorithm) to aggressively redact:
+
 - Email Addresses (`[REDACTED: EMAIL]`)
 - Phone Numbers (`[REDACTED: PHONE]`)
 - Credit Cards (`[REDACTED: CREDIT_CARD]`)
@@ -1088,6 +1098,7 @@ This ensures that even if sensitive customer data mistakenly ends up in an inges
 Semantically identical queries return cached responses at zero token cost. The cache key is a SHA-256 hash of `userId + query + sortedSelectedWorkspaces`. Cache TTL is configurable dynamically via the Admin Settings UI (e.g., overriding the default of 1 hour) without requiring an application restart.
 
 This is particularly effective for:
+
 - Repeated policy questions ("What is the leave policy?")
 - Repeated team questions ("What does service X do?")
 - Onboarding questions asked by multiple new joiners
@@ -1099,6 +1110,7 @@ Independent of the RBAC role budgets (`TOKEN_BUDGET_EMPLOYEE`), admins can speci
 ### Token Reporting
 
 Admins can view token usage via:
+
 ```bash
 nx run api:token-report
 ```
@@ -1138,20 +1150,24 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 For production deployment, consider:
 
 **Database**
+
 - Use a managed PostgreSQL service that supports pgvector (e.g., Supabase, Neon, AWS RDS with pgvector, Azure Database for PostgreSQL)
 - Enable connection pooling (PgBouncer recommended)
 - Set up automated daily backups
 
 **Redis**
+
 - Use a managed Redis service (Redis Cloud, AWS ElastiCache, Azure Cache for Redis)
 - Enable Redis persistence (AOF or RDB) for memory durability
 
 **API / AI Engine**
+
 - Deploy to a container orchestrator (AWS ECS, Google Cloud Run, or Kubernetes)
 - Use at least 2 replicas for the API and AI Engine
 - With multiple replicas, switch `session-memory.ts` to `redis-memory.ts` for shared session state
 
 **Environment Variables**
+
 - Use a secrets manager (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault) — never commit `.env` to version control
 
 ### Nx Build Commands for Deployment
@@ -1211,10 +1227,10 @@ nx run-many --target=dev --all --parallel
 
 ### Default Users (after seed)
 
-| Email | Password | Role |
-|---|---|---|
-| admin@mustcompany.com | admin123 | ADMIN |
-| manager@mustcompany.com | manager123 | MANAGER |
+| Email                    | Password    | Role     |
+| ------------------------ | ----------- | -------- |
+| admin@mustcompany.com    | admin123    | ADMIN    |
+| manager@mustcompany.com  | manager123  | MANAGER  |
 | employee@mustcompany.com | employee123 | EMPLOYEE |
 
 > ⚠️ Change all passwords immediately in production.
@@ -1458,17 +1474,19 @@ User types: "What is the status of the Jira ticket mentioned in the latest PR fo
 ## 22. Roadmap
 
 ### Phase 1 — Foundation (Complete ✅)
-- [x] Nx monorepo structure
-- [x] NestJS API Gateway with JWT + RBAC
-- [x] LangChain RAG pipeline (LCEL)
-- [x] Switchable Vector DB (PostgreSQL + pgvector / Weaviate)
-- [x] Redis token quota management
-- [x] Settings-controlled LLM (DB-driven provider switching)
-- [x] Session memory (in-process + Redis-backed)
-- [x] Document ingestion (PDF, DOCX, TXT, MD)
-- [x] Agent logic and tool framework
+
+- [X] Nx monorepo structure
+- [X] NestJS API Gateway with JWT + RBAC
+- [X] LangChain RAG pipeline (LCEL)
+- [X] Switchable Vector DB (PostgreSQL + pgvector / Weaviate)
+- [X] Redis token quota management
+- [X] Settings-controlled LLM (DB-driven provider switching)
+- [X] Session memory (in-process + Redis-backed)
+- [X] Document ingestion (PDF, DOCX, TXT, MD)
+- [X] Agent logic and tool framework
 
 ### Phase 2 — Team Knowledge (In Progress 🔄)
+
 - [ ] Team Knowledge Base schema and ingestion pipeline
 - [ ] Admin approval flow for Q&A pairs
 - [ ] Jira agent tool (read, search, query sprints)
@@ -1478,6 +1496,7 @@ User types: "What is the status of the Jira ticket mentioned in the latest PR fo
 - [ ] Auto-population from GitHub READMEs
 
 ### Phase 3 — Intelligence (Planned 📋)
+
 - [ ] Multi-modal support (Gemini) — attach screenshots to queries
 - [ ] Knowledge gap detection — flag questions that weren't answered well
 - [ ] Proactive suggestions — "Based on your recent queries, you might want to read..."
@@ -1486,6 +1505,7 @@ User types: "What is the status of the Jira ticket mentioned in the latest PR fo
 - [ ] Google Calendar integration — schedule meetings from chat
 
 ### Phase 4 — Scale (Planned 📋)
+
 - [ ] Multi-tenant support — separate knowledge bases per business unit
 - [ ] Fine-tuning pipeline — train a smaller model on Must Company's Q&A history
 - [ ] Voice interface — speech-to-text input, text-to-speech output

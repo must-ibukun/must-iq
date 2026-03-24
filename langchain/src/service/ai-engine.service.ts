@@ -4,7 +4,9 @@ import { getSessionMemory, loadMemoryFromHistory } from "../memory/session-memor
 import { getActiveSettings, createEmbeddings, createFastClassifierLLM, createUtilityLLM } from "@must-iq/config";
 import { AIQueryParams, AIQueryResult } from "@must-iq/shared-types";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
-import { retrieveChunks } from "@must-iq/db";
+import { retrieveChunks, retrieveChunksKeyword, reciprocalRankFusion } from "@must-iq/db";
+import { generateHypotheticalDocument } from "../rag/hyde";
+import { buildContext } from "../utils/context-builder";
 
 import { DOMAIN_CLASSIFIER_PROMPT, DOMAIN_TO_TASK_TYPE } from "../prompts/must-iq-classifier.prompt";
 import * as fs from "fs";
@@ -63,7 +65,19 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
             new HumanMessage(params.query)
           ]);
 
-          const domain = (domainResult.content as string).toLowerCase().trim();
+          let domain = (domainResult.content as string).toLowerCase().trim();
+
+          // ── Fast Model Output Sanitization ──
+          // Open-source models (e.g., Llama3 via Ollama) often ignore the "Output ONLY the single word" rule
+          // and start conversational preamble. We must forcefully extract the target classification word.
+          const validDomains = ['engineering', 'operations', 'hr', 'it', 'general'];
+          const foundDomain = validDomains.find(d => domain.includes(d));
+          if (foundDomain) {
+            domain = foundDomain;
+          } else {
+            domain = 'general'; // Default fallback
+          }
+
           console.log(`Domain Classifier Output: "${domain}"`);
 
           // Store domain for prompt selection in buildRAGChain
@@ -72,7 +86,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           // Derive taskType from static map — no intentMap JSON parsing needed
           taskType = DOMAIN_TO_TASK_TYPE[domain] ?? 'RETRIEVAL_QUERY';
         }
-        console.log(`Final Task type: ${taskType || 'default'}`);
+        console.log(`Final Task type: ${taskType}`);
 
         // ── Step 2: OCR/Vision Extraction (If Image Present) ─────────────
         let extractedText = "";
@@ -103,20 +117,43 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           ? `${params.query}\n\nVisible Screen Elements:\n${extractedText}`
           : params.query;
 
-        const queryVector = await embeddings.embedQuery(finalQueryForSearch);
-        const topK = settings.topK ?? 5;
+        // ── HyDE: Hypothetical Document Embedding ─────────────────────
+        // If enabled, generate a synthetic code/doc snippet that "looks like"
+        // the answer — then embed THAT instead of the raw natural language query.
+        // Bridges the vocabulary gap between natural language and code.
+        let queryText = finalQueryForSearch;
+        if (settings.hydeEnabled) {
+          console.log(`HyDE: Generating hypothetical document for query...`);
+          queryText = await generateHypotheticalDocument(finalQueryForSearch, taskType);
+          console.log(`HyDE: Using hypothetical document (${queryText.length} chars) for embedding.`);
+        }
 
-        const chunks = await retrieveChunks(queryVector, workspaces, topK);
+        const queryVector = await embeddings.embedQuery(queryText);
+
+        // ── Stage 1: Broad Retrieval ─────────────────────────
+        // If hybridSearchEnabled: run dense (pgvector) + sparse (BM25) in parallel
+        // and merge via Reciprocal Rank Fusion.
+        // Otherwise: pure dense search only.
+        const topK = settings.topK ?? 100;
+
+        let chunks;
+        if (settings.hybridSearchEnabled) {
+          console.log(`Hybrid Search: Running dense + BM25 in parallel (topK=${topK})...`);
+          const [denseChunks, keywordChunks] = await Promise.all([
+            retrieveChunks(queryVector, workspaces, topK),
+            retrieveChunksKeyword(finalQueryForSearch, workspaces, topK), // Always use raw query for BM25
+          ]);
+          console.log(`Hybrid Search: Dense=${denseChunks.length}, BM25=${keywordChunks.length}. Merging via RRF...`);
+          chunks = reciprocalRankFusion(denseChunks, keywordChunks);
+          console.log(`Hybrid Search: Merged pool = ${chunks.length} unique chunks.`);
+        } else {
+          chunks = await retrieveChunks(queryVector, workspaces, topK);
+          console.log(`Stage 1: Retrieved ${chunks.length} chunks (topK=${topK})`);
+        }
+
 
         if (chunks.length > 0) {
-          context = chunks
-            .map((d, i) => {
-              const layerLabel = d.layer ? `[Layer: ${d.layer}] ` : '';
-              const langLabel = d.language && d.language !== 'text' ? `[Lang: ${d.language}] ` : '';
-              const stackLabel = d.techStack ? `[Stack: ${d.techStack}] ` : '';
-              return `[${i + 1}] ${layerLabel}${langLabel}${stackLabel}(${d.source || 'unknown'})\n${d.content}`;
-            })
-            .join("\n\n");
+          context = buildContext(chunks, settings.contextTokenBudget ?? 6000);
 
           sources = chunks.map((d) => {
             const sourceStr = d.source || '';
