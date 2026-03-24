@@ -37,7 +37,10 @@ export interface LLMSettings {
   // API keys stored securely in the database (encrypted) or fallen back to env
   apiKeys: APIKeyEntry[];
   ragEnabled?: boolean;
-  topK?: number;
+  topK?: number;             // Candidate pool size fetched from pgvector (Stage 1)
+  hydeEnabled?: boolean;       // Whether to apply HyDE query expansion before embedding
+  hybridSearchEnabled?: boolean; // Whether to run dense + BM25 in parallel and merge via RRF
+  contextTokenBudget?: number; // Target max tokens for the final RAG context block
 
   // Ingestion Settings (Pull Mode)
   slackIngestionEnabled: boolean;
@@ -142,6 +145,11 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   jiraIngestionEnabled: process.env.JIRA_INGESTION_ENABLED === "true",
   agenticReasoningEnabled: process.env.AGENTIC_REASONING_ENABLED === "true",
   autoCreateTeams: process.env.AUTO_CREATE_PROJECTS === "true",
+
+  // Default Retrieval / HyDE
+  hydeEnabled: false,
+  hybridSearchEnabled: false,
+  contextTokenBudget: process.env.CONTEXT_TOKEN_BUDGET ? parseInt(process.env.CONTEXT_TOKEN_BUDGET) : 6000,
 
   // Default Intent Classification
   intentClassificationEnabled: true,

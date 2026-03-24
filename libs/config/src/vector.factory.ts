@@ -172,9 +172,9 @@ export async function createVectorStore(taskType?: string): Promise<VectorStore>
     const { vectorProvider, vectorIndex } = settings;
 
     // Generate a unique cache key for this configuration
-    // Optimization: taskType (CODE/GENERAL) only affects the embeddings, not the vector store itself.
-    // By ignoring taskType in the cache key, we avoid redundant DB connection/table re-initialization.
-    const cacheKey = `${vectorProvider}:${vectorIndex || 'default'}`;
+    // Note: VectorStore binds the Embeddings instance permanently.
+    // We MUST include taskType in the cache key to prevent cross-contamination of embedding spaces.
+    const cacheKey = `${vectorProvider}:${vectorIndex || 'default'}:${taskType || 'default'}`;
 
     if (vectorStorePromises.has(cacheKey)) {
         logger.debug(`Reusing initialization promise for VectorStore: ${cacheKey}`);

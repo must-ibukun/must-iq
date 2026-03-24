@@ -93,6 +93,18 @@ export interface RagChunk {
   distance: number;
 }
 
+export interface RerankCandidate {
+  id: string;
+  content: string;
+  source: string;
+  page?: number;
+  workspace: string;
+  layer?: string;
+  language?: string;
+  techStack?: string;
+  score: number; // original pgvector cosine score
+}
+
 export interface IngestRequest {
   source: string;       // file path, S3 URL, or DB connection
   workspace?: string;   // restrict access to this workspace

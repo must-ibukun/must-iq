@@ -2293,6 +2293,57 @@ export default function AdminPage() {
                   ))}
                 </div>
 
+                {/* Advanced Search & Retrieval Group */}
+                <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+                    <IconSearch size={18} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Advanced Search & Retrieval</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Configure how the AI queries knowledge globally</div>
+                    </div>
+                  </div>
+                  
+                  {/* Hybrid Search */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(59,130,246,1)' }}><IconSearch size={16} /></div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Hybrid Search (Dense + BM25)</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Runs vector search and keyword (BM25) search in parallel. Ideal for strict identifier matching.</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      {llmSettings?.hybridSearchEnabled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
+                      <Toggle
+                        on={llmSettings?.hybridSearchEnabled ?? false}
+                        onToggle={() => setLlmSettings({ ...llmSettings, hybridSearchEnabled: !llmSettings?.hybridSearchEnabled })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* HyDE */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(139,92,246,1)' }}><IconZap size={16} /></div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>HyDE Query Expansion</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Generates theoretical code blocks to bridge vocabulary gaps before querying the database.</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      {llmSettings?.hydeEnabled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
+                      <Toggle
+                        on={llmSettings?.hydeEnabled ?? false}
+                        onToggle={() => setLlmSettings({ ...llmSettings, hydeEnabled: !llmSettings?.hydeEnabled })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Resource Limits Group */}
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
