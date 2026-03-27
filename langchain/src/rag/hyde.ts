@@ -38,7 +38,7 @@ export async function generateHypotheticalDocument(
   try {
     const llm = await createUtilityLLM();
 
-    const styleHint = taskType === 'CODE'
+    const styleHint = taskType === 'CODE_RETRIEVAL_QUERY'
       ? 'Generate a TypeScript/JavaScript code snippet.'
       : 'Generate a concise documentation excerpt or code snippet.';
 

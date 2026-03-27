@@ -55,7 +55,7 @@ Every query employees send to Must-IQ stays inside Must Company's infrastructure
 - **Settings-controlled LLM** — the active model is a DB setting, not a hardcoded import
 - **Unified Database** — PostgreSQL + pgvector handles relational data *and* vector search
 - **Knowledge compounds** — the more employees use it, the smarter it gets
-- **Auditable** — every query, every token, every source is logged
+- **Auditable** — token usage logged on every chat for visibility; full audit trail written only when PII or sensitive data is detected
 
 ---
 
@@ -79,11 +79,14 @@ Must-IQ solves this by maintaining a **Team Knowledge Base** — a living store 
 
 ### 2.3 No Token Cost Control
 
-Without a dedicated internal tool, there is no way to see how many AI queries employees are making, which teams are the heaviest users, or what the daily/monthly cost is. Must-IQ enforces per-user daily token budgets tracked in Redis, with alerts at 80% usage and hard stops at the limit.
+Without a dedicated internal tool, there is no way to see how many AI queries employees are making, which teams are the heaviest users, or what the daily/monthly cost is. Must-IQ logs every LLM call to the `token_logs` table (non-blocking, visibility only), giving admins a full usage dashboard broken down by user, team, model, and date.
 
 ### 2.4 No Audit Trail
 
-Public AI tools provide no record of what was asked, answered, or — critically — what company data was shared. Must-IQ logs every query to the `token_logs` table with the user, timestamp, session, model used, and token count. This is a prerequisite for GDPR compliance and internal security policies.
+Public AI tools provide no record of what was asked, answered, or — critically — what company data was shared. Must-IQ uses a **two-tier logging strategy**:
+
+- **`token_logs` table** — written non-blocking on every chat. Records user, session, model, token counts. No message content. Used for the Admin token usage dashboard.
+- **`audit_logs` table** — written only when the PII masking engine detects sensitive data in the query (emails, phone numbers, SSNs, API keys). Records the redacted query and a response preview. This is the high-signal audit trail required for GDPR compliance and security policy enforcement — not flooded with routine queries.
 
 ### 2.5 Tool Fragmentation
 
@@ -93,24 +96,35 @@ Employees context-switch constantly between Jira, Slack, GitHub, and Confluence 
 
 ## 3. Solution Overview
 
-Must-IQ is a **Retrieval-Augmented Generation (RAG) platform** with an agentic layer on top. Here is the simplified model:
+Must-IQ is a **Retrieval-Augmented Generation (RAG) platform** with an agentic layer on top. Here is the pipeline:
 
 ```
 Employee question
        ↓
-Must-IQ searches two sources simultaneously:
-  1. Internal documents (HR, IT, Finance, Legal) ── via pgvector
-  2. Team Knowledge Base                       ── via pgvector
+PII masking — audit log written only if PII detected
        ↓
-Relevant context retrieved (top-5 chunks per source)
+Ticket-tag short-circuit: if query contains [Requester], [Department], etc.
+  → domain = operations, skip LLM classifier
        ↓
-Context + question + conversation history → LLM prompt
+Domain classifier (fast LLM) → {engineering | hr | it | operations | general}
+  → selects RAG prompt template + embedding task type
        ↓
-LLM generates answer (streamed to browser)
+HyDE (optional): generate hypothetical answer document, embed that instead of raw query
        ↓
-Answer + sources returned to employee
+Hybrid search (parallel):
+  1. pgvector cosine similarity (dense)
+  2. PostgreSQL BM25 ts_rank (sparse)
+  → Reciprocal Rank Fusion (K=60), topK=60 chunks
        ↓
-Q&A pair saved back to knowledge base (loop)
+Cross-encoder reranker (ms-marco-MiniLM-L-6-v2, local ONNX) → top-20
+       ↓
+Context builder: MIN_SCORE=0.1 filter, exact dedup, 6000-token budget
+       ↓
+Domain-specific RAG prompt + LLM → answer
+       ↓
+SSE stream (web UI) or JSON response (integrations)
+       ↓
+Non-blocking TokenLog write (visibility only, no enforcement)
 ```
 
 For tasks that require *reasoning* across systems (finding ticket status, summarising Slack threads, checking a PR), the LangGraph agent layer kicks in:
@@ -153,7 +167,7 @@ Agent summarises the findings → employee sees the answer
                                     │ Called directly by API
 ┌───────────────────────────────────┴─────────────────────────────────┐
 │                      API GATEWAY  (NestJS)                          │
-│  JWT Auth  │  RBAC  │  Rate Limiting  │  Audit Log  │  Token Budget │
+│  JWT Auth  │  RBAC  │  Rate Limiting  │  Audit Log (PII only)       │
 └──────────────────────────────▲──────────────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────────────┐
@@ -180,9 +194,9 @@ Agent summarises the findings → employee sees the answer
 ┌─────────────▼──────────┐  ┌───────────────▼──────┐  ┌───────────▼──────────┐
 │  PostgreSQL + pgvector  │  │       Redis          │  │    LLM Provider      │
 │                         │  │                      │  │   (settings-driven)  │
-│  - Users / RBAC         │  │  token:usage:{id}    │  │                      │
-│  - Chat sessions        │  │  cache:{hash}        │  │  Claude  /  GPT-4o   │
-│  - Vectors (Chunks)     │  │  memory:{session}    │  │  Gemini  /  Ollama   │
+│  - Users / RBAC         │  │  memory:{session}    │  │                      │
+│  - Chat sessions        │  │                      │  │  Claude  /  GPT-4o   │
+│  - Vectors (Chunks)     │  │                      │  │  Gemini  /  Ollama   │
 │  - Auth logs            │  │                      │  │  xAI Grok            │
 │  - Admin settings       │  └──────────────────────┘  └──────────────────────┘
 └─────────────┬──────────┘
@@ -196,18 +210,18 @@ Agent summarises the findings → employee sees the answer
 
 | Layer                 | Technology            | Responsibility                                 |
 | --------------------- | --------------------- | ---------------------------------------------- |
-| **Web UI**      | Next.js 14            | Chat interface, streaming display, token badge |
-| **API Gateway** | NestJS                | Auth, RBAC, token enforcement, AI routing      |
+| **Web UI**      | Next.js 15            | Chat interface, streaming display              |
+| **API Gateway** | NestJS 11             | Auth, RBAC, PII masking, AI routing            |
 | **AI Core**     | LangChain             | RAG, agent, memory, tool calls, unified engine |
 | **Database**    | PostgreSQL + pgvector | All persistent data + vector embeddings        |
-| **Cache**       | Redis                 | Token quotas, response cache, session memory   |
+| **Cache**       | Redis                 | Session memory only                            |
 | **LLM**         | Configurable          | Language model inference                       |
 
 ---
 
 ## 5. Nx Monorepo Structure
 
-Must-IQ uses **Nx 19** as its monorepo build system. Nx provides:
+Must-IQ uses **Nx 22** as its monorepo build system. Nx provides:
 
 - **Affected builds** — only rebuild teams touched by a change
 - **Build cache** — previously built outputs are reused
@@ -224,28 +238,23 @@ must-iq/
 ├── .env.example                     ← All environment variables documented
 │
 ├── apps/                            ← Runnable applications
-│   ├── web/                         ← Next.js 14 chat UI
+│   ├── web/                         ← Next.js 15 chat UI
 │   │   ├── team.json             ← Nx targets: dev, build, test, lint
 │   │   └── src/
 │   │       ├── app/(chat)/chat/     ← Main chat page (App Router)
-│   │       ├── components/          ← TokenUsageBadge, ChatWindow, MessageBubble
+│   │       ├── components/          ← ChatWindow, MessageBubble
 │   │       └── store/chat.store.ts  ← Zustand state (sessions, messages, streaming)
 │   │
-│   ├── api/                         ← NestJS API Gateway
-│   │   ├── team.json
-│   │   └── src/
-│   │       ├── main.ts              ← Helmet, CORS, ValidationPipe bootstrap
-│   │       ├── auth/                ← JwtAuthGuard, RolesGuard, AuthController
-│   │       ├── chat/                ← ChatController → AIEngine service
-│   │       ├── token/               ← TokenManagerService (Redis quota enforcement)
-│   │       └── settings/            ← SettingsController (admin LLM config)
-│   │
-│   └── ai-engine/                   ← LangChain AI service layer
+│   └── api/                         ← NestJS 11 API Gateway
 │       ├── team.json
 │       └── src/
-│           ├── main.ts              ← Re-exports from langchain/
-│           ├── ai-engine.service.ts ← Routes queries: RAG chain vs Agent
-│           └── prompts/             ← Workspace-specific system prompts
+│           ├── main.ts              ← Helmet, CORS, ValidationPipe bootstrap
+│           ├── auth/                ← JwtAuthGuard, RolesGuard, AuthController
+│           ├── chat/                ← ChatController → chat() JSON + streamChat() SSE
+│           ├── admin/               ← User/team management, audit logs, token usage
+│           ├── integrations/        ← Slack app_mention webhook (POST /webhooks/slack)
+│           ├── ingestion/           ← Document upload and RAG pipeline trigger
+│           └── settings/            ← SettingsController (admin LLM config)
 │
 ├── libs/                            ← Shared libraries (not runnable)
 │   ├── shared-types/                ← @must-iq/shared-types
@@ -255,7 +264,7 @@ must-iq/
 │   │   └── src/
 │   │       ├── prisma/schema.prisma ← Database schema (with vector column)
 │   │       ├── migrations/          ← Manual SQL migrations (HNSW index)
-│   │       ├── pgvector.ts          ← retrieve/store chunk helpers
+│   │       ├── pgvector.ts          ← retrieve/store chunk helpers, retrieveChunksKeyword (BM25), reciprocalRankFusion
 │   │       └── init.sql             ← Enables pgvector extension on startup
 │   │
 │   └── config/                      ← @must-iq/config
@@ -269,10 +278,14 @@ must-iq/
         ├── agent/                   ← LangGraph ReAct agent
         ├── chains/                  ← LCEL chains (RAG, Conversational)
         ├── memory/                  ← Conversation history management
-        ├── prompts/                 ← Centralized system & human templates
-        ├── rag/                     ← Knowledge base ingestion (PDF/DOCX/TXT)
-        ├── service/                ← Unified AI Engine orchestration (runAIQuery)
+        ├── prompts/                 ← Per-domain templates (engineering, hr, it, operations, general) + classifier prompt
+        ├── rag/                     ← RAG utilities
+        │   ├── hyde.ts              ← Hypothetical Document Embedding
+        │   └── reranker.ts          ← Cross-encoder reranker (ms-marco-MiniLM-L-6-v2, local ONNX)
+        ├── service/                 ← Unified AI Engine orchestration (runAIQuery)
         ├── tools/                   ← External platform integrations (Jira, Slack, etc)
+        ├── utils/
+        │   └── context-builder.ts   ← Score filter (MIN_SCORE=0.1), dedup, 6000-token budget
         └── index.ts                 ← Library entry point
 ```
 
@@ -290,7 +303,7 @@ import { createLLM }        from "@must-iq/config";
 
 ## 6. Application Layer: Web
 
-**Stack:** Next.js 14 (App Router), Tailwind CSS, Zustand
+**Stack:** Next.js 15 (App Router), Tailwind CSS, Zustand
 
 ### Chat Page (`apps/web/src/app/(chat)/chat/page.tsx`)
 
@@ -376,15 +389,27 @@ Incoming HTTP Request
         ↓
   RolesGuard → check req.user.role against @Roles() decorator
         ↓
-  TokenManagerService.checkBudget() → Redis → over limit? 429
-        ↓
   Controller handler
         ↓
-  AIEngine.runQuery()
+  PII masking (maskPII) — audit log written only if PII detected
         ↓
-  TokenManagerService.recordUsage() → Redis + DB log
+  Ticket-tag check (string match, no LLM) → domain = operations if tags found
         ↓
-  SSE stream back to client
+  Domain classifier (fast LLM) → domain → taskType
+        ↓
+  HyDE (optional) → hypothetical document embedding
+        ↓
+  Hybrid search: pgvector + BM25 → RRF(K=60) topK=60
+        ↓
+  Cross-encoder rerank → top-20
+        ↓
+  Context builder (score filter, dedup, token budget)
+        ↓
+  RAG chain (domain-specific prompt + LLM)
+        ↓
+  SSE stream (web) or JSON response (integrations)
+        ↓
+  Non-blocking TokenLog write (visibility only)
 ```
 
 ### Key Modules
@@ -398,13 +423,9 @@ Incoming HTTP Request
 **ChatModule** (`apps/api/src/chat/`)
 
 - `ChatController` — `POST /chat/message`, `GET /chat/sessions`, `GET /chat/history/:id`
-- Forwards to `AIEngineService`, streams SSE back
-
-**TokenModule** (`apps/api/src/token/`)
-
-- `TokenManagerService` — Redis key: `token:usage:{userId}:{YYYY-MM-DD}`
-- Checks budget before each call, records usage after
-- Emits warning event at 80%, hard stop at 100%
+- `ChatService.chat()` — JSON response path, used by integrations (e.g. Slack webhook)
+- `ChatService.streamChat()` — SSE streaming path, used by the web UI
+- Both paths write a non-blocking `TokenLog` entry for visibility; no budget enforcement
 
 **SettingsModule** (`apps/api/src/settings/`)
 
@@ -422,22 +443,44 @@ The AI orchestration logic is encapsulated in `@must-iq/langchain` and used dire
 
 ```typescript
 async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> {
-  // selectedWorkspaces comes from the UI checkbox selection.
-  // "general" is always included server-side even if omitted by the client.
   const workspaces = [...new Set(["general", ...params.selectedWorkspaces])];
 
   if (params.useAgent) {
     return runAgent(params.query, params.userId, workspaces, params.sessionId);
   }
 
-  const chain = await buildRAGChain(workspaces);
-  // ... load session memory, invoke, save memory, return
+  // Stage 1: Ticket-tag short-circuit (no LLM call)
+  const domain = hasTicketTags(params.query)
+    ? 'operations'
+    : await classifyDomain(params.query);          // fast LLM call
+
+  // Stage 2: HyDE (optional, controlled by hydeEnabled setting)
+  const queryEmbedding = settings.hydeEnabled
+    ? await embedHypotheticalDocument(params.query, domain)
+    : await embed(params.query, domain);
+
+  // Stage 3: Hybrid search — dense + sparse in parallel → RRF
+  const [denseResults, sparseResults] = await Promise.all([
+    retrieveChunks(queryEmbedding, workspaces, 60),
+    retrieveChunksKeyword(params.query, workspaces, 60),
+  ]);
+  const fused = reciprocalRankFusion([denseResults, sparseResults], { K: 60 });
+
+  // Stage 4: Cross-encoder rerank → top-20
+  const reranked = settings.rerankEnabled
+    ? await rerank(params.query, fused)
+    : fused.slice(0, 20);
+
+  // Stage 5: Context builder → domain-specific chain
+  const context = buildContext(reranked);
+  const chain = await buildRAGChain(domain, workspaces);
+  return chain.invoke({ question: params.query, context, chat_history: ... });
 }
 ```
 
-**`useAgent: false` (default)** — fast, cheap, grounded in documents. Used for most Q&A.
+**`useAgent: false` (default)** — 5-stage RAG pipeline. Fast, grounded in documents.
 
-**`useAgent: true`** — slower, more capable. Used when the query implies a *task* (create, update, find, notify) or needs to reason across multiple sources.
+**`useAgent: true`** — LangGraph ReAct agent. Used for multi-step reasoning across tools (Jira, Slack, GitHub).
 
 ---
 
@@ -447,33 +490,26 @@ All LangChain logic lives in `langchain/src/`. The apps treat this as an interna
 
 ### 9.1 RAG Chain (`chains/rag-chain.ts`)
 
-The primary document retrieval pipeline built with LCEL (LangChain Expression Language):
+The primary retrieval pipeline uses **hybrid search** (dense + sparse) merged via Reciprocal Rank Fusion, followed by a cross-encoder reranker, before the final LLM call:
+
+- **Dense retrieval**: `retrieveChunks()` — pgvector cosine similarity (HNSW index)
+- **Sparse retrieval**: `retrieveChunksKeyword()` — PostgreSQL BM25 `ts_rank` full-text search (exported from `@must-iq/db`)
+- **Fusion**: `reciprocalRankFusion([dense, sparse], { K: 60 })` → topK=60 chunks
+- **Reranker**: `ms-marco-MiniLM-L-6-v2` via `@xenova/transformers` (local ONNX, ~90 MB) → top-20 chunks
+- **Context builder** (`langchain/src/utils/context-builder.ts`): filters below MIN_SCORE=0.1, deduplicates exact chunks, enforces 6000-token budget
+
+The domain-specific prompt template is selected based on the domain classifier result. Domain-specific prompts are in `langchain/src/prompts/` and tailor tone and instruction to the domain (engineering, hr, it, operations, general).
 
 ```typescript
 const chain = RunnableSequence.from([
-  {
-    // Retrieve top-5 relevant chunks from pgvector, filtered by workspace
-    context:      (input) => retriever.invoke(input.question).then(formatDocumentsAsString),
-    question:     (input) => input.question,
-    chat_history: (input) => input.chat_history ?? [],
-  },
-  mustIQPrompt,     // workspace-specific ChatPromptTemplate
-  await createLLM(), // reads active provider from DB settings
+  { context: () => context, question: (i) => i.question, chat_history: (i) => i.chat_history ?? [] },
+  domainPrompt,      // selected by domain classifier
+  await createLLM(),
   new StringOutputParser(),
 ]);
 ```
 
-The retriever uses the **user-selected scope** from the UI — a list of workspaces the employee explicitly chose to search, plus `general` (always included). This replaces automatic workspace-scoping:
-
-```typescript
-const retriever = vectorStore.asRetriever({
-  k: 5,
-  filter: { workspace: { in: selectedWorkspaces } },
-  // selectedWorkspaces always includes "general"
-  // plus whatever the user checked in the scope selector
-  // e.g. ["general", "engineering", "hr"]
-});
-```
+The `hybridSearchEnabled`, `rerankEnabled`, and `hydeEnabled` flags in `LLMSettings` allow each stage to be toggled from Admin UI without a restart.
 
 ### 9.2 Team Knowledge Chain
 
@@ -514,16 +550,23 @@ Uses `RedisChatMessageHistory` from `@langchain/community`:
 - TTL: 7 days (configurable via `MEMORY_TTL_SECONDS`)
 - Shared session state across multiple API instances.
 
-### 9.4 Prompts (`prompts/must-iq-prompts.ts`)
+### 9.4 Prompts (`prompts/`)
 
-Workspace-specific `ChatPromptTemplate` instances. Each prompt:
+All prompt templates live under `langchain/src/prompts/`. There are two categories:
 
-- Sets the assistant's identity and scope ("You are Must-IQ...")
-- Restricts answers to provided context ("Answer ONLY using the internal documents...")
-- Instructs citation ("Always cite which document your answer came from...")
-- Tailors tone for the workspace (HR is more empathetic; IT is more technical)
+**Domain classifier prompt** — a few-shot prompt that asks a fast/cheap LLM to classify the user's query into one of five domains: `engineering`, `hr`, `it`, `operations`, or `general`. Structured ticket tags (`[Requester]`, `[Department]`, etc.) short-circuit this entirely — no LLM call is made, domain is set to `operations` directly.
 
-Available templates: `RAG_PROMPT`, `HR_PROMPT`, `IT_PROMPT`, `FINANCE_PROMPT`, `LEGAL_PROMPT`, `TEAM_KB_PROMPT`
+**Per-domain RAG templates** — one `ChatPromptTemplate` per domain, stored as individual files:
+
+| Domain | File | Notes |
+|---|---|---|
+| `engineering` | `engineering.prompt.ts` | Technical tone; cites code and PR references |
+| `hr` | `hr.prompt.ts` | Empathetic tone; cites policy docs |
+| `it` | `it.prompt.ts` | Step-by-step; cites runbooks |
+| `operations` | `operations.prompt.ts` | Ticket-aware; structured output |
+| `general` | `general.prompt.ts` | Balanced default |
+
+Each template sets the assistant's identity, restricts answers to the provided context, instructs citation, and tailors tone to the domain.
 
 ### 9.5 Agent (`agent/must-iq-agent.ts`)
 
@@ -642,7 +685,9 @@ The full schema is in `libs/db/src/prisma/schema.prisma`. Key models:
 
 **`messages`** — Individual messages within a session. The `sources` JSON column stores the `DocumentChunkRef[]` used for that response.
 
-**`token_logs`** — Immutable audit log. Every LLM call creates one row.
+**`token_logs`** — Non-blocking usage log. Every LLM call creates one row: user, session, model, token counts. No message content stored here.
+
+**`audit_logs`** — High-signal sensitive-data log. A row is written only when the PII masking engine detects sensitive content in a query. Contains the redacted query and a response preview.
 
 **`documents`** — Metadata for uploaded files. Status progresses from `processing` → `ready` (or `error`).
 
@@ -700,30 +745,9 @@ The `<=>` operator is pgvector's cosine distance operator. `1 - distance = simil
 
 ## 12. Cache & Memory: Redis
 
-Redis serves three purposes:
+Redis serves one purpose in the current architecture: **session memory**.
 
-### 12.1 Token Quota Tracking
-
-```
-Key:   token:usage:{userId}:{YYYY-MM-DD}
-Value: integer (cumulative tokens used today)
-TTL:   expires at midnight
-```
-
-Before every LLM call: `GET token:usage:{userId}:{today}` → compare against role limit.
-After every LLM call: `INCRBY token:usage:{userId}:{today} {tokensUsed}`.
-
-### 12.2 Response Caching
-
-Semantically identical queries get cached responses to eliminate redundant LLM calls:
-
-```
-Key:   cache:{sha256(userId + query + workspace)}
-Value: JSON string (full response + sources)
-TTL:   3600 seconds (configurable via TOKEN_CACHE_TTL_SECONDS)
-```
-
-### 12.3 Session Memory (Production)
+### 12.1 Session Memory (Production)
 
 In production, conversation history is stored in Redis rather than process memory:
 
@@ -734,6 +758,8 @@ TTL:   604800 seconds (7 days)
 ```
 
 This allows multiple API instances to share session state without sticky sessions.
+
+> Token quota tracking (`token:usage:{id}`) and response caching (`cache:{hash}`) have been removed. Token visibility is handled via `TokenLog` writes to PostgreSQL only (see Section 17).
 
 ---
 
@@ -1033,7 +1059,7 @@ WHERE workspace IN ('general', 'engineering', 'hr')
 
 ### Prompt Injection Protection
 
-Input validator (`apps/ai-engine/src/validator/input-validator.ts`) strips common injection patterns before the query reaches the LLM:
+Input validation strips common injection patterns before the query reaches the LLM:
 
 - Attempts to override the system prompt (`"Ignore all previous instructions..."`)
 - Attempts to exfiltrate the system prompt (`"Repeat your instructions..."`)
@@ -1076,36 +1102,21 @@ This ensures that even if sensitive customer data mistakenly ends up in an inges
 
 ## 17. Token Management
 
-### Budget Enforcement Flow
+Token management is **visibility-only**. There is no Redis quota enforcement, no per-user daily budget enforcement, and no 429 hard-stop. The `token/` module has been removed entirely.
+
+### How It Works
+
+After every LLM call, `ChatService` writes a single `TokenLog` row to PostgreSQL in a non-blocking `Promise` (fire-and-forget). No error is thrown if this write fails.
 
 ```
-1. Request arrives at ChatController
-2. TokenManagerService.checkBudget(userId, role)
-   → GET token:usage:{userId}:{today} from Redis
-   → null? → 0 used
-   → Parse role limit from env (TOKEN_BUDGET_EMPLOYEE=20000)
-   → used >= limit? → throw HttpException(429, "Daily token budget exceeded")
-   → used >= limit * 0.8? → attach warning header to response
-3. AIEngine processes the query
-4. LLM responds with usage: { promptTokens, completionTokens, totalTokens }
-5. TokenManagerService.recordUsage(userId, sessionId, usage)
-   → INCRBY token:usage:{userId}:{today} totalTokens
-   → INSERT INTO token_logs (userId, sessionId, queryTokens, responseTokens, ...)
+LLM responds with usage: { promptTokens, completionTokens, totalTokens }
+  ↓
+Non-blocking: INSERT INTO token_logs (userId, sessionId, queryTokens, responseTokens, model, ...)
+  ↓
+Response already streamed/returned to client — no delay
 ```
 
-### Response Caching
-
-Semantically identical queries return cached responses at zero token cost. The cache key is a SHA-256 hash of `userId + query + sortedSelectedWorkspaces`. Cache TTL is configurable dynamically via the Admin Settings UI (e.g., overriding the default of 1 hour) without requiring an application restart.
-
-This is particularly effective for:
-
-- Repeated policy questions ("What is the leave policy?")
-- Repeated team questions ("What does service X do?")
-- Onboarding questions asked by multiple new joiners
-
-### Global Token Caps
-
-Independent of the RBAC role budgets (`TOKEN_BUDGET_EMPLOYEE`), admins can specify a **Global Daily Cap** via the UI. If the system as a whole breaches this cap in a single 24-hour period, the LLM will halt further generation until the daily cron reset.
+This `TokenLog` data is surfaced in the **Admin Dashboard** for usage visibility and cost attribution. Admins can view breakdowns by user, team, model, and date range.
 
 ### Token Reporting
 
@@ -1403,44 +1414,45 @@ User types: "What is the annual leave policy?"
 [NestJS API]
   1. JWT validated
   2. Role checked (EMPLOYEE ✓)
-  3. Token budget checked: 3,200 / 20,000 ✓
-  4. Cache check: MISS
+  3. PII masking — no PII found, no audit log written
+  4. Ticket-tag check — no tags found
          │
          ▼
-[AI Engine — RAG Chain]
-  5. Query embedded: "annual leave policy" → float[1536]
-  6. Selected scope from UI: ["general", "hr"] (user checked HR)
-     pgvector search:
-     SELECT ... FROM document_chunks
-     WHERE workspace IN ('general', 'hr')   -- user-selected
-     ORDER BY embedding <=> $1::vector
-     LIMIT 5;
-     → returns 5 chunks from hr-policy.pdf
-  7. Session memory loaded: 2 previous turns
-  8. Prompt assembled:
-     [System: You are Must-IQ...]
-     [Context: {5 retrieved chunks}]
+[Domain Classifier]
+  5. Fast LLM → domain: "hr"
+         │
+         ▼
+[AI Engine — 5-Stage RAG Chain]
+  6. Query embedded: "annual leave policy" → float[1536] (task type: RETRIEVAL_QUERY)
+  7. Hybrid search (parallel):
+     - Dense: pgvector cosine on workspace IN ('general', 'hr') → 60 chunks
+     - Sparse: BM25 ts_rank on workspace IN ('general', 'hr') → 60 chunks
+     → RRF(K=60) → 60 fused chunks
+  8. Reranker: ms-marco-MiniLM-L-6-v2 → top-20
+  9. Context builder: filter MIN_SCORE=0.1, dedup, 6000-token budget
+     → returns chunks from hr-policy.pdf
+ 10. Session memory loaded: 2 previous turns
+ 11. HR prompt template assembled:
+     [System: You are Must-IQ (HR domain)...]
+     [Context: {top-20 reranked chunks}]
      [History: {2 previous turns}]
      [Human: "What is the annual leave policy?"]
          │
          ▼
 [LLM — claude-sonnet-4-6]
-  9. Generates answer (streamed token by token)
+ 12. Generates answer (streamed token by token)
          │
          ▼ (SSE stream)
 [NestJS API — post-processing]
- 10. Tokens counted from response.usage
- 11. Redis: INCRBY token:usage:{userId}:{today} 847
- 12. DB: INSERT INTO token_logs (...)
- 13. DB: INSERT INTO messages (role: 'assistant', ...)
- 14. Memory saved: question + answer added to session
- 15. Cache SET with 1h TTL
+ 13. Tokens counted from response.usage
+ 14. Non-blocking: INSERT INTO token_logs (...) — fire and forget
+ 15. DB: INSERT INTO messages (role: 'assistant', ...)
+ 16. Memory saved: question + answer added to session
          │
          ▼
 [Browser]
- 16. Message rendered as it streams
- 17. Sources panel shows: "hr-policy.pdf, page 4"
- 18. Token badge updates: 4,047 / 20,000
+ 17. Message rendered as it streams
+ 18. Sources panel shows: "hr-policy.pdf, page 4"
 ```
 
 ### Agent Request

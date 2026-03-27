@@ -3,15 +3,22 @@
 // Handles deduplication and compression of RAG chunks before LLM injection
 // ============================================================
 
+// Chunks below this score are discarded regardless of rank.
+// After cross-encoder reranking, scores < 0.1 are near-irrelevant.
+// Without reranking, this filters cosine similarity noise (< 0.1 ≈ random match).
+const MIN_SCORE = 0.1;
+
 export function buildContext(chunks: any[], maxTokenBudget = 6000): string {
   const seen = new Set<string>();
   const deduplicated: any[] = [];
 
-  // 1. Deduplicate by exact content or near-exact content
-  for (const chunk of chunks) {
+  // 1. Filter out low-confidence chunks before building context
+  const qualified = chunks.filter((c) => typeof c.score !== 'number' || c.score >= MIN_SCORE);
+
+  // 2. Deduplicate by exact content (normalize whitespace for safe fingerprint)
+  for (const chunk of qualified) {
     if (!chunk.content) continue;
-    
-    // Normalize whitespace for a safer fingerprint
+
     const fp = chunk.content.trim().replace(/\s+/g, ' ');
     if (!seen.has(fp)) {
       seen.add(fp);

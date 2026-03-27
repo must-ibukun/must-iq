@@ -75,7 +75,7 @@ export function LLMSettingsSection({
 
         {(() => {
           // Color shifts from muted green (small context) to vivid green (large context)
-          const fraction = (localTopK - 5) / 45; // 0.0 at 5, 1.0 at 50
+          const fraction = (localTopK - 5) / 55; // 0.0 at 5, 1.0 at 60
           const sat = 30 + (fraction * 70);
           const lit = 60 - (fraction * 20);
           const dynamicGreen = `hsl(142, ${sat}%, ${lit}%)`;
@@ -99,7 +99,7 @@ export function LLMSettingsSection({
                 ref={topKRef}
                 type="range"
                 min="5"
-                max="50"
+                max="60"
                 step="5"
                 value={localTopK}
                 onChange={(e) => {
@@ -114,7 +114,7 @@ export function LLMSettingsSection({
                 <span>15</span>
                 <span>25</span>
                 <span>35</span>
-                <span>50 — Broad</span>
+                <span>60 — Broad</span>
               </div>
 
 

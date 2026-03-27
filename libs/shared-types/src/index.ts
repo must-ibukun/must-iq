@@ -241,7 +241,9 @@ export interface AdminStats {
 
 export interface AdminTokenUsage {
   todayTotal: number;
-  cacheRate: number;
+  yesterdayTotal: number;
+  estCostToday: number;
+  estCostYesterday: number;
   dailyTotals: Record<string, number>;
   topUsers: { name: string; tokens: number }[];
 }

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
-import { TokenModule } from './token/token.module';
 import { ChatModule } from './chat/chat.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
@@ -14,7 +13,6 @@ import { IngestionModule } from './ingestion/ingestion.module';
         ConfigModule.forRoot({ isGlobal: true }),
         DatabaseModule,
         AuthModule,
-        TokenModule,
         ChatModule,
         SettingsModule,
         AdminModule,

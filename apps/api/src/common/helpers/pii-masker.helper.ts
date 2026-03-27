@@ -1,5 +1,5 @@
-export function maskPII(text: string): string {
-  if (!text) return text;
+export function maskPII(text: string): { masked: string; detected: boolean } {
+  if (!text) return { masked: text, detected: false };
 
   let masked = text;
 
@@ -26,5 +26,5 @@ export function maskPII(text: string): string {
   const uuidRegex = /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi;
   masked = masked.replace(uuidRegex, '[UUID REDACTED]');
 
-  return masked;
+  return { masked, detected: masked !== text };
 }

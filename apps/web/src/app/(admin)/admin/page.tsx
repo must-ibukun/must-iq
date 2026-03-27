@@ -41,7 +41,8 @@ import {
   IconChevronDown, IconX,
   IconBrain,
   IconAI,
-  IconInfo
+  IconInfo,
+  IconSlack, IconGitHub, IconJira
 } from '@must-iq-web/components/ui/MustIcons';
 import { InfoTooltip } from '@must-iq-web/components/ui/InfoTooltip';
 import { SYSTEM_SETTINGS_DESCRIPTIONS } from '../../../lib/constants/settingsConstants';
@@ -93,7 +94,7 @@ export default function AdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [notification, setNotification] = useState<NotificationModalContent | null>(null);
-  const [systemSettings, setSystemSettings] = useState({ cache: true, audit: true, piiMasking: false, globalDailyTokenCap: 5000000, baseUserDailyTokenLimit: 50000 });
+  const [systemSettings, setSystemSettings] = useState({ audit: true, piiMasking: false });
   const [isSavingSystem, setIsSavingSystem] = useState(false);
   const [discoveryResults, setDiscoveryResults] = useState<any>({ jira: [], slack: [], github: [] });
   const [discoveredGuesses, setDiscoveredGuesses] = useState<Record<string, string>>({});
@@ -803,7 +804,7 @@ export default function AdminPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
               <StatCard label="Total Chunks" value={stats ? stats.chunksByWorkspace.reduce((s: number, d: any) => s + d.count, 0).toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Knowledge base" accent="var(--primary)" icon={<IconKnowledge />} />
               <StatCard label="Active Users" value={stats ? stats.totalUsers.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Registered accounts" accent="var(--green)" icon={<IconUsers />} />
-              <StatCard label="Tokens Today" value={stats ? (stats.tokensToday >= 1000 ? `${(stats.tokensToday / 1000).toFixed(0)}K` : stats.tokensToday.toString()) : (sectionLoading ? <Spinner size={18} /> : '0')} delta={`${stats?.cacheRate ?? 0}% cache hit`} accent="var(--amber)" icon={<IconTokens />} />
+              <StatCard label="Tokens Today" value={stats ? (stats.tokensToday >= 1000 ? `${(stats.tokensToday / 1000).toFixed(0)}K` : stats.tokensToday.toString()) : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Estimated token usage" accent="var(--amber)" icon={<IconTokens />} />
               <StatCard label="Total Sessions" value={stats ? stats.totalSessions.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Across all users" accent="var(--purple)" icon={<IconChat />} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -922,9 +923,8 @@ export default function AdminPage() {
                 users.length === 0 ?
                   <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>No users found.</div> :
                   <>
-                    <Table headers={['User', 'Team(s)', 'Role', 'Token Budget', 'Today Usage', 'Status', 'Actions']} rows={
+                    <Table headers={['User', 'Team(s)', 'Role', 'Status', 'Actions']} rows={
                       paginate(users, usersPage).map((u: any) => {
-                        const pct = u.tokenBudget > 0 ? Math.round((u.tokensToday / u.tokenBudget) * 100) : 0;
                         const isAdmin = u.role === 'ADMIN';
                         return [
                           <div key="u"><div style={{ color: 'var(--ink)' }}>{u.name}</div><div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{u.email}</div></div>,
@@ -953,11 +953,6 @@ export default function AdminPage() {
                             )}
                           </div>,
                           <Badge key="r" variant={u.role === 'ADMIN' ? 'warn' : 'muted'}>{u.role}</Badge>,
-                          <span key="b">{u.tokenBudget > 0 ? u.tokenBudget.toLocaleString() : '∞'}</span>,
-                          <div key="t" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 80 }}><ProgressBar value={pct} color={pct > 80 ? 'var(--red)' : 'var(--primary)'} /></div>
-                            <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--muted)' }}>{u.tokensToday.toLocaleString()}</span>
-                          </div>,
                           <Badge key="s" variant={u.isActive ? 'active' : 'muted'}>{u.isActive ? 'active' : 'inactive'}</Badge>,
                           <div key="a" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <button onClick={() => handleEditUser(u)} title="Edit Details" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d97706', display: 'flex' }}>
@@ -1574,52 +1569,94 @@ export default function AdminPage() {
             </div>
           ) : (
             <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
-              <StatCard label="Total Today" value="841K" delta="18% vs yesterday" accent="var(--primary)" icon={<IconTokens />} />
-              <StatCard label="Est. Cost Today" value="$4.20" delta="$0.60 vs yesterday" accent="var(--amber)" icon={<IconDollar />} />
-              <StatCard label="Cache Hit Rate" value="34%" delta="Saved ~285K tokens" accent="var(--green)" icon={<IconZap />} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-              <Panel title="Daily Token Usage (7 days)">
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80, paddingBottom: 4 }}>
-                  {[40, 55, 48, 70, 60, 30, 65].map((h, i) => (
-                    <div key={i} style={{ flex: 1, height: `${h}%`, borderRadius: '3px 3px 0 0', background: i === 6 ? 'linear-gradient(to top,var(--amber),rgba(255,183,64,0.3))' : 'linear-gradient(to top,var(--primary),rgba(var(--primary-rgb),0.3))', border: i === 6 ? '1px solid var(--amber)' : 'none', cursor: 'pointer' }} />
-                  ))}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'].map((d, i) => (
-                    <span key={d} style={{ fontSize: 9.5, color: i === 6 ? 'var(--amber)' : 'var(--muted)', fontFamily: 'monospace' }}>{d}</span>
-                  ))}
-                </div>
-              </Panel>
-              <Panel title="Top Users Today">
-                {(() => {
-                  const users = tokenData?.topUsers || [];
-                  if (users.length === 0) {
-                    return (
-                      [['alice', 65, '55.2K'], ['bob', 48, '40.7K'], ['charlie', 30, '25.4K'], ['diana', 22, '18.6K'], ['john', 5, '4.0K']].map(([name, pct, count]) => (
-                        <DeptBar key={name as string} label={name as string} pct={pct as number} count={count as string} color="var(--primary)" />
-                      ))
-                    );
-                  }
-                  const max = Math.max(...users.map((u: any) => u.tokens), 1);
-                  return (
-                    <>
-                      {paginate(users, topUsersPage, 10).map((u: any) => (
-                        <DeptBar
-                          key={u.name}
-                          label={u.name}
-                          pct={Math.round((u.tokens / max) * 100)}
-                          count={(u.tokens / 1000).toFixed(1) + 'K'}
-                          color="var(--primary)"
-                        />
-                      ))}
-                      <Paginator page={topUsersPage} setPage={setTopUsersPage} total={totalPages(users, 10)} />
-                    </>
-                  );
-                })()}
-              </Panel>
-            </div>
+            {(() => {
+              const todayTotal = tokenData?.todayTotal ?? 0;
+              const yesterdayTotal = tokenData?.yesterdayTotal ?? 0;
+              const estCostToday = tokenData?.estCostToday ?? 0;
+              const estCostYesterday = tokenData?.estCostYesterday ?? 0;
+
+              const tokenDelta = yesterdayTotal > 0
+                ? `${todayTotal >= yesterdayTotal ? '↑' : '↓'} ${Math.abs(Math.round(((todayTotal - yesterdayTotal) / yesterdayTotal) * 100))}% vs yesterday`
+                : 'No data yesterday';
+              const costDelta = estCostYesterday > 0
+                ? `${estCostToday >= estCostYesterday ? '↑' : '↓'} $${Math.abs(estCostToday - estCostYesterday).toFixed(2)} vs yesterday`
+                : 'No data yesterday';
+
+              // Build last-7-days chart from dailyTotals
+              const days: { label: string; date: string }[] = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date(); d.setDate(d.getDate() - (6 - i));
+                return {
+                  label: i === 6 ? 'Today' : d.toLocaleDateString('en', { weekday: 'short' }),
+                  date: d.toISOString().slice(0, 10),
+                };
+              });
+              const dailyValues = days.map(d => tokenData?.dailyTotals?.[d.date] ?? 0);
+              const maxVal = Math.max(...dailyValues, 1);
+
+              const topUsers = tokenData?.topUsers || [];
+              const maxTokens = Math.max(...topUsers.map((u: any) => u.tokens), 1);
+
+              return (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14, marginBottom: 24 }}>
+                    <StatCard
+                      label="Total Today"
+                      value={todayTotal >= 1000 ? `${(todayTotal / 1000).toFixed(1)}K` : todayTotal.toString()}
+                      delta={tokenDelta}
+                      accent="var(--primary)"
+                      icon={<IconTokens />}
+                    />
+                    <StatCard
+                      label="Est. Cost Today"
+                      value={`$${estCostToday.toFixed(2)}`}
+                      delta={costDelta}
+                      accent="var(--amber)"
+                      icon={<IconDollar />}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+                    <Panel title="Daily Token Usage (7 days)">
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80, paddingBottom: 4 }}>
+                        {days.map((d, i) => {
+                          const h = Math.max(Math.round((dailyValues[i] / maxVal) * 100), dailyValues[i] > 0 ? 4 : 0);
+                          const isToday = i === 6;
+                          return (
+                            <div
+                              key={d.date}
+                              title={`${d.label}: ${dailyValues[i].toLocaleString()} tokens`}
+                              style={{ flex: 1, height: `${h}%`, borderRadius: '3px 3px 0 0', background: isToday ? 'linear-gradient(to top,var(--amber),rgba(255,183,64,0.3))' : 'linear-gradient(to top,var(--primary),rgba(var(--primary-rgb),0.3))', border: isToday ? '1px solid var(--amber)' : 'none', cursor: 'pointer' }}
+                            />
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                        {days.map((d, i) => (
+                          <span key={d.date} style={{ fontSize: 9.5, color: i === 6 ? 'var(--amber)' : 'var(--muted)', fontFamily: 'monospace' }}>{d.label}</span>
+                        ))}
+                      </div>
+                    </Panel>
+                    <Panel title="Top Users Today">
+                      {topUsers.length === 0 ? (
+                        <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>No activity today yet.</div>
+                      ) : (
+                        <>
+                          {paginate(topUsers, topUsersPage, 10).map((u: any) => (
+                            <DeptBar
+                              key={u.name}
+                              label={u.name}
+                              pct={Math.round((u.tokens / maxTokens) * 100)}
+                              count={u.tokens >= 1000 ? `${(u.tokens / 1000).toFixed(1)}K` : u.tokens.toString()}
+                              color="var(--primary)"
+                            />
+                          ))}
+                          <Paginator page={topUsersPage} setPage={setTopUsersPage} total={totalPages(topUsers, 10)} />
+                        </>
+                      )}
+                    </Panel>
+                  </div>
+                </>
+              );
+            })()}
           </>))}
 
           {/* ── AUDIT ── */}
@@ -2200,63 +2237,6 @@ export default function AdminPage() {
               {/* ── Left: Settings Groups ── */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                {/* Performance Group */}
-                <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
-                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
-                    <IconZap size={18} />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Performance</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Speed and caching configuration</div>
-                    </div>
-                  </div>
-                  {[
-                    { key: 'cache', icon: <IconKnowledge size={16} />, label: 'Response Caching', desc: SYSTEM_SETTINGS_DESCRIPTIONS.RESPONSE_CACHING },
-                  ].map(({ key, icon, label, desc }) => (
-                    <div
-                      key={key}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(var(--primary-rgb),0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{label}</div>
-                            <InfoTooltip title={label} desc={desc} />
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{desc}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                        {systemSettings[key as keyof typeof systemSettings] && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
-                        <Toggle on={Boolean(systemSettings[key as keyof typeof systemSettings])} onToggle={() => setSystemSettings(t => ({ ...t, [key]: !t[key as keyof typeof t] }))} />
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* TTL Configuration */}
-                  <div style={{ padding: '20px', borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, background: 'rgba(var(--primary-rgb), 0.01)' }}>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>L1 Cache TTL (ms)</div>
-                      <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 10 }}>In-memory duration (local process)</div>
-                      <input
-                        type="number"
-                        value={llmSettings?.cacheL1Ttl ?? 60000}
-                        onChange={e => setLlmSettings({ ...llmSettings, cacheL1Ttl: parseInt(e.target.value) })}
-                        style={{ width: '100%', padding: '8px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
-                      />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>L2 Cache TTL (seconds)</div>
-                      <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 10 }}>Shared Redis duration (cross-instance)</div>
-                      <input
-                        type="number"
-                        value={llmSettings?.cacheL2Ttl ?? 600}
-                        onChange={e => setLlmSettings({ ...llmSettings, cacheL2Ttl: parseInt(e.target.value) })}
-                        style={{ width: '100%', padding: '8px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
-                      />
-                    </div>
-                  </div>
-                </div>
 
                 {/* Security & Compliance Group */}
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
@@ -2344,60 +2324,63 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Resource Limits Group */}
+                {/* Scheduled Ingestion Group */}
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
-                    <IconTokens size={18} />
+                    <IconRefresh size={18} />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Resource Limits</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Global API token usage restrictions</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Scheduled Ingestion</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Runs twice daily at 06:00 and 18:00 to pull new content into the knowledge base</div>
                     </div>
                   </div>
-                  
-                  {/* Global Daily Token Cap */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(245,158,11,1)' }}><IconDollar size={16} /></div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Global Daily Token Cap</div>
-                          <InfoTooltip title="Global Daily Token Cap" desc={SYSTEM_SETTINGS_DESCRIPTIONS.GLOBAL_DAILY_TOKEN_CAP} />
+                  {[
+                    {
+                      key: 'slackIngestionEnabled',
+                      icon: <IconSlack size={16} />,
+                      color: 'rgba(74,21,75,0.08)',
+                      iconColor: 'rgba(74,21,75,1)',
+                      label: 'Slack Ingestion',
+                      desc: 'Ingests messages from all channels the bot is a member of.',
+                    },
+                    {
+                      key: 'repoIngestionEnabled',
+                      icon: <IconGitHub size={16} />,
+                      color: 'rgba(36,41,47,0.08)',
+                      iconColor: 'rgba(36,41,47,1)',
+                      label: 'GitHub Ingestion',
+                      desc: 'Ingests merged pull requests from all configured GitHub repositories.',
+                    },
+                    {
+                      key: 'jiraIngestionEnabled',
+                      icon: <IconJira size={16} />,
+                      color: 'rgba(0,82,204,0.08)',
+                      iconColor: 'rgba(0,82,204,1)',
+                      label: 'Jira Ingestion',
+                      desc: 'Ingests resolved issues from all configured Jira projects.',
+                    },
+                  ].map(({ key, icon, color, iconColor, label, desc }, i, arr) => (
+                    <div
+                      key={key}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: iconColor }}>{icon}</div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{label}</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{desc}</div>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Total maximum tokens across all users per day</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                        {llmSettings?.[key] && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
+                        <Toggle
+                          on={llmSettings?.[key] ?? false}
+                          onToggle={() => setLlmSettings({ ...llmSettings, [key]: !llmSettings?.[key] })}
+                        />
                       </div>
                     </div>
-                    <div style={{ flexShrink: 0 }}>
-                      <input
-                        type="number"
-                        value={systemSettings.globalDailyTokenCap}
-                        onChange={(e) => setSystemSettings(t => ({ ...t, globalDailyTokenCap: parseInt(e.target.value) || 0 }))}
-                        style={{ width: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 14 }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Base User Token Budget */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(245,158,11,1)' }}><IconUsers size={16} /></div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Base User Daily Budget</div>
-                          <InfoTooltip title="Base User Daily Budget" desc={SYSTEM_SETTINGS_DESCRIPTIONS.BASE_USER_DAILY_BUDGET} />
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Default daily prompt limit for new users</div>
-                      </div>
-                    </div>
-                    <div style={{ flexShrink: 0 }}>
-                      <input
-                        type="number"
-                        value={systemSettings.baseUserDailyTokenLimit}
-                        onChange={(e) => setSystemSettings(t => ({ ...t, baseUserDailyTokenLimit: parseInt(e.target.value) || 0 }))}
-                        style={{ width: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 14 }}
-                      />
-                    </div>
-                  </div>
+                  ))}
                 </div>
+
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                   <Button
@@ -2444,7 +2427,6 @@ export default function AdminPage() {
                   </div>
                   <div style={{ padding: '8px 0' }}>
                     {[
-                      { label: 'Response Caching', on: systemSettings.cache },
                       { label: 'Audit Logging', on: systemSettings.audit },
                       { label: 'PII Masking', on: systemSettings.piiMasking },
                     ].map(({ label, on }) => (
@@ -2464,12 +2446,12 @@ export default function AdminPage() {
                   </div>
                   <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
-                      {[systemSettings.cache, systemSettings.audit, systemSettings.piiMasking].filter(Boolean).length} of 3 security features enabled
+                      {[systemSettings.audit, systemSettings.piiMasking].filter(Boolean).length} of 2 security features enabled
                     </div>
                     <div style={{ height: 4, background: 'var(--border)', borderRadius: 9999, overflow: 'hidden' }}>
                       <div style={{
                         height: '100%',
-                        width: `${([systemSettings.cache, systemSettings.audit, systemSettings.piiMasking].filter(Boolean).length / 3) * 100}%`,
+                        width: `${([systemSettings.audit, systemSettings.piiMasking].filter(Boolean).length / 2) * 100}%`,
                         background: 'var(--primary)',
                         borderRadius: 9999,
                         transition: 'width 0.4s ease'

@@ -9,13 +9,19 @@
  * Used to dynamically select the correct RAG prompt template.
  */
 export const DOMAIN_CLASSIFIER_PROMPT =
-  "Classify this message into exactly ONE word from: engineering, hr, it, operations, general.\n" +
-  "engineering = code bugs, features, architecture, mobile, backend, frontend.\n" +
-  "hr = leave, policy, benefits, payroll, recruitment, onboarding.\n" +
-  "it = laptop, access, password, setup, infrastructure, helpdesk.\n" +
-  "operations = account reset, data export, excel report, status check, refund, revoke, bulk update, abuse case, buyback, transaction hash, tx, approval, admin request, [Requester], [Department], [Expected Result], [Description], [Due Date], [Assigned to], [Solution], [High], [Medium], [Low].\n" +
-  "general = anything else.\n\n" +
-  "IMPORTANT RULE: If the message contains structured Jira/Slack ticket tags like [Expected Result], [Requester], [Description], or [Department], you MUST classify it as operations, even if it mentions databases, scripts, or APIs.\n\n" +
+  "Classify this message into exactly ONE word from: engineering, hr, it, operations, general.\n\n" +
+  "engineering = code bugs, features, architecture, mobile, backend, frontend, scripts, CI/CD, deployments, pull requests, build errors.\n" +
+  "hr = leave, policy, benefits, payroll, recruitment, onboarding, performance review, contract.\n" +
+  "it = laptop, device, password reset, software access, helpdesk, VPN, account provisioning, wifi, printer.\n" +
+  "operations = account reset, data export, refund, revoke, bulk update, buyback, transaction, approval, abuse case, status check, admin request.\n" +
+  "general = company policy questions, general knowledge, or anything that does not clearly fit the above.\n\n" +
+  "Examples:\n" +
+  "\"TypeError in the payment handler\" → engineering\n" +
+  "\"Reset John's account password\" → it\n" +
+  "\"My leave balance is incorrect\" → hr\n" +
+  "\"Verify if user 12345 was refunded\" → operations\n" +
+  "\"Fix the null pointer in checkout service\" → engineering\n" +
+  "\"What are our data retention policies?\" → general\n\n" +
   "Output ONLY the single word, lowercase, no punctuation.";
 
 /**
@@ -25,7 +31,7 @@ export const DOMAIN_CLASSIFIER_PROMPT =
  */
 export const DOMAIN_TO_TASK_TYPE: Record<string, string> = {
   engineering: 'CODE_RETRIEVAL_QUERY',
-  operations:  'CODE_RETRIEVAL_QUERY',
+  operations:  'RETRIEVAL_QUERY',   // operational queries are natural language, not code
   hr:          'RETRIEVAL_QUERY',
   it:          'RETRIEVAL_QUERY',
   general:     'RETRIEVAL_QUERY',

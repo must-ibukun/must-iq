@@ -4,13 +4,18 @@ import { getSessionMemory, loadMemoryFromHistory } from "../memory/session-memor
 import { getActiveSettings, createEmbeddings, createFastClassifierLLM, createUtilityLLM } from "@must-iq/config";
 import { AIQueryParams, AIQueryResult } from "@must-iq/shared-types";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
-import { retrieveChunks, retrieveChunksKeyword, reciprocalRankFusion } from "@must-iq/db";
+import { retrieveChunks, retrieveChunksKeyword, reciprocalRankFusion, DocumentChunk } from "@must-iq/db";
 import { generateHypotheticalDocument } from "../rag/hyde";
 import { buildContext } from "../utils/context-builder";
 
 import { DOMAIN_CLASSIFIER_PROMPT, DOMAIN_TO_TASK_TYPE } from "../prompts/must-iq-classifier.prompt";
+import { rerank } from "../rag/reranker";
 import * as fs from "fs";
 import * as path from "path";
+
+// Structured ticket tags from Jira/Slack templates — detected via string match,
+// no LLM call needed. Presence means the query is always an operational request.
+const TICKET_TAG_MARKERS = ['[Requester]', '[Department]', '[Expected Result]', '[Description]', '[Due Date]', '[Assigned to]', '[Solution]'];
 
 export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> {
   let localDeletePath: string | null = null;
@@ -32,6 +37,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
       ...new Set([...(params.workspaces || [params.workspace]), 'general', 'vault-v2'].filter(Boolean))
     ] as string[];
 
+    console.log("workspaces--",workspaces)
     const settings = await getActiveSettings();
 
     if (params.useAgent) {
@@ -51,12 +57,22 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
     if (settings.ragEnabled !== false) {
       try {
+        // ── Step 0: Ticket-tag short-circuit (no LLM cost) ────────────────
+        // Structured Jira/Slack ticket templates always signal an operational request.
+        // A regex-free string check is 100% reliable and skips the classifier LLM call.
+        const hasTicketTags = TICKET_TAG_MARKERS.some((tag) => params.query.includes(tag));
+        if (hasTicketTags) {
+          (params as any)._domain = 'operations';
+          taskType = 'RETRIEVAL_QUERY';
+          console.log('Domain Classifier: ticket tags detected → operations (short-circuit)');
+        }
+
         // ── Optimization: Single Domain Classifier ─────────────────────
         // One fast LLM call determines both:
         //   1. domain → which RAG prompt template to use
         //   2. taskType → which embedding model to use (via static DOMAIN_TO_TASK_TYPE)
         const threshold = settings.intentClassificationThreshold ?? 15;
-        const shouldClassify = settings.intentClassificationEnabled !== false && params.query.length > threshold;
+        const shouldClassify = !hasTicketTags && settings.intentClassificationEnabled !== false && params.query.length > threshold;
 
         if (shouldClassify) {
           const classifier = await createFastClassifierLLM(settings);
@@ -71,12 +87,8 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           // Open-source models (e.g., Llama3 via Ollama) often ignore the "Output ONLY the single word" rule
           // and start conversational preamble. We must forcefully extract the target classification word.
           const validDomains = ['engineering', 'operations', 'hr', 'it', 'general'];
-          const foundDomain = validDomains.find(d => domain.includes(d));
-          if (foundDomain) {
-            domain = foundDomain;
-          } else {
-            domain = 'general'; // Default fallback
-          }
+          const foundDomain = validDomains.find((d) => new RegExp(`\\b${d}\\b`).test(domain));
+          domain = foundDomain ?? 'general';
 
           console.log(`Domain Classifier Output: "${domain}"`);
 
@@ -132,11 +144,12 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
         // ── Stage 1: Broad Retrieval ─────────────────────────
         // If hybridSearchEnabled: run dense (pgvector) + sparse (BM25) in parallel
-        // and merge via Reciprocal Rank Fusion.
+        // and merge via Reciprocal Rank Fusion (K=60).
         // Otherwise: pure dense search only.
-        const topK = settings.topK ?? 100;
+        // topK=60 feeds the reranker pool; reranker narrows to top-20 for context.
+        const topK = settings.topK ?? 60;
 
-        let chunks;
+        let chunks: DocumentChunk[];
         if (settings.hybridSearchEnabled) {
           console.log(`Hybrid Search: Running dense + BM25 in parallel (topK=${topK})...`);
           const [denseChunks, keywordChunks] = await Promise.all([
@@ -151,6 +164,14 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           console.log(`Stage 1: Retrieved ${chunks.length} chunks (topK=${topK})`);
         }
 
+        // ── Stage 2: Cross-Encoder Rerank ─────────────────────────────
+        // Reranks the broad pool with ms-marco-MiniLM-L-6-v2 (local ONNX, ~90 MB).
+        // Returns top-20 by cross-encoder relevance score, replacing RRF scores.
+        if (chunks.length > 0 && settings.rerankEnabled !== false) {
+          const before = chunks.length;
+          chunks = await rerank(finalQueryForSearch, chunks, 20);
+          console.log(`Reranker: ${before} → ${chunks.length} chunks after cross-encoder.`);
+        }
 
         if (chunks.length > 0) {
           context = buildContext(chunks, settings.contextTokenBudget ?? 6000);

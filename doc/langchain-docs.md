@@ -21,6 +21,14 @@ Key capabilities added in v1.4:
 - **Conversational chain migration** — `ConversationChain` (removed in LangChain v0.3) replaced with `RunnableWithMessageHistory` using the LCEL pipeline pattern
 - **Admin UI Document Ingestion** — Drag-and-drop file upload for PDF/DOCX/TXT/MD with real-time logging to `IngestionEvent`
 
+Key capabilities added in v1.5:
+- **Multi-stage RAG pipeline** — 5-stage pipeline: domain classifier → HyDE (optional) → hybrid search (pgvector + BM25 → RRF) → cross-encoder reranker (ms-marco-MiniLM-L-6-v2, local ONNX) → context builder
+- **Domain classifier** — fast LLM classifies queries into `{engineering, hr, it, operations, general}`; ticket-tag queries short-circuit to `operations` with no LLM call
+- **Per-domain prompt templates** — `langchain/src/prompts/` has individual templates per domain
+- **Cron-based ingestion** — scheduled pull at 06:00/18:00 for Slack channels, GitHub merged PRs, Jira resolved issues; toggleable from Admin UI
+- **Slack app_mention → Jira flow** — `POST /webhooks/slack` → detect mention → fetch thread → `ChatService.chat()` → create Jira card → reply in thread
+- **Token logging (no enforcement)** — `ChatService` writes non-blocking `TokenLog` entries for visibility only; `token/` module and Redis quota enforcement removed
+
 ---
 
 ## 2. Core Concepts: LCEL
@@ -86,12 +94,16 @@ graph TD
 
 ## 4. Component Details
 
-### 4.1 Vector Storage (PostgreSQL + pgvector)
-Instead of a dedicated vector database, we use the existing PostgreSQL instance with `pgvector`. This keeps relational data (metadata, team ownership) and embeddings co-located.
+### 4.1 Vector Storage (PostgreSQL + pgvector + BM25)
+Instead of a dedicated vector database, we use the existing PostgreSQL instance with `pgvector`. This keeps relational data (metadata, team ownership) and embeddings co-located, and also enables BM25 sparse retrieval using PostgreSQL's built-in full-text search.
 
 - **Storage**: `PGVectorStore` from LangChain.
-- **Embeddings**: Settings-driven (default: `text-embedding-3-small`).
-- **Retriever**: Team-scoped similarity search — every query is filtered to the requesting user's selected team workspaces.
+- **Embeddings**: Settings-driven (default: `text-embedding-3-small`). Gemini uses 768-dim; OpenAI uses 1536-dim.
+- **Dense retrieval**: `retrieveChunks()` — pgvector cosine similarity via HNSW index, filtered to the user's selected team workspaces.
+- **Sparse retrieval**: `retrieveChunksKeyword()` — PostgreSQL BM25 `ts_rank` full-text search, same workspace filter. Exported from `@must-iq/db`.
+- **Fusion**: `reciprocalRankFusion([dense, sparse], { K: 60 })` merges both result sets into a single pool of topK=60 chunks.
+- **Reranker**: `reranker.ts` (`langchain/src/rag/`) uses `ms-marco-MiniLM-L-6-v2` via `@xenova/transformers` (local ONNX, ~90 MB) to score all 60 chunks and return the top-20.
+- **Context builder**: `langchain/src/utils/context-builder.ts` filters below `MIN_SCORE=0.1`, deduplicates exact chunks, and enforces a 6000-token budget before the LLM call.
 
 ### 4.2 The AI Agent (LangGraph) — Split Architecture
 
@@ -128,7 +140,7 @@ The chat sidebar provides a **Search Scope** selector showing the user's availab
 1. **Team-Scoped Retrieval**: Every RAG query is hard-filtered to the requesting user's selected team workspaces — users can never retrieve content from teams they don't belong to.
 2. **Read-Only Integrations**: Tools for Jira, Slack, and GitHub are strictly READ-ONLY. The agent can never post messages or modify tickets.
 3. **Encrypted API Keys**: Provider API keys are AES-encrypted before being stored in the `settings` table. Decryption happens in-memory server-side only.
-4. **Token Budgets**: Every request is gated by a per-user token budget (stored in the `users` table, enforced by the API gateway).
+4. **PII Masking**: All user prompts and RAG context pass through `pii-masker.helper.ts` before reaching any LLM. An audit log entry is written only when PII is detected (`action: 'chat.pii_detected'`).
 5. **Admin-Only Settings**: The `PUT /api/v1/settings/llm` endpoint is guarded by ADMIN role check.
 
 ---
@@ -142,7 +154,7 @@ The chat sidebar provides a **Search Scope** selector showing the user's availab
 | **Integrations** | Add/edit/delete Workspace sources; single `identifier` field per source (channel ID, repo name, or project key); token budget per workspace |
 | **AI Models** | Multi-key management per provider; activate/deactivate keys; add keys |
 | **Knowledge Base** | Drag-and-drop file upload (managed ingestion); paginated event log/history |
-| **System Settings** | Toggle RAG, caching, audit logging, rate limiting; live health panel |
+| **System Settings** | Toggle RAG, audit logging; scheduled ingestion toggles (Slack/GitHub/Jira); HyDE, reranker, hybrid search toggles; live health panel |
 
 ### 🏷️ Supported Solution Layers
 - **Core**: Frontend (React) & Backend (NestJS)
@@ -176,5 +188,8 @@ curl -X POST http://localhost:4000/api/v1/chat/stream ...
 | **Keys** | Single static env key | Multi-key, admin-managed, encrypted |
 | **Scopes** | Single workspace per user | Multi-team, per-user, selectable at search time |
 | **Agent** | Monolithic file | Split: builder · runner · stream · types |
-| **Logic** | Hardcoded Prompts | Centralized Prompt Templates |
+| **Logic** | Hardcoded Prompts | Per-domain Prompt Templates (engineering, hr, it, operations, general) |
 | **Memory** | Manual JSON arrays | Automatic SQL/Redis Memory |
+| **Domain Classifier** | None | Fast LLM → one of 5 domains; ticket-tag short-circuit (no LLM call) |
+| **Hybrid Search** | Single vector retrieval | pgvector cosine + BM25 ts_rank → RRF(K=60) |
+| **Reranker** | None | ms-marco-MiniLM-L-6-v2 cross-encoder, local ONNX → top-20 |

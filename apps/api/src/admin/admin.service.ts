@@ -283,12 +283,22 @@ export class AdminService {
             })
         );
 
+        const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+        const yesterdayLogs = weeklyLogs.filter(l => l.createdAt >= yesterdayStart && l.createdAt < todayStart);
+
         const todayTotal = todayLogs.reduce((s, l) => s + l.totalTokens, 0);
-        const cacheHits = todayLogs.filter(l => l.cached).length;
+        const yesterdayTotal = yesterdayLogs.reduce((s, l) => s + l.totalTokens, 0);
+
+        // Blended cost estimate: ~$0.003 per 1K tokens (rough average across providers)
+        const costPer1K = 0.003;
+        const estCostToday = parseFloat(((todayTotal / 1000) * costPer1K).toFixed(2));
+        const estCostYesterday = parseFloat(((yesterdayTotal / 1000) * costPer1K).toFixed(2));
 
         return {
             todayTotal,
-            cacheRate: todayLogs.length ? Math.round((cacheHits / todayLogs.length) * 100) : 0,
+            yesterdayTotal,
+            estCostToday,
+            estCostYesterday,
             dailyTotals: dailyMap,
             topUsers,
         };
