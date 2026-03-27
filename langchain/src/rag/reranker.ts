@@ -55,15 +55,17 @@ export async function rerank(
   try {
     const reranker = await getReranker();
 
-    // Truncate passage to 512 chars — cross-encoder max sequence is 512 tokens
-    const pairs = chunks.map((c) => ({
-      text: query,
-      text_pair: c.content.slice(0, 512),
-    }));
-
-    const scores: { score: number; label: string }[] = await reranker(pairs, {
-      truncation: true,
-    });
+    // Score each chunk individually: Xenova's text-classification pipeline
+    // does not accept batched {text, text_pair} objects — it expects a plain
+    // string as the first arg and text_pair in options.
+    const scores: { score: number }[] = await Promise.all(
+      chunks.map((c) =>
+        reranker(query, {
+          text_pair: c.content.slice(0, 512),
+          truncation: true,
+        }).then((res: any) => (Array.isArray(res) ? res[0] : res))
+      )
+    );
 
     logger.debug(`Reranker scored ${chunks.length} chunks. Returning top-${topN}.`);
 

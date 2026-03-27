@@ -11,6 +11,9 @@ export class UpdateLLMSettingsDto {
     apiKeys?: Record<LLMProvider, string | undefined>;
     ragEnabled?: boolean;
     topK?: number;
+    rerankEnabled?: boolean;
+    intentClassificationEnabled?: boolean;
+    intentClassificationThreshold?: number;
 
     // Ingestion Fields
     slackIngestionEnabled?: boolean;

@@ -86,6 +86,21 @@ export async function retrieveChunks(
 // Uses the generated tsvector column added in migration 20260324000000
 // Perfect for exact matches: function names, error codes, identifiers
 // -------------------------------------------------------------------
+
+// Build an OR-based tsquery from plain text.
+// - Strips punctuation so tokens like "(PIP)" → "PIP"
+// - Filters tokens shorter than 3 chars to skip noise
+// - Joins with | (OR) so a truncated/unknown word like "managemen"
+//   doesn't AND-kill the entire query — other terms still match
+function buildOrTsQuery(text: string): string {
+  return text
+    .replace(/[^\w\s]/g, ' ')   // strip punctuation
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(w => w.length >= 3)
+    .join(' | ');
+}
+
 export async function retrieveChunksKeyword(
   query: string,
   workspace: string | string[],
@@ -95,9 +110,9 @@ export async function retrieveChunksKeyword(
     const scopes = Array.from(
       new Set(Array.isArray(workspace) ? workspace : [workspace])
     );
+    const orQuery = buildOrTsQuery(query);
+    if (!orQuery) return [];
 
-    // Convert the raw query to a PostgreSQL tsquery
-    // plainto_tsquery handles multi-word phrases gracefully without special syntax
     const results = await prisma.$queryRaw<
       Array<{
         id: string;
@@ -120,11 +135,11 @@ export async function retrieveChunksKeyword(
         metadata->>'layer' AS layer,
         metadata->>'language' AS language,
         metadata->>'techStack' AS "techStack",
-        ts_rank(content_tsv, plainto_tsquery('english', ${query})) AS rank
+        ts_rank(content_tsv, to_tsquery('english', ${orQuery})) AS rank
       FROM document_chunks
       WHERE
         workspace = ANY(${scopes})
-        AND content_tsv @@ plainto_tsquery('english', ${query})
+        AND content_tsv @@ to_tsquery('english', ${orQuery})
       ORDER BY rank DESC
       LIMIT ${topK}
     `;

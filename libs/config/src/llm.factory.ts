@@ -198,7 +198,14 @@ export async function createFastClassifierLLM(settings: LLMSettings) {
 // ---------------------------------------------------------------
 export async function createEmbeddings(taskType?: string): Promise<Embeddings> {
   const settings = await getActiveSettings();
-  return buildEmbeddings(settings, taskType);
+  // Query path: default to RETRIEVAL_QUERY if caller didn't specify.
+  return buildEmbeddings(settings, taskType ?? 'RETRIEVAL_QUERY');
+}
+
+export async function createDocumentEmbeddings(): Promise<Embeddings> {
+  const settings = await getActiveSettings();
+  // Ingestion path: always RETRIEVAL_DOCUMENT so stored vectors use the correct Gemini hint.
+  return buildEmbeddings(settings, 'RETRIEVAL_DOCUMENT');
 }
 
 /**
@@ -354,7 +361,7 @@ async function buildEmbeddings(settings: LLMSettings, taskType?: string): Promis
       return new CustomGoogleGenerativeAIEmbeddings({
         model: settings.embeddingModel,
         apiKey,
-        taskType: (taskType || "RETRIEVAL_QUERY") as any,
+        taskType: (taskType ?? "RETRIEVAL_QUERY") as any,
         outputDimensionality: embeddingDimensions || 768,
       });
     }

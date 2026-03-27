@@ -72,7 +72,6 @@ export function LLMSettingsSection({
           Enable advanced agentic reasoning (Deep Search) for complex queries. This allows the AI to perform multiple search steps and reason more deeply about the results.
         </div>
 
-
         {(() => {
           // Color shifts from muted green (small context) to vivid green (large context)
           const fraction = (localTopK - 5) / 55; // 0.0 at 5, 1.0 at 60

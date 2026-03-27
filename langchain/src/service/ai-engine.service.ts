@@ -41,7 +41,6 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
     const workspaces = [
       ...new Set([...(params.workspaces || [params.workspace])].filter(Boolean))
     ] as string[];
-
     if (params.useAgent) {
       const agentSettings = await getActiveSettings();
       const response = await runAgent(
@@ -98,7 +97,6 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
           taskType = DOMAIN_TO_TASK_TYPE[extractedIntent.domain] ?? 'RETRIEVAL_QUERY';
         }
-        logger.log(`Final task type: ${taskType}`);
 
         // ── Step 2: Image Handling ────────────────────────────────────────
         // gemini-embedding-2-preview embeds image + text natively in one vector — no OCR needed.
@@ -147,15 +145,12 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           ? ` ${extractedIntent.resources.join(' ')}`
           : '';
 
-          logger.log("enrichedQuery---",enrichedQuery)
-          logger.log("bm25ResourceBoost---",bm25ResourceBoost)
 
         const finalQueryForSearch = params.image && extractedText
           ? `${enrichedQuery}\n\nVisible Screen Elements:\n${extractedText}`
           : enrichedQuery;
 
         const bm25Query = `${finalQueryForSearch}${bm25ResourceBoost}`;
-        console.log("bm25Query--",bm25Query)
         // ── HyDE: Hypothetical Document Embedding ─────────────────────
         // If enabled, generate a synthetic code/doc snippet that "looks like"
         // the answer — then embed THAT instead of the enriched query.
@@ -172,7 +167,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           const vec = await createMultimodalQueryVector(queryText, params.image!, taskType);
           queryVector = vec ?? await embeddings.embedQuery(queryText);
         } else {
-          queryVector = await embeddings.embedQuery(queryText);
+          queryVector = await embeddings.embedQuery("queryText");
         }
 
         // ── Stage 1: Broad Retrieval ─────────────────────────
@@ -204,12 +199,12 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         // so the cross-encoder scores relevance against technical vocabulary.
         if (chunks.length > 0 && settings.rerankEnabled !== false) {
           const before = chunks.length;
-          chunks = await rerank(finalQueryForSearch, chunks, 20);
+          chunks = await rerank(finalQueryForSearch, chunks, 100);
           logger.log(`Reranker: ${before} → ${chunks.length} chunks after cross-encoder.`);
         }
 
         if (chunks.length > 0) {
-          context = buildContext(chunks, settings.contextTokenBudget ?? 6000);
+          context = buildContext(chunks);
 
           sources = chunks.map((d) => {
             const sourceStr = d.source || '';
@@ -218,6 +213,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
             if (sourceStr.toLowerCase().includes('.md') || sourceStr.toLowerCase().includes('doc')) sType = 'doc';
             if (idStr.toLowerCase().includes('jira') || sourceStr.toLowerCase().includes('jira')) sType = 'jira';
             if (idStr.toLowerCase().includes('slack') || sourceStr.toLowerCase().includes('slack')) sType = 'slack';
+            if (idStr.toLowerCase().includes('github') || sourceStr.toLowerCase().includes('github')) sType = 'github';
 
             return {
               chunkId: idStr,

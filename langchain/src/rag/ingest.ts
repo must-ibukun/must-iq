@@ -7,7 +7,7 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
 import { RecursiveCharacterTextSplitter, SupportedTextSplitterLanguage } from "@langchain/textsplitters";
-import { createVectorStore, createEmbeddings, getActiveSettings } from "@must-iq/config";
+import { createVectorStore } from "@must-iq/config";
 import { prisma } from "@must-iq/db";
 import { CODE_EXTENSIONS } from "@must-iq/shared-types";
 import path from "path";

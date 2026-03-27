@@ -6,9 +6,9 @@
 // Chunks below this score are discarded regardless of rank.
 // After cross-encoder reranking, scores < 0.1 are near-irrelevant.
 // Without reranking, this filters cosine similarity noise (< 0.1 ≈ random match).
-const MIN_SCORE = 0.1;
+const MIN_SCORE = 0.01;
 
-export function buildContext(chunks: any[], maxTokenBudget = 6000): string {
+export function buildContext(chunks: any[]): string {
   const seen = new Set<string>();
   const deduplicated: any[] = [];
 
@@ -26,8 +26,6 @@ export function buildContext(chunks: any[], maxTokenBudget = 6000): string {
     }
   }
 
-  // 2. Budget constraints (1 token ≈ 4 chars)
-  let budgetChars = maxTokenBudget * 4;
   const parts: string[] = [];
 
   for (let i = 0; i < deduplicated.length; i++) {
@@ -36,20 +34,9 @@ export function buildContext(chunks: any[], maxTokenBudget = 6000): string {
     const langLabel   = d.language && d.language !== 'text' ? `[Lang: ${d.language}] ` : '';
     const stackLabel  = d.techStack ? `[Stack: ${d.techStack}] ` : '';
     const sourceLabel = d.source ? `(${d.source})` : '(unknown source)';
-    
-    const header = `[${i + 1}] ${layerLabel}${langLabel}${stackLabel}${sourceLabel}`;
-    const block  = `${header}\n${d.content}`;
 
-    if (block.length > budgetChars) {
-      // If even the first block is too big, slice it, otherwise break.
-      if (parts.length === 0) {
-        parts.push(block.slice(0, budgetChars) + '\n...[TRUNCATED]');
-      }
-      break; 
-    }
-    
-    budgetChars -= block.length;
-    parts.push(block);
+    const header = `[${i + 1}] ${layerLabel}${langLabel}${stackLabel}${sourceLabel}`;
+    parts.push(`${header}\n${d.content}`);
   }
 
   return parts.join('\n\n---\n\n');

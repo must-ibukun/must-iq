@@ -214,6 +214,19 @@ export default function AdminPage() {
 
 
 
+  // Derive the true active provider from the active API key, not the stored provider field.
+  // This prevents stale provider values in DB from causing the wrong models to appear.
+  function applyLLMSettings(s: any) {
+    if (!s) return;
+    const activeKey = Array.isArray(s.apiKeys) ? s.apiKeys.find((k: any) => k.isActive) : null;
+    const derivedProvider = activeKey?.provider?.toLowerCase() ?? s?.provider?.toLowerCase() ?? 'anthropic';
+    const patched = { ...s, provider: derivedProvider };
+    setLlmSettings(patched);
+    setActiveProvider(derivedProvider);
+    setRagEnabled(s.ragEnabled ?? true);
+    setAgenticReasoningEnabled(s.agenticReasoningEnabled ?? false);
+  }
+
   useEffect(() => {
     setSectionLoading(true);
     const loaders: Record<string, () => Promise<void>> = {
@@ -237,8 +250,14 @@ export default function AdminPage() {
         setAvailableWorkspaces(ws);
       },
       settings: async () => {
-        const s = await getSystemSettings();
+        const [s, llm] = await Promise.all([getSystemSettings(), getLLMSettings()]);
         setSystemSettings(s);
+        if (llm) {
+          setLlmSettings(llm);
+          setActiveProvider(llm?.provider?.toLowerCase() ?? 'anthropic');
+          setRagEnabled(llm?.ragEnabled ?? true);
+          setAgenticReasoningEnabled(llm?.agenticReasoningEnabled ?? false);
+        }
       },
       llm: async () => {
         const [s, m] = await Promise.all([getLLMSettings(), getAvailableProviders()]);
@@ -284,6 +303,7 @@ export default function AdminPage() {
   const [llmMeta, setLlmMeta] = useState<{ providers: Record<string, string[]>, embeddingProviders: Record<string, { model: string, dimensions: number }[]> } | null>(null);
   const [llmSaving, setLlmSaving] = useState(false);
   const [addingKeyForProvider, setAddingKeyForProvider] = useState<string | null>(null);
+  const [llmLoadKey, setLlmLoadKey] = useState(0);
 
   const topKRef = useRef<HTMLInputElement>(null);
   const [ragEnabled, setRagEnabled] = useState(true);
@@ -291,14 +311,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (section === 'llm') {
+      setSectionLoading(true);
       getLLMSettings().then(s => {
         setLlmSettings(s);
         setActiveProvider(s?.provider?.toLowerCase() ?? 'anthropic');
         setRagEnabled(s?.ragEnabled ?? true);
         setAgenticReasoningEnabled(s?.agenticReasoningEnabled ?? false);
-      }).catch(() => { });
+      }).catch(() => { }).finally(() => setSectionLoading(false));
     }
-  }, [section]);
+  }, [section, llmLoadKey]);
 
   async function handleSaveLLM(
     updates?: Partial<any>,
@@ -370,15 +391,20 @@ export default function AdminPage() {
     }));
 
     // ② Update UI immediately (optimistic) — user sees the change instantly
+    // Also sync utilityModel to a valid model for the new provider so the dropdown
+    // doesn't fall back to showing the first option (e.g. claude) from a mismatched value.
+    const providerModels: string[] = llmMeta?.providers[provider] ?? [];
+    const newUtilityModel = providerModels.length > 0 ? providerModels[providerModels.length - 1] : targetKey.model;
     setLlmSettings((prev: any) => prev ? ({
       ...prev,
       provider: provider as any,
       model: targetKey.model,
+      utilityModel: newUtilityModel,
       apiKeys: updated
     }) : prev);
 
     // ③ Persist to backend silently (don't re-fetch, state already correct)
-    handleSaveLLM(undefined, updated, provider, targetKey.model, true);
+    handleSaveLLM({ utilityModel: newUtilityModel }, updated, provider, targetKey.model, true);
   }
 
   function handleDeleteKey(keyId: string) {
@@ -708,7 +734,7 @@ export default function AdminPage() {
             }
             return true;
           }).map(item => (
-            <div key={item.section} onClick={() => setSection(item.section)}
+            <div key={item.section} onClick={() => { setSection(item.section); if (item.section === 'llm') setLlmLoadKey(k => k + 1); }}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 7, cursor: 'pointer', marginBottom: 4, background: section === item.section ? 'rgba(var(--primary-rgb),0.08)' : 'transparent', color: section === item.section ? 'var(--ink)' : 'var(--muted)', fontSize: 14 }}>
               {(() => {
                 const NavIcon = NAV_ICONS[item.section];
@@ -2304,7 +2330,7 @@ export default function AdminPage() {
                   </div>
 
                   {/* HyDE */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(139,92,246,1)' }}><IconZap size={16} /></div>
                       <div>
@@ -2321,6 +2347,63 @@ export default function AdminPage() {
                         onToggle={() => setLlmSettings({ ...llmSettings, hydeEnabled: !llmSettings?.hydeEnabled })}
                       />
                     </div>
+                  </div>
+
+                  {/* Cross-Encoder Reranking */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(245,158,11,1)' }}><IconBrain size={16} /></div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Cross-Encoder Reranking</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Re-scores retrieved chunks with a local cross-encoder model (ms-marco-MiniLM-L-6-v2) before sending to the LLM. Improves answer quality at ~200ms extra latency.</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      {llmSettings?.rerankEnabled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
+                      <Toggle
+                        on={llmSettings?.rerankEnabled ?? false}
+                        onToggle={() => setLlmSettings({ ...llmSettings, rerankEnabled: !llmSettings?.rerankEnabled })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Intent Classification */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(16,185,129,1)' }}><IconBrain size={16} /></div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Intent Classification</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Detects query domain and enriches vocabulary before embedding. Skips queries shorter than the threshold.</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                        {llmSettings?.intentClassificationEnabled !== false && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
+                        <Toggle
+                          on={llmSettings?.intentClassificationEnabled !== false}
+                          onToggle={() => setLlmSettings({ ...llmSettings, intentClassificationEnabled: llmSettings?.intentClassificationEnabled === false })}
+                        />
+                      </div>
+                    </div>
+                    {llmSettings?.intentClassificationEnabled !== false && (
+                      <div style={{ padding: '0 20px 16px 70px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Min query length</div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="30"
+                          step="1"
+                          value={llmSettings?.intentClassificationThreshold ?? 15}
+                          onChange={e => setLlmSettings({ ...llmSettings, intentClassificationThreshold: parseInt(e.target.value) })}
+                          style={{ flex: 1, accentColor: 'rgba(16,185,129,1)' }}
+                        />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(16,185,129,1)', minWidth: 28, textAlign: 'right' }}>
+                          {llmSettings?.intentClassificationThreshold ?? 15}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
