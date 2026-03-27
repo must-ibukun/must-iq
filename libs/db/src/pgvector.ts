@@ -22,9 +22,9 @@ export async function retrieveChunks(
   topK = 5
 ): Promise<DocumentChunk[]> {
   try {
-    // Normalise workspace(s) into a de-duped array that always includes 'general'
+    // Normalise workspace(s) into a de-duped array
     const scopes = Array.from(
-      new Set([...(Array.isArray(workspace) ? workspace : [workspace]), 'general'])
+      new Set(Array.isArray(workspace) ? workspace : [workspace])
     );
 
     // Format vector for PostgreSQL: [0.1, 0.2, ...]
@@ -93,7 +93,7 @@ export async function retrieveChunksKeyword(
 ): Promise<DocumentChunk[]> {
   try {
     const scopes = Array.from(
-      new Set([...(Array.isArray(workspace) ? workspace : [workspace]), 'general'])
+      new Set(Array.isArray(workspace) ? workspace : [workspace])
     );
 
     // Convert the raw query to a PostgreSQL tsquery

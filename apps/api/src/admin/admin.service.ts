@@ -653,8 +653,11 @@ export class AdminService {
         // 1. Jira Discovery
         if (jiraToken && jiraEmail && jiraBaseUrl) {
             try {
+
+                this.logger.log(`Jira credentials → source: ${process.env.JIRA_API_TOKEN ? 'env' : 'db'} | email: ${jiraEmail} | tokenLen: ${jiraToken.length} | tokenStart: ${jiraToken.slice(0, 8)} | url: ${jiraBaseUrl}`);
                 const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-                let startAt = 0;
+
+                       let startAt = 0;
                 let isLast = false;
                 const allProjects = [];
 
@@ -665,9 +668,11 @@ export class AdminService {
 
                     if (!res.ok) {
                         const errText = await res.text();
+                        throw new Error(`Jira API error ${res.status}: ${errText}`);
                     }
 
                     const data = await res.json();
+                    this.logger.log(data)
                     if (data.values && Array.isArray(data.values)) {
                         allProjects.push(...data.values.map((p: any) => ({
                             id: p.id,
@@ -706,6 +711,7 @@ export class AdminService {
                     });
                     if (!res.ok) {
                         const errText = await res.text();
+                        throw new Error(`Slack API error ${res.status}: ${errText}`);
                     }
                     const data = await res.json();
 
