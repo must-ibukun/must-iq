@@ -107,6 +107,7 @@ export class IntegrationsService {
                 history: [],
                 useAgent: false,
                 stream: false,
+                includeSources: false,
             });
 
             cardData = {

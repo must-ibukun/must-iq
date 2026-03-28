@@ -206,25 +206,27 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         if (chunks.length > 0) {
           context = buildContext(chunks, settings.contextTokenBudget ?? undefined);
 
-          sources = chunks.map((d) => {
-            const sourceStr = d.source || '';
-            const idStr = d.id || 'unknown';
-            let sType = 'kb';
-            if (sourceStr.toLowerCase().includes('.md') || sourceStr.toLowerCase().includes('doc')) sType = 'doc';
-            if (idStr.toLowerCase().includes('jira') || sourceStr.toLowerCase().includes('jira')) sType = 'jira';
-            if (idStr.toLowerCase().includes('slack') || sourceStr.toLowerCase().includes('slack')) sType = 'slack';
-            if (idStr.toLowerCase().includes('github') || sourceStr.toLowerCase().includes('github')) sType = 'github';
+          if (params.includeSources !== false) {
+            sources = chunks.map((d) => {
+              const sourceStr = d.source || '';
+              const idStr = d.id || 'unknown';
+              let sType = 'kb';
+              if (sourceStr.toLowerCase().includes('.md') || sourceStr.toLowerCase().includes('doc')) sType = 'doc';
+              if (idStr.toLowerCase().includes('jira') || sourceStr.toLowerCase().includes('jira')) sType = 'jira';
+              if (idStr.toLowerCase().includes('slack') || sourceStr.toLowerCase().includes('slack')) sType = 'slack';
+              if (idStr.toLowerCase().includes('github') || sourceStr.toLowerCase().includes('github')) sType = 'github';
 
-            return {
-              chunkId: idStr,
-              source: sourceStr,
-              title: sourceStr ? sourceStr.split('/').pop() || 'Document' : 'Document',
-              sourceType: sType,
-              score: d.score,
-              content: d.content,
-              meta: `Workspace: ${d.workspace || 'general'}`
-            };
-          });
+              return {
+                chunkId: idStr,
+                source: sourceStr,
+                title: sourceStr ? sourceStr.split('/').pop() || 'Document' : 'Document',
+                sourceType: sType,
+                score: d.score,
+                content: d.content,
+                meta: `Workspace: ${d.workspace || 'general'}`
+              };
+            });
+          }
         }
       } catch (err) {
         logger.warn(`RAG retrieval failed: ${err.message}`);
