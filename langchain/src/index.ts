@@ -7,3 +7,4 @@ export * from './memory/session-memory';
 export * from './memory/redis-memory';
 export * from './tools/internal-tools';
 export * from './service/ai-engine.service';
+export * from './prompts/slack-jira-card.prompt';

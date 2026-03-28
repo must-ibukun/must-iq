@@ -241,7 +241,9 @@ export interface AdminStats {
 
 export interface AdminTokenUsage {
   todayTotal: number;
-  cacheRate: number;
+  yesterdayTotal: number;
+  estCostToday: number;
+  estCostYesterday: number;
   dailyTotals: Record<string, number>;
   topUsers: { name: string; tokens: number }[];
 }
@@ -302,6 +304,7 @@ export interface AIQueryParams {
     onChunk?: (chunk: string) => void;
     workspaces?: string[]; // secondary workspaces for RAG
     image?: string | null; // Base64 data URL for vision/OCR analysis
+    includeSources?: boolean; // default true — set false for integration paths (Slack/Jira) where sources are unused
 }
 
 export interface AIQueryResult {

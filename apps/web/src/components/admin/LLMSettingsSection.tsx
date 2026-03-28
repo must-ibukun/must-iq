@@ -11,7 +11,6 @@ interface LLMSettingsSectionProps {
   setRagEnabled: (v: boolean) => void;
   agenticReasoningEnabled: boolean;
   setAgenticReasoningEnabled: (v: boolean) => void;
-  topKRef: React.RefObject<HTMLInputElement | null>;
   llmSettings: any;
   setLlmSettings: (s: any) => void;
   llmMeta: any;
@@ -31,7 +30,6 @@ export function LLMSettingsSection({
   setRagEnabled,
   agenticReasoningEnabled,
   setAgenticReasoningEnabled,
-  topKRef,
   llmSettings,
   setLlmSettings,
   llmMeta,
@@ -45,11 +43,13 @@ export function LLMSettingsSection({
   handleActivateKey,
   handleDeleteKey,
 }: LLMSettingsSectionProps) {
-  const [localTopK, setLocalTopK] = React.useState(llmSettings?.topK ?? 100);
+  const [budgetEnabled, setBudgetEnabled] = React.useState(llmSettings?.contextTokenBudget != null);
+  const [maxTokensEnabled, setMaxTokensEnabled] = React.useState(llmSettings?.maxTokens != null);
 
   React.useEffect(() => {
-    if (llmSettings?.topK) setLocalTopK(llmSettings.topK);
-  }, [llmSettings?.topK]);
+    setBudgetEnabled(llmSettings?.contextTokenBudget != null);
+    setMaxTokensEnabled(llmSettings?.maxTokens != null);
+  }, [llmSettings?.contextTokenBudget, llmSettings?.maxTokens]);
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
@@ -72,55 +72,39 @@ export function LLMSettingsSection({
           Enable advanced agentic reasoning (Deep Search) for complex queries. This allows the AI to perform multiple search steps and reason more deeply about the results.
         </div>
 
+        {/* HyDE Query Expansion */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(139,92,246,1)' }}>
+              <IconZap size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>HyDE Query Expansion</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Generates a hypothetical answer to bridge vocabulary gaps before querying the knowledge base. Improves recall for abstract queries.</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {llmSettings?.hydeEnabled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
+            <Toggle on={llmSettings?.hydeEnabled ?? false} onToggle={() => setLlmSettings({ ...llmSettings, hydeEnabled: !llmSettings?.hydeEnabled })} />
+          </div>
+        </div>
 
-        {(() => {
-          // Color shifts from muted green (small context) to vivid green (large context)
-          const fraction = (localTopK - 5) / 45; // 0.0 at 5, 1.0 at 50
-          const sat = 30 + (fraction * 70);
-          const lit = 60 - (fraction * 20);
-          const dynamicGreen = `hsl(142, ${sat}%, ${lit}%)`;
-          const dynamicGreenBg = `hsla(142, ${sat}%, ${lit}%, 0.15)`;
-          return (
-            <>
-              {/* Stage 1: Candidate Pool */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Context Size (Top-K)</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.05em' }}>NUMBER OF CHUNKS RETRIEVED</div>
-                </div>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', background: dynamicGreenBg, color: dynamicGreen, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, transition: 'all 0.2s' }}>
-                  {localTopK}
-                </div>
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, marginTop: 8 }}>
-                How many codebase chunks are sent to the LLM to answer the query. A larger number provides more context but increases latency and token cost.
-              </div>
-              <input
-                ref={topKRef}
-                type="range"
-                min="5"
-                max="50"
-                step="5"
-                value={localTopK}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value);
-                  setLocalTopK(v);
-                  setLlmSettings({ ...llmSettings, topK: v });
-                }}
-                style={{ width: '100%', marginBottom: 8, accentColor: dynamicGreen, transition: 'accent-color 0.2s' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', marginBottom: 24 }}>
-                <span>5 — Precise</span>
-                <span>15</span>
-                <span>25</span>
-                <span>35</span>
-                <span>50 — Broad</span>
-              </div>
-
-
-            </>
-          );
-        })()}
+        {/* Cross-Encoder Reranking */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(245,158,11,1)' }}>
+              <IconBrain size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Cross-Encoder Reranking</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Re-scores retrieved chunks with a local cross-encoder model (ms-marco-MiniLM-L-6-v2) before sending to the LLM. Improves answer quality at ~200ms extra latency.</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {llmSettings?.rerankEnabled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
+            <Toggle on={llmSettings?.rerankEnabled ?? false} onToggle={() => setLlmSettings({ ...llmSettings, rerankEnabled: !llmSettings?.rerankEnabled })} />
+          </div>
+        </div>
 
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, marginBottom: 24 }}>
@@ -229,20 +213,81 @@ export function LLMSettingsSection({
 
 
 
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Temperature</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Controls randomness: 0 is focused, 1 is creative</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={llmSettings?.temperature ?? 0.3}
-                onChange={e => setLlmSettings({ ...llmSettings, temperature: parseFloat(e.target.value) })}
-                style={{ flex: 1, accentColor: 'var(--primary)' }}
-              />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', minWidth: 24 }}>{llmSettings?.temperature ?? 0.3}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
+            {/* Temperature */}
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Temperature</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Controls randomness: 0 is focused, 1 is creative</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={llmSettings?.temperature ?? 0.3}
+                  onChange={e => setLlmSettings({ ...llmSettings, temperature: parseFloat(e.target.value) })}
+                  style={{ flex: 1, accentColor: 'var(--primary)' }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', minWidth: 24 }}>{llmSettings?.temperature ?? 0.3}</span>
+              </div>
+            </div>
+
+            {/* Max Output Tokens */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Max Output Tokens</div>
+                <Toggle
+                  on={maxTokensEnabled}
+                  onToggle={() => {
+                    const next = !maxTokensEnabled;
+                    setMaxTokensEnabled(next);
+                    setLlmSettings({ ...llmSettings, maxTokens: next ? (llmSettings?.maxTokens ?? 4096) : null });
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
+                {maxTokensEnabled ? 'Cap LLM response length' : 'No limit — model default applies'}
+              </div>
+              {maxTokensEnabled && (
+                <input
+                  type="number"
+                  min="256"
+                  max="32000"
+                  step="256"
+                  value={llmSettings?.maxTokens ?? 4096}
+                  onChange={e => setLlmSettings({ ...llmSettings, maxTokens: parseInt(e.target.value) })}
+                  style={{ width: '100%', padding: '9px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+                />
+              )}
+            </div>
+
+            {/* Context Token Budget */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Context Token Budget</div>
+                <Toggle
+                  on={budgetEnabled}
+                  onToggle={() => {
+                    const next = !budgetEnabled;
+                    setBudgetEnabled(next);
+                    setLlmSettings({ ...llmSettings, contextTokenBudget: next ? (llmSettings?.contextTokenBudget ?? 16000) : null });
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
+                {budgetEnabled ? 'Max tokens of RAG context sent to LLM' : 'No limit — all retrieved chunks are sent'}
+              </div>
+              {budgetEnabled && (
+                <input
+                  type="number"
+                  min="1000"
+                  max="128000"
+                  step="1000"
+                  value={llmSettings?.contextTokenBudget ?? 16000}
+                  onChange={e => setLlmSettings({ ...llmSettings, contextTokenBudget: parseInt(e.target.value) })}
+                  style={{ width: '100%', padding: '9px 12px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+                />
+              )}
             </div>
           </div>
 

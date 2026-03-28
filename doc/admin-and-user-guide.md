@@ -37,12 +37,11 @@ If a source isn't discovered automatically, you can add it manually:
 3. Select the **Source Type** (Slack, Jira, GitHub, or Generic).
 4. Enter the **Identifier** (e.g., Slack Channel ID or GitHub Repo name).
 5. Choose the **Architectural Layer Choice**. The system will offer a "Smart Guess" as you type.
-6. Set a **Token Budget** (daily limit) for this source.
 
 ### 3. User Management
 - **Role Assignment**: Elevate users to `MANAGER` or `ADMIN` roles.
 - **Multi-Team Assignment**: Users can be assigned to multiple teams simultaneously. Click the ✏️ icon on the Users table to manage their team memberships.
-- **Token Budgets**: Manage individual user daily token allowances for AI usage.
+- **Token Visibility**: Per-user token usage is tracked in the `TokenLog` table and visible in the Admin Dashboard. There are no per-user daily budget limits or enforcement — the log is for visibility and cost attribution only.
 
 ---
 
@@ -67,5 +66,7 @@ Must-IQ is designed to connect the dots across your entire architecture.
 
 ## 📥 Ingestion Tips
 - **Knowledge Base (Manual)**: Upload PDFs or text files to specific workspaces. Use the `Docs` layer for general knowledge.
-- **Source Syncing**: If a Slack channel or Jira project is updated, click **Sync Global Sources** in the Workspace section to refresh the index.
+- **Automatic Sync (Scheduled)**: Slack channels, GitHub merged PRs, and Jira resolved issues are pulled automatically at **06:00 and 18:00 daily** (last 12 hours of data per run). No manual trigger is needed for routine updates. Each source can be toggled on/off from **Admin UI → System Settings** (`slackIngestionEnabled`, `repoIngestionEnabled`, `jiraIngestionEnabled`).
+- **On-Demand Sync**: To refresh a specific workspace outside the scheduled window, use the manual sync option in the Workspace section of the Admin UI.
+- **Slack app_mention → Jira Card**: When a user @-mentions the Must-IQ bot in Slack, it automatically fetches the thread context, generates a Jira card with an AI summary, and replies in the thread with the ticket link. This is a real-time interactive flow and does not require any admin configuration beyond having a valid Slack bot token and Jira credentials.
 - **Event History**: Use the **Ingestion History** filters to track when specific data was added or to troubleshoot ingestion errors.

@@ -25,6 +25,14 @@ import {
 import { Logger } from "@nestjs/common";
 const logger = new Logger("LLMFactory");
 
+// L2 normalization — required for Gemini embeddings at < 3072 dims.
+// The API pre-normalizes 3072-dim output only; truncated sizes must be normalized manually
+// or cosine similarity scores will be inaccurate (compares magnitude, not direction).
+function normalizeVector(v: number[]): number[] {
+  const norm = Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
+  return norm === 0 ? v : v.map(x => x / norm);
+}
+
 /**
  * Custom extension of GoogleGenerativeAIEmbeddings to support outputDimensionality (Matryoshka Representation Learning).
  * This is needed because the current LangChain wrapper does not expose this parameter,
@@ -51,6 +59,12 @@ class CustomGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
     };
   }
 
+  private maybeNormalize(v: number[]): number[] {
+    // Gemini pre-normalizes 3072-dim output only; all other sizes require manual L2 normalization
+    if (!this.outputDimensionality || this.outputDimensionality === 3072) return v;
+    return normalizeVector(v);
+  }
+
   // Override to prevent LangChain from swallowing errors or returning empty vectors on failure
   protected async _embedDocumentsContent(documents: string[]): Promise<number[][]> {
     const self = this as any;
@@ -71,7 +85,7 @@ class CustomGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
       );
 
       return responses.flatMap((res) => {
-        return res.embeddings.map((e: any) => e.values || []);
+        return res.embeddings.map((e: any) => this.maybeNormalize(e.values || []));
       });
     } catch (err: any) {
       logger.error(`Gemini Embedding Error (Direct Batch): ${err.message}`);
@@ -84,9 +98,35 @@ class CustomGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
     try {
       const req = self._convertToContent(text);
       const res = await self.client.embedContent(req);
-      return res.embedding.values ?? [];
+      return this.maybeNormalize(res.embedding.values ?? []);
     } catch (err: any) {
       logger.error(`Gemini Embedding Error (Direct Query): ${err.message}`);
+      throw err;
+    }
+  }
+
+  // Embeds text + image together into a single unified vector.
+  // Only works with gemini-embedding-2-preview (multimodal embedding model).
+  async embedMultimodalQuery(text: string, imageDataUrl: string): Promise<number[]> {
+    const self = this as any;
+    const commaIdx = imageDataUrl.indexOf(',');
+    const mimeType = imageDataUrl.substring(5, imageDataUrl.indexOf(';'));
+    const base64Data = imageDataUrl.substring(commaIdx + 1);
+    try {
+      const textReq = self._convertToContent(text);
+      const req = {
+        ...textReq,
+        content: {
+          parts: [
+            ...textReq.content.parts,
+            { inlineData: { mimeType, data: base64Data } }
+          ]
+        }
+      };
+      const res = await self.client.embedContent(req);
+      return this.maybeNormalize(res.embedding?.values ?? []);
+    } catch (err: any) {
+      logger.error(`Gemini Multimodal Embedding Error: ${err.message}`);
       throw err;
     }
   }
@@ -158,7 +198,31 @@ export async function createFastClassifierLLM(settings: LLMSettings) {
 // ---------------------------------------------------------------
 export async function createEmbeddings(taskType?: string): Promise<Embeddings> {
   const settings = await getActiveSettings();
-  return buildEmbeddings(settings, taskType);
+  // Query path: default to RETRIEVAL_QUERY if caller didn't specify.
+  return buildEmbeddings(settings, taskType ?? 'RETRIEVAL_QUERY');
+}
+
+export async function createDocumentEmbeddings(): Promise<Embeddings> {
+  const settings = await getActiveSettings();
+  // Ingestion path: always RETRIEVAL_DOCUMENT so stored vectors use the correct Gemini hint.
+  return buildEmbeddings(settings, 'RETRIEVAL_DOCUMENT');
+}
+
+/**
+ * Embeds text + image into a single vector using gemini-embedding-2-preview's
+ * native multimodal capability. Returns null if the active embedding model
+ * does not support multimodal input (non-Gemini or older Gemini models).
+ */
+export async function createMultimodalQueryVector(
+  text: string,
+  imageDataUrl: string,
+  taskType?: string
+): Promise<number[] | null> {
+  const settings = await getActiveSettings();
+  if (settings.embeddingProvider !== 'gemini') return null;
+  if (!settings.embeddingModel.includes('embedding-2-preview')) return null;
+  const embeddings = await buildEmbeddings(settings, taskType) as CustomGoogleGenerativeAIEmbeddings;
+  return embeddings.embedMultimodalQuery(text, imageDataUrl);
 }
 
 // ---------------------------------------------------------------
@@ -297,7 +361,7 @@ async function buildEmbeddings(settings: LLMSettings, taskType?: string): Promis
       return new CustomGoogleGenerativeAIEmbeddings({
         model: settings.embeddingModel,
         apiKey,
-        taskType: (taskType || "RETRIEVAL_QUERY") as any,
+        taskType: (taskType ?? "RETRIEVAL_QUERY") as any,
         outputDimensionality: embeddingDimensions || 768,
       });
     }

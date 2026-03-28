@@ -1,7 +1,7 @@
 # 🧠 Must-IQ
 **Must Company's private internal AI assistant — powered by LangChain + LangGraph.**
 
-Nx monorepo · Next.js 14 · NestJS · LangChain · LangGraph · PostgreSQL + pgvector · Redis
+Nx monorepo · Next.js 15 · NestJS 11 · LangChain · LangGraph · PostgreSQL + pgvector · Redis
 
 ---
 
@@ -162,16 +162,53 @@ Admins and Managers can ingest data directly from the **Admin UI → Knowledge B
     - High-precision filtering: Select specific workspaces (Slack channels, Jira projects, etc.) within a team for targeted ingestion.
 - **Event Logging:** Real-time chunking status and comprehensive ingestion history log.
 
-### 3. Dynamic Integration Ingestion
+---
+
+## 🔍 RAG Pipeline
+
+Must-IQ uses a multi-stage retrieval pipeline for high-quality answers:
+
+1. **Domain Classifier** — A fast LLM call routes the query to one of five domains: `engineering`, `hr`, `it`, `operations`, `general`. Structured ticket tags (`[Requester]`, `[Department]`, etc.) short-circuit this to `operations` without any LLM call.
+2. **HyDE** *(optional)* — Generates a hypothetical answer document and embeds that instead of the raw query, bridging the vocabulary gap between natural language and code.
+3. **Hybrid Search** — pgvector dense search + PostgreSQL BM25 (sparse) run in parallel, merged via Reciprocal Rank Fusion (K=60), topK=60.
+4. **Cross-Encoder Reranker** — `ms-marco-MiniLM-L-6-v2` (local ONNX, ~90 MB, no external API) rescores the 60-chunk pool and returns the top-20 most relevant chunks.
+5. **Context Builder** — Filters out chunks below MIN_SCORE=0.1, deduplicates, and enforces a 6000-token budget before injection into the LLM prompt.
+
+All retrieval settings (HyDE, hybrid search, reranker, topK, context budget) are togglable from **Admin UI → LLM Settings**.
 
 ---
 
-## 🛡️ Security & Performance
+## 📥 Knowledge Ingestion
 
-Must-IQ employs several strict layers of security and performance optimizations:
-- **PII Masking**: A sophisticated Regex + Checksum engine intercepts all user inputs and retrieved context before they hit the LLM, automatically redacting sensitive information (Emails, Phone Numbers, Social Security Numbers, and Credit Cards) inline.
-- **Global Token Caps**: Administrators can configure a robust "Global Daily Token Cap" from the UI to prevent runaway API costs, sitting strictly above the user-level RBAC budgets.
-- **Redis Response Caching**: Identical queries are aggressively cached in Redis. The TTL is globally configurable dynamically via the Admin Settings UI, providing instant responses for repeated queries at absolute zero token cost.
+### Scheduled Pull (Cron)
+Ingestion runs automatically at **06:00 and 18:00 daily** for the last 12 hours of data:
+- **Slack** — pulls from all channels the bot is a member of
+- **GitHub** — pulls merged PRs from all configured repositories
+- **Jira** — pulls resolved issues from all configured projects
+
+All three can be toggled individually from **Admin UI → System Settings → Scheduled Ingestion**.
+
+### Manual Ingestion (Admin UI)
+Drag-and-drop file upload (PDF, DOCX, TXT, Markdown) or ZIP repository upload from **Admin UI → Knowledge Base**.
+
+### CLI Ingestion
+```bash
+nx run langchain:ingest -- --file ./path/to/doc.pdf --workspace hr
+```
+
+---
+
+## 📊 Token Tracking
+
+Token usage is logged non-blocking to the `TokenLog` table on every chat request (both JSON and SSE paths). No budget enforcement — purely for visibility. Admins can view usage in **Admin UI → Token Usage**: daily totals, estimated cost ($0.003/1K tokens blended), and top users.
+
+---
+
+## 🛡️ Security
+
+- **PII Masking** — Regex engine redacts emails, phone numbers, SSNs, API keys, and UUIDs before any LLM call. Audit log entries are written only when PII is actually detected (`action: chat.pii_detected`).
+- **Workspace Isolation** — Every RAG retrieval is scoped to the requesting user's team workspaces. The `general` scope is always included.
+- **API Key Encryption** — All provider API keys are stored encrypted at rest (AES-256 via `crypto-js`).
 
 ---
 
@@ -179,13 +216,15 @@ Must-IQ employs several strict layers of security and performance optimizations:
 
 | Layer | Technology |
 |---|---|
-| **Monorepo** | Nx 19 |
-| **Frontend** | Next.js 14 + Tailwind + Zustand |
-| **API** | NestJS + JWT |
+| **Monorepo** | Nx 22 |
+| **Frontend** | Next.js 15 + Tailwind + Zustand |
+| **API** | NestJS 11 + JWT |
 | **AI Orchestration** | LangChain (LCEL) + LangGraph ReAct |
-| **Vector DB** | PostgreSQL + pgvector |
+| **Vector DB** | PostgreSQL 16 + pgvector |
+| **Hybrid Search** | pgvector (dense) + PostgreSQL BM25 (sparse) + RRF |
+| **Reranker** | ms-marco-MiniLM-L-6-v2 via @xenova/transformers (local ONNX) |
 | **Persistence** | Prisma ORM |
-| **Cache & History** | Redis |
+| **Session History** | Redis |
 | **Encryption** | crypto-js AES (API keys at rest) |
 | **ZIP Handling** | adm-zip (Manual Repo Ingest) |
 

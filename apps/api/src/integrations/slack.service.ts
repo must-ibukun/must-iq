@@ -1,4 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
+import axios from 'axios';
+
+export interface SlackMessage {
+    user?: string;
+    username?: string;
+    text: string;
+    ts: string;
+}
 
 @Injectable()
 export class SlackService {
@@ -12,16 +20,15 @@ export class SlackService {
     async validatePermissions(token: string): Promise<{ ok: boolean; error?: string; scopes?: string[] }> {
         try {
             this.logger.log('Validating Slack bot permissions...');
-            
-            const res = await fetch('https://slack.com/api/auth.test', {
-                method: 'POST',
+
+            const res = await axios.post('https://slack.com/api/auth.test', null, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
             });
 
-            const data = await res.json();
+            const data = res.data;
 
             if (!data.ok) {
                 this.logger.error(`Slack auth.test failed: ${data.error}`);
@@ -30,8 +37,8 @@ export class SlackService {
 
             // auth.test doesn't return list of scopes in the JSON body,
             // but they are available in the 'x-oauth-scopes' header.
-            const scopes = res.headers.get('x-oauth-scopes')?.split(',').map(s => s.trim()) || [];
-            
+            const scopes = (res.headers['x-oauth-scopes'] as string)?.split(',').map(s => s.trim()) || [];
+
             const required = ['channels:history', 'groups:history'];
             const missing = required.filter(s => !scopes.includes(s));
 
@@ -46,6 +53,61 @@ export class SlackService {
         } catch (err: any) {
             this.logger.error(`Failed to validate Slack permissions: ${err.message}`);
             return { ok: false, error: 'network_error' };
+        }
+    }
+
+    /**
+     * Fetch all messages in a thread via conversations.replies
+     * Requires channels:history or groups:history scope
+     */
+    async fetchThread(channelId: string, threadTs: string, token: string): Promise<SlackMessage[]> {
+        try {
+            const res = await axios.get('https://slack.com/api/conversations.replies', {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { channel: channelId, ts: threadTs },
+            });
+
+            const data = res.data;
+
+            if (!data.ok) {
+                this.logger.error(`conversations.replies failed: ${data.error}`);
+                return [];
+            }
+
+            return (data.messages || []) as SlackMessage[];
+        } catch (err: any) {
+            this.logger.error(`fetchThread error: ${err.message}`);
+            return [];
+        }
+    }
+
+    /**
+     * Post a message (or reply to a thread) in a Slack channel
+     * Requires chat:write scope
+     */
+    async postMessage(channelId: string, text: string, token: string, threadTs?: string): Promise<boolean> {
+        try {
+            const body: Record<string, string> = { channel: channelId, text };
+            if (threadTs) body.thread_ts = threadTs;
+
+            const res = await axios.post('https://slack.com/api/chat.postMessage', body, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = res.data;
+
+            if (!data.ok) {
+                this.logger.error(`chat.postMessage failed: ${data.error}`);
+                return false;
+            }
+
+            return true;
+        } catch (err: any) {
+            this.logger.error(`postMessage error: ${err.message}`);
+            return false;
         }
     }
 }

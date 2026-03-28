@@ -283,12 +283,22 @@ export class AdminService {
             })
         );
 
+        const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+        const yesterdayLogs = weeklyLogs.filter(l => l.createdAt >= yesterdayStart && l.createdAt < todayStart);
+
         const todayTotal = todayLogs.reduce((s, l) => s + l.totalTokens, 0);
-        const cacheHits = todayLogs.filter(l => l.cached).length;
+        const yesterdayTotal = yesterdayLogs.reduce((s, l) => s + l.totalTokens, 0);
+
+        // Blended cost estimate: ~$0.003 per 1K tokens (rough average across providers)
+        const costPer1K = 0.003;
+        const estCostToday = parseFloat(((todayTotal / 1000) * costPer1K).toFixed(2));
+        const estCostYesterday = parseFloat(((yesterdayTotal / 1000) * costPer1K).toFixed(2));
 
         return {
             todayTotal,
-            cacheRate: todayLogs.length ? Math.round((cacheHits / todayLogs.length) * 100) : 0,
+            yesterdayTotal,
+            estCostToday,
+            estCostYesterday,
             dailyTotals: dailyMap,
             topUsers,
         };
@@ -643,8 +653,11 @@ export class AdminService {
         // 1. Jira Discovery
         if (jiraToken && jiraEmail && jiraBaseUrl) {
             try {
+
+                this.logger.log(`Jira credentials → source: ${process.env.JIRA_API_TOKEN ? 'env' : 'db'} | email: ${jiraEmail} | tokenLen: ${jiraToken.length} | tokenStart: ${jiraToken.slice(0, 8)} | url: ${jiraBaseUrl}`);
                 const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-                let startAt = 0;
+
+                       let startAt = 0;
                 let isLast = false;
                 const allProjects = [];
 
@@ -655,9 +668,11 @@ export class AdminService {
 
                     if (!res.ok) {
                         const errText = await res.text();
+                        throw new Error(`Jira API error ${res.status}: ${errText}`);
                     }
 
                     const data = await res.json();
+                    this.logger.log(data)
                     if (data.values && Array.isArray(data.values)) {
                         allProjects.push(...data.values.map((p: any) => ({
                             id: p.id,
@@ -696,6 +711,7 @@ export class AdminService {
                     });
                     if (!res.ok) {
                         const errText = await res.text();
+                        throw new Error(`Slack API error ${res.status}: ${errText}`);
                     }
                     const data = await res.json();
 

@@ -17,9 +17,14 @@ For a detailed look at how data moves from raw files into the knowledge base and
 
 | Feature | Implementation | Source |
 |---|---|---|
-| **RAG Retrieval** | `PGVectorStore` (Postgres + pgvector) | `src/chains/rag-chain.ts` |
+| **AI Query Entry Point** | `runAIQuery()` — orchestrates the full RAG pipeline | `src/service/ai-engine.service.ts` |
+| **Domain Classifier** | Fast LLM → 5 domains; ticket-tag short-circuit (no LLM) | `src/prompts/must-iq-classifier.prompt.ts` |
+| **HyDE** | Generates hypothetical answer doc for embedding | `src/rag/hyde.ts` |
+| **Cross-Encoder Reranker** | ms-marco-MiniLM-L-6-v2, local ONNX, lazy singleton | `src/rag/reranker.ts` |
+| **Context Builder** | Score filter, dedup, token budget enforcement | `src/utils/context-builder.ts` |
+| **RAG Chain** | Domain-specific prompt + LLM invocation | `src/chains/rag-chain.ts` |
 | **Conversational Chain** | LCEL pipe + `RunnableWithMessageHistory` | `src/chains/conversational-chain.ts` |
-| **System Prompts** | Centralized, descriptive templates | `src/prompts/` |
+| **System Prompts** | Per-domain RAG templates (engineering, hr, it, general, operations) | `src/prompts/` |
 | **Agent Builder** | Configures LangGraph ReAct + tools | `src/agent/agent.builder.ts` |
 | **Agent Runner** | Single-turn, non-streaming response | `src/agent/agent.runner.ts` |
 | **Agent Stream** | SSE streaming via `AsyncGenerator` | `src/agent/agent.stream.ts` |
@@ -34,6 +39,8 @@ For a detailed look at how data moves from raw files into the knowledge base and
 ```text
 langchain/
 └── src/
+    ├── service/
+    │   └── ai-engine.service.ts  ← runAIQuery() — full pipeline orchestrator
     ├── agent/             ← LangGraph ReAct agent (split into focused files)
     │   ├── agent.builder.ts   ← buildMustIQAgent() — creates the full agent
     │   ├── agent.runner.ts    ← runAgent() — non-streaming (jobs/tests/CLI)
@@ -41,9 +48,13 @@ langchain/
     │   ├── agent.types.ts     ← AgentStreamEvent discriminated union
     │   └── index.ts           ← Barrel: re-exports all of the above
     ├── chains/            ← Pre-built RAG and conversational pipelines
-    ├── memory/            ← Conversation history management  
-    ├── prompts/           ← System & human prompt templates
-    ├── rag/               ← Document ingestion (PDF/DOCX/TXT)
+    ├── memory/            ← Conversation history management
+    ├── prompts/           ← Domain-specific RAG templates + classifier prompt
+    ├── rag/
+    │   ├── hyde.ts        ← Hypothetical Document Embedding
+    │   └── reranker.ts    ← Cross-encoder reranker (ms-marco-MiniLM-L-6-v2)
+    ├── utils/
+    │   └── context-builder.ts  ← Score filter, dedup, token budget
     ├── tools/             ← External platform integrations
     └── index.ts           ← Main library entry point
 ```
@@ -73,10 +84,23 @@ type AgentStreamEvent =
 
 ## 🚀 Technical Advantages
 
-### 1. Vector Search (PGVector)
-Instead of a separate vector database, we use your existing **PostgreSQL** instance with the `pgvector` extension — data and vectors in one place, zero extra ops burden.
+### 1. Multi-Stage RAG Pipeline
 
-### 2. Provider Flexibility
+```
+Query
+  ↓ ticket-tag check (string, no LLM)
+  ↓ domain classifier (fast LLM → engineering | hr | it | operations | general)
+  ↓ HyDE (optional — generate hypothetical answer, embed that)
+  ↓ hybrid search: pgvector dense + BM25 sparse → RRF(K=60), topK=60
+  ↓ cross-encoder rerank (ms-marco-MiniLM-L-6-v2, local ONNX) → top-20
+  ↓ context builder (score filter MIN=0.1, dedup, 6000-token budget)
+  ↓ domain-specific RAG prompt + LLM
+```
+
+### 2. Local Cross-Encoder Reranker
+The reranker runs entirely on-device using `@xenova/transformers` (ONNX runtime). No external API, no extra cost. The model (~90 MB) downloads once from HuggingFace Hub and caches to disk. Controlled by `rerankEnabled` in LLM settings (default: `false`).
+
+### 3. Provider Flexibility
 The active LLM is driven entirely by the DB settings row — no code change needed:
 
 ```typescript
@@ -85,11 +109,11 @@ const llm = await createLLM({ maxTokens: 4096 }); // reads from DB + falls back 
 
 Supported providers: **Anthropic Claude, OpenAI GPT, Google Gemini, xAI Grok, Ollama (local)**.
 
-### 3. Agentic Ingestion
+### 4. Agentic Ingestion
 Must-IQ's agent can actively **discover** information in Jira or Slack and **persist** it back into the internal knowledge base for the rest of the team to benefit from. External sources are always READ-ONLY — the agent never creates tickets or posts messages.
 
-### 4. Team-Scoped Retrieval
-Every RAG retrieval is scoped to the requesting user's **team workspaces**. Users select which team/integration sources to search in the sidebar scope selector. The `General` scope is always included.
+### 5. Team-Scoped Retrieval
+Every RAG retrieval is scoped to the requesting user's **team workspaces**. Users select which team/integration sources to search in the sidebar scope selector. The `general` scope is always included.
 
 Workspace integration sources use a **unified `identifier` field** (Slack channel ID, GitHub repo full name, or Jira project key). The `type` enum (`SLACK | GITHUB | JIRA`) differentiates them.
 

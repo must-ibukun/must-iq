@@ -60,6 +60,9 @@ export interface LLMSettings {
   intentClassificationEnabled?: boolean;
   intentClassificationThreshold?: number;
 
+  // Reranking Settings
+  rerankEnabled?: boolean; // Whether to apply cross-encoder reranking after RRF (ms-marco-MiniLM-L-6-v2)
+
   // Cache Settings
   cacheL1Ttl?: number; // In-memory TTL (ms)
   cacheL2Ttl?: number; // Redis TTL (seconds)
@@ -146,10 +149,11 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   agenticReasoningEnabled: process.env.AGENTIC_REASONING_ENABLED === "true",
   autoCreateTeams: process.env.AUTO_CREATE_PROJECTS === "true",
 
-  // Default Retrieval / HyDE
+  // Default Retrieval / HyDE / Rerank
   hydeEnabled: false,
   hybridSearchEnabled: false,
-  contextTokenBudget: process.env.CONTEXT_TOKEN_BUDGET ? parseInt(process.env.CONTEXT_TOKEN_BUDGET) : 6000,
+  rerankEnabled: false,
+  contextTokenBudget: process.env.CONTEXT_TOKEN_BUDGET ? parseInt(process.env.CONTEXT_TOKEN_BUDGET) : 16000,
 
   // Default Intent Classification
   intentClassificationEnabled: true,
