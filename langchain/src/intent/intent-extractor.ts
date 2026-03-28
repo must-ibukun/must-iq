@@ -17,7 +17,7 @@ import { COMBINED_INTENT_PROMPT } from '../prompts/must-iq-classifier.prompt';
 
 // ── Types ────────────────────────────────────────────────────
 
-export type IntentDomain = 'engineering' | 'operations' | 'hr' | 'it' | 'general';
+export type IntentDomain = 'engineering' | 'operations' | 'hr' | 'general';
 
 export type IntentIssueType =
   | 'permission_request'
@@ -50,7 +50,7 @@ export interface ExtractedIntent {
 
 // ── Constants ────────────────────────────────────────────────
 
-const VALID_DOMAINS: IntentDomain[] = ['engineering', 'operations', 'hr', 'it', 'general'];
+const VALID_DOMAINS: IntentDomain[] = ['engineering', 'operations', 'hr', 'general'];
 
 const VALID_ISSUE_TYPES: IntentIssueType[] = [
   'permission_request',

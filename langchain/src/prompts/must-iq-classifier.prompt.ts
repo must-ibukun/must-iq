@@ -45,7 +45,7 @@ export const COMBINED_INTENT_PROMPT =
   'You are an enterprise AI assistant router. Analyze the user message and output a JSON object.\n\n' +
 
   'Fields:\n' +
-  '- domain: one of [engineering, operations, hr, it, general]\n' +
+  '- domain: one of [engineering, operations, hr, general]\n' +
   '- issue_type: one of [permission_request, bug, incident, how_to, status_check, data_request, feature_request, approval_request, policy_lookup, other]\n' +
   '- resources: array of specific systems, modules, or features mentioned or implied (max 5 strings)\n' +
   '- actors: array of people, teams, or roles involved (max 3 strings, empty array if none)\n' +
@@ -55,8 +55,7 @@ export const COMBINED_INTENT_PROMPT =
   'Domain definitions:\n' +
   '- engineering: code, bugs, features, architecture, mobile, backend, frontend, CI/CD, deployments, build errors\n' +
   '- hr: leave, policy, benefits, payroll, recruitment, onboarding, performance review, contract\n' +
-  '- it: laptop, device, password reset, software access, helpdesk, VPN, account provisioning, wifi\n' +
-  '- operations: permissions, account reset, data export, refund, revoke, bulk update, transaction, approval, admin requests\n' +
+  '- operations: permissions, account reset, data export, refund, revoke, bulk update, transaction, approval, admin requests, helpdesk, VPN, device setup, password reset, software access, account provisioning\n' +
   '- general: company policy questions, general knowledge\n\n' +
 
   'Examples:\n\n' +
@@ -71,7 +70,7 @@ export const COMBINED_INTENT_PROMPT =
   'Output: {"domain":"engineering","issue_type":"bug","resources":["payment handler","checkout service"],"actors":[],"action":"fix bug","enriched_query":"TypeError exception payment handler checkout service JavaScript error stack trace debug"}\n\n' +
 
   'Input: "How do I reset a user account password?"\n' +
-  'Output: {"domain":"it","issue_type":"how_to","resources":["user account","password reset","admin panel"],"actors":["user"],"action":"reset password","enriched_query":"reset user password account management admin panel steps procedure guide"}\n\n' +
+  'Output: {"domain":"operations","issue_type":"how_to","resources":["user account","password reset","admin panel"],"actors":["user"],"action":"reset password","enriched_query":"reset user password account management admin panel steps procedure guide"}\n\n' +
 
   'Input: "What is the leave policy for remote employees?"\n' +
   'Output: {"domain":"hr","issue_type":"how_to","resources":["leave policy","remote work policy"],"actors":["remote employees"],"action":"explain policy","enriched_query":"leave policy remote employees annual leave sick leave HR policy documentation rules"}\n\n' +
@@ -102,7 +101,6 @@ export const DOMAIN_TO_TASK_TYPE: Record<string, string> = {
   engineering: 'CODE_RETRIEVAL_QUERY',
   operations:  'RETRIEVAL_QUERY',
   hr:          'RETRIEVAL_QUERY',
-  it:          'RETRIEVAL_QUERY',
   general:     'RETRIEVAL_QUERY',
 };
 

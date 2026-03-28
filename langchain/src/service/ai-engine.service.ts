@@ -231,7 +231,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
       }
     }
 
-    const chain = await buildRAGChain(workspaces, taskType, (params as any)._domain);
+    const chain = await buildRAGChain(workspaces, taskType, (params as any)._domain, (params as any)._intent?.issue_type);
 
     if (params.history.length > 0) {
       await loadMemoryFromHistory(params.sessionId, params.history);
