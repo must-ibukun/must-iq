@@ -3,6 +3,7 @@
 // ============================================================
 
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getActiveSettings, getSystemSettings } from '@must-iq/config';
 import { ChatRequest, ChatSession, RequestUser } from '@must-iq/shared-types';
 import { PrismaService } from '@must-iq/db';
@@ -13,12 +14,17 @@ import { encrypt, decrypt } from '../common/helpers/encryption.helper';
 import { runAIQuery } from '@must-iq/langchain';
 import { MOCK_RESPONSES } from './mock.constant';
 import { sanitizeError } from '../common/helpers/error.helper';
+import { CHAT_AUDIT_PII_LISTENER, CHAT_LOG_TOKENS_LISTENER } from '../common/constants/listener.constant';
+import { ChatAuditPiiEvent, ChatLogTokensEvent } from './events/chat-log.event';
 
 @Injectable()
 export class ChatService {
     private readonly logger = new Logger(ChatService.name);
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private eventEmitter: EventEmitter2,
+    ) { }
 
     private async getHistory(sessionId: string, limit = 10): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
         const messages = await this.prisma.message.findMany({
@@ -127,31 +133,26 @@ export class ChatService {
             this.prisma.chatSession.update({ where: { id: sessionId }, data: { updatedAt: new Date() } }),
         ]);
 
-        // Non-blocking token usage log (visibility only — no enforcement)
         const queryTokens = Math.ceil(body.message.length / 4);
         const responseTokens = Math.ceil(result.response.length / 4);
-        this.prisma.tokenLog.create({
-            data: {
-                userId: user.sub,
-                sessionId,
-                queryTokens,
-                responseTokens,
-                totalTokens: queryTokens + responseTokens,
-                model: result.model,
-                cached: false,
-            },
-        }).catch(() => {});
+
+        this.eventEmitter.emit(CHAT_LOG_TOKENS_LISTENER, new ChatLogTokensEvent({
+            userId: user.sub,
+            sessionId,
+            queryTokens,
+            responseTokens,
+            model: result.model,
+        }));
 
         if (sysConfig.audit && piiDetected) {
-            await this.prisma.auditLog.create({
-                data: {
-                    userId: user.sub,
-                    action: 'chat.pii_detected',
-                    workspace: primaryWorkspace,
-                    tokensUsed: queryTokens + responseTokens,
-                    metadata: { query: body.message, responsePreview: result.response.slice(0, 50) },
-                },
-            });
+            this.eventEmitter.emit(CHAT_AUDIT_PII_LISTENER, new ChatAuditPiiEvent({
+                userId: user.sub,
+                sessionId,
+                workspace: primaryWorkspace,
+                tokensUsed: queryTokens + responseTokens,
+                query: body.message,
+                responsePreview: result.response.slice(0, 50),
+            }));
         }
 
         return { message: result.response, sources: result.sources, sessionId };
@@ -230,31 +231,26 @@ export class ChatService {
             this.prisma.chatSession.update({ where: { id: sessionId }, data: { updatedAt: new Date() } }),
         ]);
 
-        // Non-blocking token usage log (visibility only — no enforcement)
         const queryTokens = Math.ceil(body.message.length / 4);
         const responseTokens = Math.ceil(fullReply.length / 4);
-        this.prisma.tokenLog.create({
-            data: {
-                userId: user.sub,
-                sessionId,
-                queryTokens,
-                responseTokens,
-                totalTokens: queryTokens + responseTokens,
-                model: (await getActiveSettings()).model,
-                cached: false,
-            },
-        }).catch(() => {});
+
+        this.eventEmitter.emit(CHAT_LOG_TOKENS_LISTENER, new ChatLogTokensEvent({
+            userId: user.sub,
+            sessionId,
+            queryTokens,
+            responseTokens,
+            model: settings.model,
+        }));
 
         if (sysConfig.audit && piiDetected) {
-            await this.prisma.auditLog.create({
-                data: {
-                    userId: user.sub,
-                    action: 'chat.pii_detected',
-                    workspace: primaryWorkspace,
-                    tokensUsed: queryTokens + responseTokens,
-                    metadata: { query: body.message, responsePreview: fullReply.slice(0, 50) },
-                },
-            });
+            this.eventEmitter.emit(CHAT_AUDIT_PII_LISTENER, new ChatAuditPiiEvent({
+                userId: user.sub,
+                sessionId,
+                workspace: primaryWorkspace,
+                tokensUsed: queryTokens + responseTokens,
+                query: body.message,
+                responsePreview: fullReply.slice(0, 50),
+            }));
         }
 
         onChunk(JSON.stringify({ sessionId, sources }));

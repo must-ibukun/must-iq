@@ -204,7 +204,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         }
 
         if (chunks.length > 0) {
-          context = buildContext(chunks);
+          context = buildContext(chunks, settings.contextTokenBudget ?? undefined);
 
           sources = chunks.map((d) => {
             const sourceStr = d.source || '';

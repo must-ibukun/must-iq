@@ -8,7 +8,7 @@
 // Without reranking, this filters cosine similarity noise (< 0.1 ≈ random match).
 const MIN_SCORE = 0.01;
 
-export function buildContext(chunks: any[]): string {
+export function buildContext(chunks: any[], maxTokenBudget?: number): string {
   const seen = new Set<string>();
   const deduplicated: any[] = [];
 
@@ -27,6 +27,7 @@ export function buildContext(chunks: any[]): string {
   }
 
   const parts: string[] = [];
+  let budgetChars = maxTokenBudget != null ? maxTokenBudget * 4 : Infinity;
 
   for (let i = 0; i < deduplicated.length; i++) {
     const d = deduplicated[i];
@@ -36,7 +37,15 @@ export function buildContext(chunks: any[]): string {
     const sourceLabel = d.source ? `(${d.source})` : '(unknown source)';
 
     const header = `[${i + 1}] ${layerLabel}${langLabel}${stackLabel}${sourceLabel}`;
-    parts.push(`${header}\n${d.content}`);
+    const block  = `${header}\n${d.content}`;
+
+    if (block.length > budgetChars) {
+      if (parts.length === 0) parts.push(block.slice(0, budgetChars));
+      break;
+    }
+
+    budgetChars -= block.length;
+    parts.push(block);
   }
 
   return parts.join('\n\n---\n\n');

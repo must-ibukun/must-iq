@@ -22,10 +22,13 @@ export type IntentDomain = 'engineering' | 'operations' | 'hr' | 'it' | 'general
 export type IntentIssueType =
   | 'permission_request'
   | 'bug'
+  | 'incident'
   | 'how_to'
   | 'status_check'
   | 'data_request'
   | 'feature_request'
+  | 'approval_request'
+  | 'policy_lookup'
   | 'other';
 
 export interface ExtractedIntent {
@@ -52,10 +55,13 @@ const VALID_DOMAINS: IntentDomain[] = ['engineering', 'operations', 'hr', 'it', 
 const VALID_ISSUE_TYPES: IntentIssueType[] = [
   'permission_request',
   'bug',
+  'incident',
   'how_to',
   'status_check',
   'data_request',
   'feature_request',
+  'approval_request',
+  'policy_lookup',
   'other',
 ];
 

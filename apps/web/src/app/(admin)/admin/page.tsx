@@ -305,7 +305,7 @@ export default function AdminPage() {
   const [addingKeyForProvider, setAddingKeyForProvider] = useState<string | null>(null);
   const [llmLoadKey, setLlmLoadKey] = useState(0);
 
-  const topKRef = useRef<HTMLInputElement>(null);
+
   const [ragEnabled, setRagEnabled] = useState(true);
   const [agenticReasoningEnabled, setAgenticReasoningEnabled] = useState(false);
 
@@ -338,7 +338,7 @@ export default function AdminPage() {
         model: newModel || llmSettings.model,
         ragEnabled,
         agenticReasoningEnabled,
-        topK: topKRef.current ? parseInt(topKRef.current.value) : (llmSettings?.topK ?? 41),
+        topK: llmSettings?.topK ?? 41,
         apiKeys: updatedApiKeys || llmSettings.apiKeys,
       };
 
@@ -1571,7 +1571,6 @@ export default function AdminPage() {
               setRagEnabled={setRagEnabled}
               agenticReasoningEnabled={agenticReasoningEnabled}
               setAgenticReasoningEnabled={setAgenticReasoningEnabled}
-              topKRef={topKRef}
               llmSettings={llmSettings}
               setLlmSettings={setLlmSettings}
               llmMeta={llmMeta}
@@ -2329,43 +2328,32 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* HyDE */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(139,92,246,1)' }}><IconZap size={16} /></div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>HyDE Query Expansion</div>
+                  {/* Top-K */}
+                  <div style={{ borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(var(--primary-rgb),0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--primary)' }}>
+                          <IconSearch size={16} />
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Generates theoretical code blocks to bridge vocabulary gaps before querying the database.</div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Context Size (Top-K)</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>How many chunks are retrieved from the knowledge base per query. Larger values improve recall but increase latency and token cost.</div>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                      {llmSettings?.hydeEnabled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
-                      <Toggle
-                        on={llmSettings?.hydeEnabled ?? false}
-                        onToggle={() => setLlmSettings({ ...llmSettings, hydeEnabled: !llmSettings?.hydeEnabled })}
+                    <div style={{ padding: '0 20px 16px 70px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <input
+                        type="range"
+                        min="5"
+                        max="100"
+                        step="5"
+                        value={llmSettings?.topK ?? 41}
+                        onChange={e => setLlmSettings({ ...llmSettings, topK: parseInt(e.target.value) })}
+                        style={{ flex: 1, accentColor: 'var(--primary)' }}
                       />
-                    </div>
-                  </div>
-
-                  {/* Cross-Encoder Reranking */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(245,158,11,1)' }}><IconBrain size={16} /></div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Cross-Encoder Reranking</div>
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Re-scores retrieved chunks with a local cross-encoder model (ms-marco-MiniLM-L-6-v2) before sending to the LLM. Improves answer quality at ~200ms extra latency.</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                      {llmSettings?.rerankEnabled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
-                      <Toggle
-                        on={llmSettings?.rerankEnabled ?? false}
-                        onToggle={() => setLlmSettings({ ...llmSettings, rerankEnabled: !llmSettings?.rerankEnabled })}
-                      />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', minWidth: 28, textAlign: 'right' }}>
+                        {llmSettings?.topK ?? 41}
+                      </span>
                     </div>
                   </div>
 
@@ -2373,7 +2361,7 @@ export default function AdminPage() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(16,185,129,1)' }}><IconBrain size={16} /></div>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(var(--primary-rgb),0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--primary)' }}><IconBrain size={16} /></div>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Intent Classification</div>
                           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Detects query domain and enriches vocabulary before embedding. Skips queries shorter than the threshold.</div>
@@ -2389,7 +2377,6 @@ export default function AdminPage() {
                     </div>
                     {llmSettings?.intentClassificationEnabled !== false && (
                       <div style={{ padding: '0 20px 16px 70px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Min query length</div>
                         <input
                           type="range"
                           min="1"
@@ -2397,9 +2384,9 @@ export default function AdminPage() {
                           step="1"
                           value={llmSettings?.intentClassificationThreshold ?? 15}
                           onChange={e => setLlmSettings({ ...llmSettings, intentClassificationThreshold: parseInt(e.target.value) })}
-                          style={{ flex: 1, accentColor: 'rgba(16,185,129,1)' }}
+                          style={{ flex: 1, accentColor: 'var(--primary)' }}
                         />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(16,185,129,1)', minWidth: 28, textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', minWidth: 28, textAlign: 'right' }}>
                           {llmSettings?.intentClassificationThreshold ?? 15}
                         </span>
                       </div>

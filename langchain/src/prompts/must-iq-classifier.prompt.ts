@@ -46,7 +46,7 @@ export const COMBINED_INTENT_PROMPT =
 
   'Fields:\n' +
   '- domain: one of [engineering, operations, hr, it, general]\n' +
-  '- issue_type: one of [permission_request, bug, how_to, status_check, data_request, feature_request, other]\n' +
+  '- issue_type: one of [permission_request, bug, incident, how_to, status_check, data_request, feature_request, approval_request, policy_lookup, other]\n' +
   '- resources: array of specific systems, modules, or features mentioned or implied (max 5 strings)\n' +
   '- actors: array of people, teams, or roles involved (max 3 strings, empty array if none)\n' +
   '- action: the core action verb phrase (e.g. "grant access", "fix bug", "view data", "explain policy")\n' +
@@ -81,6 +81,15 @@ export const COMBINED_INTENT_PROMPT =
 
   'Input: "Fix the null pointer in checkout service"\n' +
   'Output: {"domain":"engineering","issue_type":"bug","resources":["checkout service","null pointer exception"],"actors":[],"action":"fix bug","enriched_query":"NullPointerException null reference checkout service function call stack trace fix"}\n\n' +
+
+  'Input: "Payment service is down, users can\'t complete checkout"\n' +
+  'Output: {"domain":"engineering","issue_type":"incident","resources":["payment service","checkout"],"actors":["users"],"action":"investigate outage","enriched_query":"payment service outage down incident production checkout failure error logs runbook on-call"}\n\n' +
+
+  'Input: "Can you approve my annual leave request for next week?"\n' +
+  'Output: {"domain":"hr","issue_type":"approval_request","resources":["leave request","annual leave","HR approval workflow"],"actors":["manager"],"action":"approve leave","enriched_query":"annual leave approval request workflow manager sign-off HR policy leave balance"}\n\n' +
+
+  'Input: "What is our data retention policy for customer records?"\n' +
+  'Output: {"domain":"general","issue_type":"policy_lookup","resources":["data retention policy","customer records","compliance"],"actors":[],"action":"lookup policy","enriched_query":"data retention policy customer records duration compliance GDPR storage rules documentation"}\n\n' +
 
   'Output ONLY valid JSON on a single line. No markdown, no code blocks, no explanation.';
 

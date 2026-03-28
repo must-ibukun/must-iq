@@ -153,7 +153,7 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   hydeEnabled: false,
   hybridSearchEnabled: false,
   rerankEnabled: false,
-  contextTokenBudget: process.env.CONTEXT_TOKEN_BUDGET ? parseInt(process.env.CONTEXT_TOKEN_BUDGET) : 6000,
+  contextTokenBudget: process.env.CONTEXT_TOKEN_BUDGET ? parseInt(process.env.CONTEXT_TOKEN_BUDGET) : 16000,
 
   // Default Intent Classification
   intentClassificationEnabled: true,

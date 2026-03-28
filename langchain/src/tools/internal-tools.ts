@@ -59,7 +59,7 @@ async function githubFetch(path: string) {
 // ── TOOL 1: Search Internal Knowledge Base (RAG) ───────────────
 export const searchKnowledgeBaseTool = tool(
   async ({ query, workspaces }: { query: string; workspaces: string[] }) => {
-    const chain = await buildRAGChain(workspaces[0] || 'general');
+    const chain = await buildRAGChain(workspaces.length ? workspaces : ['general',"vault-v2"]);
     const result = await chain.invoke({ question: query, chat_history: [] });
     return typeof result === 'string' ? result : JSON.stringify(result);
   },
@@ -371,11 +371,14 @@ export const lookupEmployeeTool = tool(
     try {
       const employees = await prisma.user.findMany({
         where: { name: { contains: name, mode: 'insensitive' }, isActive: true },
-        select: { name: true, email: true, workspace: true, role: true },
+        select: { name: true, email: true, role: true, teams: { select: { name: true } } },
         take: 5,
       });
       if (!employees.length) return `No employee found matching "${name}".`;
-      return employees.map(e => `${e.name} — ${e.role} in ${e.workspace} (${e.email})`).join('\n');
+      return employees.map(e => {
+        const teamNames = e.teams.map(t => t.name).join(', ') || 'no team';
+        return `${e.name} — ${e.role} in ${teamNames} (${e.email})`;
+      }).join('\n');
     } catch {
       return 'Employee directory unavailable right now.';
     }
