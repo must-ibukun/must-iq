@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { getActiveSettings } from '@must-iq/config';
 import { runAIQuery } from '@must-iq/langchain';
+import { PrismaService } from '@must-iq/db';
+import axios from 'axios';
 import { SlackService } from './slack.service';
 import { JiraService } from './jira.service';
 
@@ -11,6 +12,7 @@ export class IntegrationsService {
     constructor(
         private readonly slackService: SlackService,
         private readonly jiraService: JiraService,
+        private readonly prisma: PrismaService,
     ) { }
 
     /**
@@ -45,17 +47,18 @@ export class IntegrationsService {
     /**
      * Full app_mention flow:
      * 1. Fetch thread (conversations.replies)
-     * 2. Call MustIQ chat API (non-streaming) to get title/description/priority
-     * 3. Create Jira card
-     * 4. Reply in Slack with the card link
+     * 2. Resolve team workspace from channel
+     * 3a. Ticket tags detected ([Requester], [Department], etc.)
+     *     → pass thread directly as query → KB search → reply with response
+     * 3b. Regular thread discussion
+     *     → extract Jira card fields → create issue → reply with card link
      */
     private async handleAppMention(event: any): Promise<void> {
         const channelId: string = event.channel;
         // If the mention is inside a thread use thread_ts; otherwise use the message ts
         const threadTs: string = event.thread_ts || event.ts;
 
-        const settings = await getActiveSettings();
-        const token = settings.slackBotToken || process.env.SLACK_BOT_TOKEN;
+        const token =  process.env.SLACK_BOT_TOKEN;
 
         if (!token) {
             this.logger.error('No Slack bot token configured — cannot handle app_mention');
@@ -79,46 +82,50 @@ export class IntegrationsService {
             .map(m => `${m.username || m.user || 'user'}: ${m.text}`)
             .join('\n');
 
-        const prompt = `You are analyzing a Slack thread to create a Jira task card.
+        // 3. Resolve team workspace from channel
+        const resolved = await this.resolveWorkspaceFromChannel(channelId, token);
+        if (!resolved) {
+            await this.slackService.postMessage(
+                channelId,
+                ':warning: Must-IQ has no knowledge base configured for this channel. Please ask your admin to link this channel to a workspace.',
+                token,
+                threadTs,
+            );
+            return;
+        }
+        const { workspace, workspaces } = resolved;
 
-Slack thread:
-${threadText}
-
-Based on the thread above, respond with ONLY a valid JSON object (no markdown, no explanation):
-{
-  "title": "concise task title (max 100 chars)",
-  "description": "detailed description of the issue or task based on the thread discussion",
-  "priority": "Critical|High|Medium|Low"
-}`;
-
-        // 3. Call MustIQ chat (non-streaming — for integrations)
+        // 4. Query knowledge base with the thread content
         let cardData: { title: string; description: string; priority: string };
         try {
             const result = await runAIQuery({
-                query: prompt,
+                query: threadText,
                 userId: 'slack-bot',
-                workspace: 'general',
+                workspace,
+                workspaces,
                 sessionId: `slack-${channelId}-${threadTs}`,
                 history: [],
                 useAgent: false,
                 stream: false,
             });
 
-            const jsonMatch = result.response.match(/\{[\s\S]*?\}/);
-            if (!jsonMatch) throw new Error('No JSON found in AI response');
-            cardData = JSON.parse(jsonMatch[0]);
+            cardData = {
+                title: this.extractTitle(threadText),
+                description: result.response,
+                priority: this.extractPriority(threadText),
+            };
         } catch (err: any) {
-            this.logger.error(`Failed to parse AI response: ${err.message}`);
+            this.logger.error(`Failed to query AI: ${err.message}`);
             await this.slackService.postMessage(
                 channelId,
-                'I analyzed the thread but could not extract structured data. Please try again.',
+                'I could not process this thread. Please try again.',
                 token,
                 threadTs,
             );
             return;
         }
 
-        // 4. Create Jira issue
+        // 5. Create Jira issue
         const projectKey = process.env.JIRA_PROJECT_KEY || 'MSQ';
         const issue = await this.jiraService.createIssue({
             projectKey,
@@ -137,7 +144,7 @@ Based on the thread above, respond with ONLY a valid JSON object (no markdown, n
             return;
         }
 
-        // 5. Reply in Slack with the card link
+        // 6. Reply in Slack with the card link
         await this.slackService.postMessage(
             channelId,
             `:jira: Jira card created from this thread:\n*<${issue.url}|${issue.key}: ${cardData.title}>*\nPriority: ${cardData.priority}`,
@@ -146,6 +153,66 @@ Based on the thread above, respond with ONLY a valid JSON object (no markdown, n
         );
 
         this.logger.log(`Created Jira issue ${issue.key} from Slack thread ${channelId}/${threadTs}`);
+    }
+
+    /** Extract a concise title from the first non-empty line of the thread. */
+    private extractTitle(threadText: string): string {
+        const firstLine = threadText.split('\n').map(l => l.trim()).find(l => l.length > 0) || 'Untitled';
+        return firstLine.substring(0, 100);
+    }
+
+    /** Extract priority from thread text if a priority tag is present, else default to Medium. */
+    private extractPriority(threadText: string): string {
+        if (/\[Critical\]/i.test(threadText)) return 'Critical';
+        if (/\[High\]/i.test(threadText)) return 'High';
+        if (/\[Low\]/i.test(threadText)) return 'Low';
+        return 'Medium';
+    }
+
+    /**
+     * Fetch the human-readable channel name from Slack.
+     * Falls back to channelId if the API call fails (e.g. missing scope).
+     */
+    private async fetchChannelName(channelId: string, token: string): Promise<string> {
+        try {
+            const res = await axios.get('https://slack.com/api/conversations.info', {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { channel: channelId },
+            });
+            return res.data.ok ? res.data.channel.name : channelId;
+        } catch {
+            return channelId;
+        }
+    }
+
+    /**
+     * Resolve a Slack channel to a Must-IQ workspace.
+     * Searches team.identifiers by channel name and channel ID.
+     * Returns team.identifiers as workspaces so RAG spans all team sources.
+     */
+    private async resolveWorkspaceFromChannel(
+        channelId: string,
+        token: string,
+    ): Promise<{ workspace: string; workspaces: string[] } | null> {
+        const channelName = await this.fetchChannelName(channelId, token);
+
+        const team = await this.prisma.team.findFirst({
+            where: {
+                OR: [
+                    { identifiers: { has: channelName } },
+                    { identifiers: { has: `#${channelName}` } },
+                ],
+            },
+            select: { id: true, identifiers: true },
+        });
+
+        if (team) {
+            this.logger.log(`Resolved channel ${channelName} → team ${team.id}`);
+            return { workspace: team.id, workspaces: team.identifiers };
+        }
+
+        this.logger.warn(`No team found for channel ${channelName} (${channelId})`);
+        return null;
     }
 
     /**

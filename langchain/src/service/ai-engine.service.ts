@@ -19,7 +19,7 @@ const logger = new Logger("AIEngine");
 
 // Structured ticket tags from Jira/Slack templates — detected via string match,
 // no LLM call needed. Presence means the query is always an operational request.
-const TICKET_TAG_MARKERS = ['[Requester]', '[Department]', '[Expected Result]', '[Description]', '[Due Date]', '[Assigned to]', '[Solution]'];
+export const TICKET_TAG_MARKERS = ['[Requester]', '[Department]', '[Expected Result]', '[Description]', '[Due Date]', '[Assigned to]', '[Solution]'];
 
 export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> {
   let localDeletePath: string | null = null;

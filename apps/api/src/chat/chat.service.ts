@@ -26,7 +26,7 @@ export class ChatService {
         private eventEmitter: EventEmitter2,
     ) { }
 
-    private async getHistory(sessionId: string, limit = 10): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+    private async getHistory(sessionId: string, limit = 5): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
         const messages = await this.prisma.message.findMany({
             where: { sessionId },
             orderBy: { createdAt: 'desc' },

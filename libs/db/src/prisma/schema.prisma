@@ -213,7 +213,7 @@ model Team {
   workspaces    Workspace[]
   users         User[]
 
-  @@map("projects")  // keep underlying table name to avoid data-loss migration
+  @@map("teams")
 }
 
 model AuditLog {
