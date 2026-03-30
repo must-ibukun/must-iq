@@ -1,6 +1,5 @@
 # ============================================================
 # Must-IQ — Next.js 15 Web (Nx monorepo)
-# Mirrors msquare-admin-frontend Dockerfile pattern.
 #
 # next.config.js must have:
 #   output: 'standalone'
