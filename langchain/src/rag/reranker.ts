@@ -14,18 +14,23 @@ const logger = new Logger('Reranker');
 // @xenova/transformers is ESM-only and cannot be loaded via webpack's require() shim.
 // new Function bypasses webpack's static analysis so Node.js executes a real import()
 // at runtime, resolving the ESM package from node_modules directly.
-// Initiated at module load so ESM resolution starts in parallel with app startup.
+// The .catch() prevents an unhandled rejection from crashing the process if the
+// native ONNX binary is unavailable on the deployment platform.
 const _esmImport = new Function('s', 'return import(s)');
-const transformersPromise: Promise<any> = _esmImport('@xenova/transformers');
+const transformersPromise: Promise<any> = _esmImport('@xenova/transformers').catch((err: any) => {
+  logger.warn(`@xenova/transformers unavailable: ${err.message}. Reranking will be skipped.`);
+  return null;
+});
 
 // Model singleton — loaded once on first use, kept resident in memory (~120 MB RAM)
 let _rerankerPipeline: any = null;
 
 async function getReranker() {
   if (!_rerankerPipeline) {
-    const { pipeline } = await transformersPromise;
+    const mod = await transformersPromise;
+    if (!mod) return null;
     logger.log('Loading ms-marco-MiniLM-L-6-v2 cross-encoder (first run downloads ~90 MB)...');
-    _rerankerPipeline = await pipeline(
+    _rerankerPipeline = await mod.pipeline(
       'text-classification',
       'Xenova/ms-marco-MiniLM-L-6-v2',
     );
@@ -54,6 +59,7 @@ export async function rerank(
 
   try {
     const reranker = await getReranker();
+    if (!reranker) return chunks.slice(0, topN);
 
     // Score each chunk individually: Xenova's text-classification pipeline
     // does not accept batched {text, text_pair} objects — it expects a plain
