@@ -1,14 +1,6 @@
 name: Deploy — Must-IQ Web
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/web/**'
-      - 'libs/shared-types/**'
-      - 'libs/config/**'
-      - 'Dockerfile.web'
-      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 env:

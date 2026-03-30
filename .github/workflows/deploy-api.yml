@@ -1,13 +1,6 @@
 name: Deploy — Must-IQ API
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/api/**'
-      - 'libs/**'
-      - 'Dockerfile.api'
-      - '.github/workflows/deploy-api.yml'
   workflow_dispatch:
 
 env:
