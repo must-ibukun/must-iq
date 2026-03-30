@@ -38,16 +38,14 @@ async function main() {
   }
 
   // ── Count rows before deletion ────────────────────────────────────────────
-  const [ingestionCount, chunkCount, documentCount, tokenLogCount, messageCount, sessionCount] =
-    await Promise.all([
-      prisma.ingestionEvent.count(),
-      prisma.documentChunk.count(),
-      prisma.document.count(),
-      prisma.tokenLog.count(),
-      prisma.message.count(),
-      prisma.chatSession.count(),
-      prisma.auditLog.count()
-    ]);
+  // Run sequentially to avoid exceeding Supabase session-mode pool_size
+  const ingestionCount = await prisma.ingestionEvent.count();
+  const chunkCount     = await prisma.documentChunk.count();
+  const documentCount  = await prisma.document.count();
+  const tokenLogCount  = await prisma.tokenLog.count();
+  const messageCount   = await prisma.message.count();
+  const sessionCount   = await prisma.chatSession.count();
+  const auditLogCount  = await prisma.auditLog.count();
 
   console.log('  Row counts BEFORE deletion:');
   console.log(`    ingestion_events : ${ingestionCount}`);
@@ -56,6 +54,7 @@ async function main() {
   console.log(`    token_logs       : ${tokenLogCount}`);
   console.log(`    messages         : ${messageCount}`);
   console.log(`    chat_sessions    : ${sessionCount}`);
+  console.log(`    audit_logs       : ${auditLogCount}`);
   console.log('');
 
   if (DRY_RUN) {
