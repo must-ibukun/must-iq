@@ -230,7 +230,7 @@ export async function createDocument(params: {
   return prisma.document.create({
     data: {
       ...params,
-      status: "processing",
+      status: "PROCESSING",
     },
   });
 }
@@ -241,7 +241,7 @@ export async function createDocument(params: {
 export async function finalizeDocument(id: string, chunkCount: number) {
   return prisma.document.update({
     where: { id },
-    data: { status: "ready", chunkCount },
+    data: { status: "READY", chunkCount },
   });
 }
 

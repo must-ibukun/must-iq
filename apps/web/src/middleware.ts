@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_ROUTES = ['/', '/login'];
+const PUBLIC_ROUTES = ['/', '/login', '/forgot-password', '/reset-password', '/change-password'];
 const ADMIN_ROUTES = ['/admin'];
 
 export function middleware(request: NextRequest) {

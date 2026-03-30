@@ -7,6 +7,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import { PrismaExceptionFilter } from "./common/filters/prisma.filter";
+import { corsConfig } from "./common/config/cors.config";
 import helmet from "helmet";
 
 async function bootstrap() {
@@ -15,11 +16,8 @@ async function bootstrap() {
   // Security headers
   app.use(helmet());
 
-  // CORS — only allow internal frontend
-  app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(",") ?? ["http://localhost:3000"],
-    credentials: true,
-  });
+  // CORS — allowed origins defined in common/config/cors.config.ts
+  app.enableCors(corsConfig);
 
   // Auto-validate all DTOs
   app.useGlobalPipes(
@@ -32,7 +30,7 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix("api/v1");
 
-  const port = process.env.PORT_API ?? 4000;
+  const port = process.env.PORT  || 4000;
   await app.listen(port);
   console.log(`🚀 API Gateway running on http://localhost:${port}/api/v1`);
 }

@@ -8,6 +8,7 @@ import { PrismaService } from '@must-iq/db';
 import { compare, hash } from 'bcrypt';
 import { JWTPayload } from '@must-iq/shared-types';
 import * as crypto from 'crypto';
+import { MailService } from '../notification/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly jwtService: JwtService,
+        private readonly mailService: MailService,
     ) { }
 
     // ── Login ─────────────────────────────────────────────────────
@@ -61,6 +63,7 @@ export class AuthService {
                 initials,
                 deepSearchEnabled: user.deepSearchEnabled,
                 tokenLimit: user.role === 'ADMIN' ? -1 : (user.tokenBudgetOverride ?? 20000),
+                mustChangePassword: user.mustChangePassword,
             },
         };
     }
@@ -137,7 +140,7 @@ export class AuthService {
         }
 
         const passwordHash = await hash(newPassword, 10);
-        await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+        await this.prisma.user.update({ where: { id: userId }, data: { passwordHash, mustChangePassword: false } });
         return { message: 'Password updated successfully' };
     }
 
@@ -157,8 +160,11 @@ export class AuthService {
 
         const resetUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
 
-        // TODO: swap with real email provider (Resend, SendGrid, Nodemailer, etc.)
-        this.logger.log(`\n📧 PASSWORD RESET LINK for ${email}:\n${resetUrl}\n`);
+        try {
+            await this.mailService.sendPasswordReset(email, user.name, resetUrl);
+        } catch {
+            this.logger.warn(`Password reset email failed for ${email} — token created but email not sent`);
+        }
 
         return { message: 'If that email exists, a reset link has been sent' };
     }

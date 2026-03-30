@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You've been invited to Must-IQ</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; background: #f4f4f4; color: #333; }
+    .container { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .header { background: #16a34a; color: #fff; padding: 28px 32px; text-align: center; }
+    .header h1 { margin: 0; font-size: 22px; }
+    .header p { margin: 6px 0 0; opacity: 0.9; font-size: 14px; }
+    .content { padding: 28px 32px; }
+    .credentials-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+    .credentials-box p { margin: 6px 0; font-size: 14px; }
+    .credentials-box .label { font-weight: bold; display: inline-block; width: 90px; color: #6b7280; }
+    .credentials-box .value { font-family: monospace; font-size: 15px; color: #111; }
+    .note { font-size: 12px; color: #6b7280; font-style: italic; margin-top: 12px; }
+    .btn-wrap { text-align: center; margin: 28px 0; }
+    .btn { display: inline-block; background: #16a34a; color: #fff; padding: 13px 34px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 15px; }
+    .footer { background: #f9fafb; border-top: 1px solid #e5e7eb; padding: 16px 32px; text-align: center; font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to Must-IQ</h1>
+      <p>Your account is ready</p>
+    </div>
+    <div class="content">
+      <p>Hi <strong><%= name %></strong>,</p>
+      <p>You have been invited to join <strong>Must-IQ</strong>. Below are your temporary login credentials:</p>
+
+      <div class="credentials-box">
+        <p><span class="label">Email:</span> <span class="value"><%= email %></span></p>
+        <p><span class="label">Password:</span> <span class="value"><%= tempPassword %></span></p>
+        <p class="note">For security, you will be asked to change your password when you first log in.</p>
+      </div>
+
+      <p>Click the button below to log in and set your own password:</p>
+      <div class="btn-wrap">
+        <a href="<%= loginUrl %>" class="btn">Log In &amp; Set Password &rarr;</a>
+      </div>
+
+      <p style="font-size:13px;color:#6b7280;">
+        If the button doesn't work, paste this URL into your browser:<br />
+        <a href="<%= loginUrl %>" style="color:#16a34a;word-break:break-all;"><%= loginUrl %></a>
+      </p>
+    </div>
+    <div class="footer">
+      &copy; <%= new Date().getFullYear() %> Must-IQ. All rights reserved.<br />
+      This is a system-generated email. Please do not reply directly.
+    </div>
+  </div>
+</body>
+</html>

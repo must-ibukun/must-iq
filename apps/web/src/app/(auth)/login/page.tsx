@@ -48,7 +48,9 @@ export default function LoginPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        if (user.role === 'ADMIN' || user.role === 'MANAGER') {
+        if (user.mustChangePassword) {
+          router.push('/change-password');
+        } else if (user.role === 'ADMIN' || user.role === 'MANAGER') {
           router.push('/admin');
         } else {
           router.push('/chat');
@@ -136,7 +138,7 @@ export default function LoginPage() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-            <a href="#" style={{ fontSize: 12, color: 'var(--primary)', opacity: 0.7, textDecoration: 'none' }}>Forgot password?</a>
+            <Link href="/forgot-password" style={{ fontSize: 12, color: 'var(--primary)', opacity: 0.7, textDecoration: 'none' }}>Forgot password?</Link>
           </div>
 
           {/* Submit */}

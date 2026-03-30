@@ -8,11 +8,13 @@ import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { IngestionModule } from './ingestion/ingestion.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         EventEmitterModule.forRoot(),
+        NotificationModule,
         DatabaseModule,
         AuthModule,
         ChatModule,

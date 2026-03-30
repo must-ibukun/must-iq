@@ -1,0 +1,63 @@
+# ============================================================
+# Must-IQ — Next.js 15 Web (Nx monorepo)
+# Mirrors msquare-admin-frontend Dockerfile pattern.
+#
+# next.config.js must have:
+#   output: 'standalone'
+#   distDir: 'build'
+#
+# Nx build (outputPath: dist/apps/web) copies the build dir
+# contents there, so standalone lives at dist/apps/web/standalone/
+# ============================================================
+
+# ── Builder stage ──────────────────────────────────────────
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy package manager config and lockfile first for better caching
+COPY package.json package-lock.json ./
+
+# Build-time environment variables (baked into the bundle)
+ARG NEXT_PUBLIC_API_URL
+ARG NEXTAUTH_SECRET
+ARG NEXTAUTH_URL
+
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+
+# Copy full monorepo source (Nx libs must be present for the build)
+COPY . .
+
+# Same install command used on Netlify
+RUN npm install --include=dev
+
+# Build web app via Nx (outputs to dist/apps/web/)
+RUN npx nx build web
+
+# ── Production runner ──────────────────────────────────────
+FROM node:20-slim AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Standalone server + its bundled node_modules
+COPY --from=builder /app/dist/apps/web/standalone ./
+
+# Static assets — server.js (with distDir: 'build') expects build/static
+COPY --from=builder /app/dist/apps/web/static ./build/static
+
+# Public assets
+COPY --from=builder /app/apps/web/public ./public
+
+COPY --from=builder /app/package.json ./package.json
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]

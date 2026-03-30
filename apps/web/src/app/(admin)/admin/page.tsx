@@ -2207,10 +2207,10 @@ export default function AdminPage() {
                               borderRadius: 6,
                               fontSize: 11,
                               fontWeight: 600,
-                              background: ev.status === 'stored' ? 'rgba(22,163,74,0.1)' : 'rgba(239,68,68,0.1)',
-                              color: ev.status === 'stored' ? 'var(--green)' : 'var(--red)',
+                              background: ev.status?.toLowerCase() === 'stored' ? 'rgba(22,163,74,0.1)' : 'rgba(239,68,68,0.1)',
+                              color: ev.status?.toLowerCase() === 'stored' ? 'var(--green)' : 'var(--red)',
                             }}>
-                              {ev.status === 'stored' ? '✅ Stored' : '❌ Error'}
+                              {ev.status?.toLowerCase() === 'stored' ? '✅ Stored' : '❌ Error'}
                             </span>
                           </td>
                           <td style={{ padding: '10px 16px', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>

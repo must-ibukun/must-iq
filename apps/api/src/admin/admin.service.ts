@@ -16,6 +16,7 @@ import { convertPrismaModelToIInterface } from '../common/helpers/prisma.helper'
 import { getActiveSettings } from '@must-iq/config';
 import { IngestionService } from '../ingestion/ingestion.service';
 import { sanitizeError } from '../common/helpers/error.helper';
+import { MailService } from '../notification/mail.service';
 
 
 // Removed redundant RequestUser interface (moved to shared-types)
@@ -27,6 +28,7 @@ export class AdminService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly ingestionService: IngestionService,
+        private readonly mailService: MailService,
     ) { }
 
     // ── Overview stats ────────────────────────────────────────────
@@ -136,10 +138,10 @@ export class AdminService {
                 role: data.role as any,
                 teams: data.teamIds ? { connect: data.teamIds.map(id => ({ id })) } : undefined,
                 passwordHash,
+                mustChangePassword: true,
             },
         });
 
-        // Audit log for invitation
         await this.prisma.auditLog.create({
             data: {
                 userId: user.id,
@@ -147,6 +149,13 @@ export class AdminService {
                 metadata: { role: data.role, teamIds: data.teamIds }
             }
         });
+
+        const loginUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/login`;
+        try {
+            await this.mailService.sendUserInvite(data.email, data.name, data.email, tempPassword, loginUrl);
+        } catch {
+            this.logger.warn(`Invite email failed for ${data.email} — user created but email not sent`);
+        }
 
         const result = convertPrismaModelToIInterface<AdminUser>(user as any);
         return { ...result, tempPassword };
