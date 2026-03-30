@@ -14,27 +14,31 @@ const logger = new Logger('Reranker');
 // @xenova/transformers is ESM-only and cannot be loaded via webpack's require() shim.
 // new Function bypasses webpack's static analysis so Node.js executes a real import()
 // at runtime, resolving the ESM package from node_modules directly.
-// The .catch() prevents an unhandled rejection from crashing the process if the
-// native ONNX binary is unavailable on the deployment platform.
+// Import is deferred to first use (inside getReranker) so a native ONNX crash
+// does not kill the process at startup — native SIGSEGV bypasses JS .catch().
 const _esmImport = new Function('s', 'return import(s)');
-const transformersPromise: Promise<any> = _esmImport('@xenova/transformers').catch((err: any) => {
-  logger.warn(`@xenova/transformers unavailable: ${err.message}. Reranking will be skipped.`);
-  return null;
-});
 
 // Model singleton — loaded once on first use, kept resident in memory (~120 MB RAM)
 let _rerankerPipeline: any = null;
+let _rerankerUnavailable = false;
 
 async function getReranker() {
+  if (_rerankerUnavailable) return null;
   if (!_rerankerPipeline) {
-    const mod = await transformersPromise;
-    if (!mod) return null;
-    logger.log('Loading ms-marco-MiniLM-L-6-v2 cross-encoder (first run downloads ~90 MB)...');
-    _rerankerPipeline = await mod.pipeline(
-      'text-classification',
-      'Xenova/ms-marco-MiniLM-L-6-v2',
-    );
-    logger.log('Cross-encoder loaded and cached.');
+    try {
+      const mod = await _esmImport('@xenova/transformers');
+      if (!mod) { _rerankerUnavailable = true; return null; }
+      logger.log('Loading ms-marco-MiniLM-L-6-v2 cross-encoder (first run downloads ~90 MB)...');
+      _rerankerPipeline = await mod.pipeline(
+        'text-classification',
+        'Xenova/ms-marco-MiniLM-L-6-v2',
+      );
+      logger.log('Cross-encoder loaded and cached.');
+    } catch (err: any) {
+      logger.warn(`@xenova/transformers unavailable: ${err.message}. Reranking will be skipped.`);
+      _rerankerUnavailable = true;
+      return null;
+    }
   }
   return _rerankerPipeline;
 }
