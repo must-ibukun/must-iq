@@ -31,6 +31,19 @@ enum WorkspaceType {
   GENERIC
 }
 
+enum DocumentStatus {
+  PROCESSING
+  COMPLETED
+  READY
+}
+
+enum IngestionStatus {
+  PROCESSING
+  STORED
+  SKIPPED
+  ERROR
+}
+
 model User {
   id                  String        @id @default(cuid())
   email               String        @unique
@@ -42,6 +55,7 @@ model User {
   tokenBudgetOverride Int?
   isActive            Boolean       @default(true)
   deepSearchEnabled   Boolean       @default(false)
+  mustChangePassword  Boolean       @default(false)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   lastActiveAt        DateTime?
@@ -125,13 +139,15 @@ model Document {
   tags        String[]
   chunkCount  Int             @default(0)
   sizeBytes   Int             @default(0)
-  status      String          @default("processing")
+  status      DocumentStatus  @default(PROCESSING)
   uploadedBy  String
+  contentHash String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   chunks      DocumentChunk[]
   @@index([workspace])
   @@index([status])
+  @@index([workspace, source, contentHash])
   @@map("documents")
 }
 
@@ -237,7 +253,7 @@ model IngestionEvent {
   sourceType   String                  // "jira" | "slack" | "github" | "doc"
   workspace    String   @default("general")
   score        Float?
-  status       String   @default("stored") // "stored" | "skipped" | "error"
+  status       IngestionStatus @default(STORED)
   chunksStored Int      @default(0)
   metadata     Json?
   createdAt    DateTime @default(now())

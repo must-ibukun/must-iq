@@ -13,6 +13,7 @@ export interface AuthUser extends Omit<IBaseInterface, 'createdAt' | 'updatedAt'
     initials: string;
     tokenLimit: number;
     deepSearchEnabled: boolean;
+    mustChangePassword?: boolean;
 }
 
 export interface AuthState {

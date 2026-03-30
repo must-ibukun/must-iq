@@ -78,7 +78,7 @@ export async function processAndIngest(content: string, sourceType: IngestionSou
             sourceType: sourceType,
             workspace: targetWorkspace,
             score: 1.0,
-            status: 'stored',
+            status: 'STORED',
             chunksStored: 1,
             metadata: analysis
         }

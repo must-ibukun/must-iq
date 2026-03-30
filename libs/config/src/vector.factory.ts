@@ -38,7 +38,6 @@ class RelationalPGVectorStore extends PGVectorStore {
     }
 
     static async initialize(embeddings: any, config: any): Promise<RelationalPGVectorStore> {
-        const logger = new Logger("RelationalVectorStore");
         const { dimensions, ...rest } = config;
         const instance = new RelationalPGVectorStore(embeddings, rest);
 
@@ -194,7 +193,7 @@ export async function createVectorStore(taskType?: string): Promise<VectorStore>
                             // Allow a few connections when multiple chunks ingest concurrently.
                             max: 3,
                             idleTimeoutMillis: 30_000,      // release idle connections after 30 s
-                            connectionTimeoutMillis: 30_000, // allow 30 s to connect to Supabase pooler
+                            connectionTimeoutMillis: 60_000, // allow 60 s to connect to Supabase pooler
                         },
                         tableName: vectorIndex || "document_chunks",
                         columns: {

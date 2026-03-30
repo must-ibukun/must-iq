@@ -1,5 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService, Prisma } from '@must-iq/db';
+import pLimit from 'p-limit';
+import { IngestionStatus } from '@must-iq/db';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -48,7 +50,7 @@ export class IngestionService {
             fs.writeFileSync(tmpPath, buffer);
             this.logger.log(`Ingesting file: ${originalName} → workspace: ${workspace}`);
             let chunksStored = 0;
-            let status = 'stored';
+            let status: IngestionStatus = IngestionStatus.STORED;
             let errorMessage: string | undefined;
             // Fetch workspace layer metadata
             const wsRecord = await this.prisma.workspace.findFirst({
@@ -67,12 +69,12 @@ export class IngestionService {
                 const sanitized = sanitizeError(err);
                 this.logger.error(`Ingestion failed: ${sanitized.technicalDetails}`);
 
-                status = 'error';
+                status = IngestionStatus.ERROR;
                 errorMessage = sanitized.message;
             } finally {
                 try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
             }
-            if (status !== 'error') {
+            if (status !== IngestionStatus.ERROR) {
                 await this.prisma.ingestionEvent.create({
                     data: {
                         sourceId: originalName,
@@ -92,7 +94,7 @@ export class IngestionService {
             fs.mkdirSync(extractDir, { recursive: true });
 
             let totalChunks = 0;
-            let status = 'stored';
+            let status: IngestionStatus = IngestionStatus.STORED;
             let errorMessage: string | undefined;
 
             // Fetch workspace layer metadata
@@ -109,49 +111,55 @@ export class IngestionService {
                 const zip = new AdmZip(buffer);
                 zip.extractAllTo(extractDir, true);
 
-                const walk = async (dir: string) => {
+                const collectFiles = (dir: string, result: { filePath: string; relativeFilePath: string }[] = []) => {
                     const files = fs.readdirSync(dir);
                     for (const file of files) {
                         const filePath = path.join(dir, file);
                         const stats = fs.statSync(filePath);
                         if (stats.isDirectory()) {
                             if (IGNORED_DIRECTORIES.includes(file)) continue;
-                            await walk(filePath);
+                            collectFiles(filePath, result);
                         } else {
                             const ext = path.extname(file).toLowerCase();
                             if (!ALLOWED_FILE_EXTENSIONS.includes(ext)) continue;
-
-                            // Skip test and story files
                             const isIgnored = IGNORED_FILE_PATTERNS.some(p => file.toLowerCase().includes(p));
                             if (isIgnored) {
                                 this.logger.debug(`Skipping ignored file: ${file}`);
                                 continue;
                             }
-
-                            const relativeFilePath = path.relative(extractDir, filePath);
-                            try {
-                                const result = await ingestFile(filePath, workspace, 'RETRIEVAL_DOCUMENT', relativeFilePath, layer);
-                                totalChunks += result?.chunksStored ?? 0;
-                                // Rate limiting: sleep for 500ms to stay under Gemini free tier RPM limits
-                                await new Promise(resolve => setTimeout(resolve, 500));
-                            } catch (e) {
-                                this.logger.warn(`Failed to ingest ${file} in ZIP: ${e.message}`);
-                            }
+                            result.push({ filePath, relativeFilePath: path.relative(extractDir, filePath) });
                         }
                     }
+                    return result;
                 };
 
-                await walk(extractDir);
+                const allFiles = collectFiles(extractDir);
+                // Keep concurrency ≤ pool max (3) to avoid connection timeout
+                const limit = pLimit(3);
+                const results = await Promise.all(
+                    allFiles.map(({ filePath, relativeFilePath }) =>
+                        limit(async () => {
+                            try {
+                                const result = await ingestFile(filePath, workspace, 'RETRIEVAL_DOCUMENT', relativeFilePath, layer);
+                                return result?.chunksStored ?? 0;
+                            } catch (e) {
+                                this.logger.warn(`Failed to ingest ${relativeFilePath} in ZIP: ${e.message}`);
+                                return 0;
+                            }
+                        })
+                    )
+                );
+                totalChunks = results.reduce((sum, n) => sum + n, 0);
             } catch (err: any) {
                 const sanitized = sanitizeError(err);
                 this.logger.error(`ZIP Ingestion failed: ${sanitized.technicalDetails}`);
-                status = 'error';
+                status = IngestionStatus.ERROR;
                 errorMessage = sanitized.message;
             } finally {
                 try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch { /* ignore */ }
             }
 
-            if (status !== 'error') {
+            if (status !== IngestionStatus.ERROR) {
                 await this.prisma.ingestionEvent.create({
                     data: {
                         sourceId: originalName,
@@ -241,7 +249,7 @@ export class IngestionService {
                     sourceId: ws.id,
                     sourceType: `manual-${ws.type.toLowerCase()}`,
                     workspace: ws.identifier,
-                    status: 'processing',
+                    status: IngestionStatus.PROCESSING,
                     metadata: { manual: true, teamId, startDate, endDate } as any
                 }
             });
@@ -258,7 +266,7 @@ export class IngestionService {
                                 this.logger.error(errorMsg);
                                 await this.prisma.ingestionEvent.update({
                                     where: { id: event.id },
-                                    data: { status: 'error', metadata: { error: errorMsg, scopes: validation.scopes } }
+                                    data: { status: IngestionStatus.ERROR, metadata: { error: errorMsg, scopes: validation.scopes } }
                                 });
                                 stats.errors++;
                                 continue;
@@ -281,7 +289,7 @@ export class IngestionService {
                 await promise;
                 await this.prisma.ingestionEvent.update({
                     where: { id: event.id },
-                    data: { status: 'stored', createdAt: new Date() }
+                    data: { status: IngestionStatus.STORED, createdAt: new Date() }
                 });
                 stats.completed++;
             } catch (error) {
@@ -289,7 +297,7 @@ export class IngestionService {
                 this.logger.error(`Ingestion error for ${ws.identifier}:`, sanitized.technicalDetails);
                 await this.prisma.ingestionEvent.update({
                     where: { id: event.id },
-                    data: { status: 'error', metadata: { error: sanitized.message } }
+                    data: { status: IngestionStatus.ERROR, metadata: { error: sanitized.message } }
                 });
                 stats.errors++;
             }
