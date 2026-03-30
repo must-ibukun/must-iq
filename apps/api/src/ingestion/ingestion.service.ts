@@ -134,8 +134,8 @@ export class IngestionService {
                 };
 
                 const allFiles = collectFiles(extractDir);
-                // Keep concurrency ≤ pool max (3) to avoid connection timeout
-                const limit = pLimit(3);
+                // Keep concurrency at 1 — Supabase session-mode pool_size is exhausted by parallel Prisma connections
+                const limit = pLimit(1);
                 const results = await Promise.all(
                     allFiles.map(({ filePath, relativeFilePath }) =>
                         limit(async () => {
