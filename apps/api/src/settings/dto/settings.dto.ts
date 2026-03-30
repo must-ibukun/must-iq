@@ -12,6 +12,8 @@ export class UpdateLLMSettingsDto {
     ragEnabled?: boolean;
     topK?: number;
     rerankEnabled?: boolean;
+    rerankTopN?: number;
+    minScore?: number;
     contextTokenBudget?: number | null;
     intentClassificationEnabled?: boolean;
     intentClassificationThreshold?: number;

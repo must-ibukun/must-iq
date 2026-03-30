@@ -3,12 +3,13 @@
 // Handles deduplication and compression of RAG chunks before LLM injection
 // ============================================================
 
-// Chunks below this score are discarded regardless of rank.
-// After cross-encoder reranking, scores < 0.1 are near-irrelevant.
-// Without reranking, this filters cosine similarity noise (< 0.1 ≈ random match).
-const MIN_SCORE = 0.01;
+import { getActiveSettings } from "@must-iq/config";
 
-export function buildContext(chunks: any[], maxTokenBudget?: number): string {
+const DEFAULT_MIN_SCORE = 0.1;
+
+export async function buildContext(chunks: any[], maxTokenBudget?: number): Promise<string> {
+  const settings = await getActiveSettings();
+  const MIN_SCORE = settings.minScore ?? DEFAULT_MIN_SCORE;
   const seen = new Set<string>();
   const deduplicated: any[] = [];
 

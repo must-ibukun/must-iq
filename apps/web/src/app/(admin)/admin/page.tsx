@@ -2357,6 +2357,35 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  {/* Min Score */}
+                  <div style={{ borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(var(--primary-rgb),0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--primary)' }}>
+                          <IconSearch size={16} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Min Relevance Score</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Chunks scoring below this threshold are discarded before the LLM sees them. Lower values increase recall; higher values increase precision.</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ padding: '0 20px 16px 70px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={llmSettings?.minScore ?? 0.1}
+                        onChange={e => setLlmSettings({ ...llmSettings, minScore: parseFloat(e.target.value) })}
+                        style={{ flex: 1, accentColor: 'var(--primary)' }}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', minWidth: 28, textAlign: 'right' }}>
+                        {(llmSettings?.minScore ?? 0.1).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Intent Classification */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>

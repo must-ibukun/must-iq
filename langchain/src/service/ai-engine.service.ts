@@ -199,12 +199,12 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         // so the cross-encoder scores relevance against technical vocabulary.
         if (chunks.length > 0 && settings.rerankEnabled !== false) {
           const before = chunks.length;
-          chunks = await rerank(finalQueryForSearch, chunks, 100);
+          chunks = await rerank(finalQueryForSearch, chunks, settings.rerankTopN ?? 50);
           logger.log(`Reranker: ${before} → ${chunks.length} chunks after cross-encoder.`);
         }
 
         if (chunks.length > 0) {
-          context = buildContext(chunks, settings.contextTokenBudget ?? undefined);
+          context = await buildContext(chunks, settings.contextTokenBudget ?? undefined);
 
           if (params.includeSources !== false) {
             sources = chunks.map((d) => {

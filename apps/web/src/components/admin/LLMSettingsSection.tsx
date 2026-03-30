@@ -105,7 +105,23 @@ export function LLMSettingsSection({
             <Toggle on={llmSettings?.rerankEnabled ?? false} onToggle={() => setLlmSettings({ ...llmSettings, rerankEnabled: !llmSettings?.rerankEnabled })} />
           </div>
         </div>
-
+        {llmSettings?.rerankEnabled && (
+          <div style={{ padding: '0 0 16px 50px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', minWidth: 120 }}>Top-N after rerank</div>
+            <input
+              type="range"
+              min="5"
+              max="100"
+              step="5"
+              value={llmSettings?.rerankTopN ?? 50}
+              onChange={e => setLlmSettings({ ...llmSettings, rerankTopN: parseInt(e.target.value) })}
+              style={{ flex: 1, accentColor: 'var(--primary)' }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', minWidth: 28, textAlign: 'right' }}>
+              {llmSettings?.rerankTopN ?? 50}
+            </span>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, marginBottom: 24 }}>
           <div>
