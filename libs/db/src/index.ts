@@ -1,4 +1,3 @@
-// @must-iq/db — Database library entry point
 export { PrismaClient, Prisma, DocumentStatus, IngestionStatus } from "./generated-client";
 export * from "./pgvector";
 export * from "./types";

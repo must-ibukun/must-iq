@@ -25,10 +25,6 @@ import { documentUploadOptions } from '../common/config/file-upload.config';
 export class IngestionController {
     constructor(private readonly ingestionService: IngestionService) { }
 
-    /**
-     * POST /admin/ingestion/upload
-     * Accepts multipart/form-data with `file` + `workspace` fields.
-     */
     @Post('upload')
     @HttpCode(HttpStatus.CREATED)
     @Roles('ADMIN', 'MANAGER')
@@ -47,20 +43,12 @@ export class IngestionController {
         );
     }
 
-    /**
-     * GET /admin/ingestion/events
-     * Paginated list of ingestion history with filtering.
-     */
     @Get('events')
     @Roles('ADMIN', 'MANAGER')
     getEvents(@Query() query: IngestionHistoryQueryDto) {
         return this.ingestionService.getIngestionEvents(query);
     }
 
-    /**
-     * POST /admin/ingestion/bulk
-     * Trigger bulk ingestion for workspace(s).
-     */
     @Post('bulk')
     @Roles('ADMIN', 'MANAGER')
     bulkIngest(@Body() body: any) {

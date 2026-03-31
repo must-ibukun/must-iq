@@ -17,8 +17,8 @@ import { Logger } from "@nestjs/common";
 
 const logger = new Logger("AIEngine");
 
-// Structured ticket tags from Jira/Slack templates — detected via string match,
-// no LLM call needed. Presence means the query is always an operational request.
+// Structured ticket tags from Jira/Slack templates — detected via string match, no LLM call needed.
+// Presence means the query is always an operational request.
 export const TICKET_TAG_MARKERS = ['[Requester]', '[Department]', '[Expected Result]', '[Description]', '[Due Date]', '[Assigned to]', '[Solution]'];
 
 export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> {
@@ -36,8 +36,8 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         }
       }
     }
-    // Workspaces arrive pre-resolved from the frontend (identifiers, not team IDs)
-    // No DB lookup needed — the chat page derives them from its availableTeams store.
+    // Workspaces arrive pre-resolved from the frontend (identifiers, not team IDs).
+    // The chat page derives them from its availableTeams store — no DB lookup needed here.
     const workspaces = [
       ...new Set([...(params.workspaces || [params.workspace])].filter(Boolean))
     ] as string[];
@@ -54,16 +54,14 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
     const settings = await getActiveSettings();
 
-    // --- RAG Path ---
     let sources: any[] = [];
     let context = "";
     let taskType: string | undefined = undefined;
 
     if (settings.ragEnabled !== false) {
       try {
-        // ── Step 0: Ticket-tag short-circuit (no LLM cost) ────────────────
         // Structured Jira/Slack ticket templates always signal an operational request.
-        // A regex-free string check is 100% reliable and skips the classifier LLM call.
+        // A string check here skips the classifier LLM call entirely.
         const hasTicketTags = TICKET_TAG_MARKERS.some((tag) => params.query.includes(tag));
         if (hasTicketTags) {
           (params as any)._domain = 'operations';
@@ -71,14 +69,13 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           logger.log('Domain Classifier: ticket tags detected → operations (short-circuit)');
         }
 
-        // ── Intent Extraction (replaces single-word domain classifier) ──
-        // One fast LLM call now produces:
-        //   1. domain       → RAG prompt template + embedding task type
-        //   2. issue_type   → informs reranker what answer shape to prefer
-        //   3. resources    → keyword boost terms fed to BM25 sparse retrieval
-        //   4. actors       → who is involved
-        //   5. enriched_query → technical rewrite embedded instead of raw query,
-        //                       closing the gap between casual language and code vocabulary
+        // One fast LLM call produces:
+        //   domain       → RAG prompt template + embedding task type
+        //   issue_type   → informs reranker what answer shape to prefer
+        //   resources    → keyword boost terms fed to BM25 sparse retrieval
+        //   actors       → who is involved
+        //   enriched_query → technical rewrite embedded instead of raw query,
+        //                    closing the gap between casual language and code vocabulary
         //
         // Example: "CS team needs inquiry access"
         //   → enriched: "grant CS team inquiry.show inquiry.create permissions
@@ -91,14 +88,12 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         if (shouldClassify) {
           extractedIntent = await extractIntent(params.query, settings);
 
-          // Store domain on params for buildRAGChain prompt selection
           (params as any)._domain = extractedIntent.domain;
           (params as any)._intent = extractedIntent;
 
           taskType = DOMAIN_TO_TASK_TYPE[extractedIntent.domain] ?? 'RETRIEVAL_QUERY';
         }
 
-        // ── Step 2: Image Handling ────────────────────────────────────────
         // gemini-embedding-2-preview embeds image + text natively in one vector — no OCR needed.
         // For all other providers/models, fall back to OCR → extracted text appended to query.
         const useMultimodalEmbed = !!(params.image &&
@@ -126,20 +121,16 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           logger.log("Image payload detected. Using native multimodal embedding (gemini-embedding-2-preview)...");
         }
 
-        // ── Embed query → retrieve via Prisma (no second pg-pool) ────────
         // retrieveChunks uses the shared Prisma client, avoiding the
         // MaxClientsInSessionMode error caused by LangChain's own pg-pool.
         const embeddings = await createEmbeddings(taskType);
 
-        // ── Build search queries from extracted intent ─────────────────
         // enrichedQuery: used for dense embedding + reranking.
         //   Prefers intent.enriched_query (technical rewrite) over raw query.
         //   Falls back to raw query when intent extraction was skipped or failed.
         //
-        // bm25Query: used for BM25 sparse retrieval.
-        //   Appends resource keywords from intent to the enriched query so that
-        //   exact technical terms (e.g. "inquiry", "roleValidationMiddleware")
-        //   get strong BM25 hits even if phrased differently in enriched_query.
+        // bm25Query: appends resource keywords from intent to the enriched query so that
+        //   exact technical terms get strong BM25 hits even if phrased differently in enriched_query.
         const enrichedQuery = extractedIntent?.enriched_query ?? params.query;
         const bm25ResourceBoost = extractedIntent?.resources?.length
           ? ` ${extractedIntent.resources.join(' ')}`
@@ -151,10 +142,10 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           : enrichedQuery;
 
         const bm25Query = `${finalQueryForSearch}${bm25ResourceBoost}`;
-        // ── HyDE: Hypothetical Document Embedding ─────────────────────
-        // If enabled, generate a synthetic code/doc snippet that "looks like"
+
+        // HyDE: If enabled, generate a synthetic code/doc snippet that "looks like"
         // the answer — then embed THAT instead of the enriched query.
-        // HyDE runs on top of the already-enriched query for maximum specificity.
+        // Runs on top of the already-enriched query for maximum specificity.
         let queryText = finalQueryForSearch;
         if (settings.hydeEnabled) {
           logger.log(`HyDE: generating hypothetical document for query...`);
@@ -170,7 +161,6 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           queryVector = await embeddings.embedQuery("queryText");
         }
 
-        // ── Stage 1: Broad Retrieval ─────────────────────────
         // If hybridSearchEnabled: run dense (pgvector) + sparse (BM25) in parallel
         // and merge via Reciprocal Rank Fusion (K=60).
         // Otherwise: pure dense search only.
@@ -193,7 +183,6 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           logger.log(`Stage 1: retrieved ${chunks.length} chunks (topK=${topK})`);
         }
 
-        // ── Stage 2: Cross-Encoder Rerank ─────────────────────────────
         // Reranks the broad pool with ms-marco-MiniLM-L-6-v2 (local ONNX, ~90 MB).
         // Reranks against finalQueryForSearch (enriched) not the raw query,
         // so the cross-encoder scores relevance against technical vocabulary.
@@ -242,8 +231,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
     const memory = getSessionMemory(params.sessionId);
     const chatMessages = await memory.getMessages();
 
-    // ── Ensure compatibility with Google GenAI (no stray SystemMessages) ──
-    // Map any SystemMessage to HumanMessage so the adapter's validation passes.
+    // Map any SystemMessage to HumanMessage so Google GenAI's adapter validation passes.
     const safeChatHistory = chatMessages.map((msg: any) => {
       if (typeof msg._getType === 'function' && msg._getType() === "system") {
         return new HumanMessage(`[Conversation Summary]:\n${msg.content}`);

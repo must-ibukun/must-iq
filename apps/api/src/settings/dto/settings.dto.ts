@@ -15,8 +15,6 @@ export class UpdateLLMSettingsDto {
     contextTokenBudget?: number | null;
     intentClassificationEnabled?: boolean;
     intentClassificationThreshold?: number;
-
-    // Ingestion Fields
     slackIngestionEnabled?: boolean;
     repoIngestionEnabled?: boolean;
     jiraIngestionEnabled?: boolean;

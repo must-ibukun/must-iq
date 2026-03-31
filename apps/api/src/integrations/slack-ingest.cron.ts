@@ -11,11 +11,6 @@ export class SlackIngestCron {
 
     constructor(private readonly prisma: PrismaService) { }
 
-    /**
-     * Runs at 06:00 and 18:00 every day.
-     * Discovers every channel the bot is a member of, maps each to a workspace,
-     * and ingests recent messages via pullSlackData.
-     */
     @Cron('0 6,18 * * *', { name: 'slack-ingest' })
     async ingestSlackChannels(): Promise<void> {
         if (this.isRunning) {
@@ -37,7 +32,6 @@ export class SlackIngestCron {
             const channels = await this.getBotChannels(settings.slackBotToken);
             this.logger.log(`Bot is a member of ${channels.length} channel(s)`);
 
-            // Ingest only messages from the last 12 hours to avoid duplicates
             const since = new Date(Date.now() - 12 * 60 * 60 * 1000);
 
             for (const channel of channels) {
@@ -56,10 +50,6 @@ export class SlackIngestCron {
         }
     }
 
-    /**
-     * Fetch all channels the bot is currently a member of.
-     * Uses conversations.list with types=public_channel,private_channel and exclude_archived=true.
-     */
     private async getBotChannels(token: string): Promise<{ id: string; name: string }[]> {
         const channels: { id: string; name: string }[] = [];
         let cursor: string | undefined;

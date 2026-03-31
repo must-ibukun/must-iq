@@ -32,7 +32,6 @@ export class IntegrationsService {
         const event = payload.event;
         if (!event) return { success: true };
 
-        // ── app_mention: @must-iq was mentioned in a thread/channel ──
         if (event.type === 'app_mention') {
             // Run async so Slack's 3-second ack deadline is met
             this.handleAppMention(event).catch(err =>
@@ -58,14 +57,13 @@ export class IntegrationsService {
         // If the mention is inside a thread use thread_ts; otherwise use the message ts
         const threadTs: string = event.thread_ts || event.ts;
 
-        const token =  process.env.SLACK_BOT_TOKEN;
+        const token = process.env.SLACK_BOT_TOKEN;
 
         if (!token) {
             this.logger.error('No Slack bot token configured — cannot handle app_mention');
             return;
         }
 
-        // 1. Fetch full thread
         const messages = await this.slackService.fetchThread(channelId, threadTs, token);
         if (messages.length === 0) {
             await this.slackService.postMessage(
@@ -77,12 +75,10 @@ export class IntegrationsService {
             return;
         }
 
-        // 2. Build thread context for the AI
         const threadText = messages
             .map(m => `${m.username || m.user || 'user'}: ${m.text}`)
             .join('\n');
 
-        // 3. Resolve team workspace from channel
         const resolved = await this.resolveWorkspaceFromChannel(channelId, token);
         if (!resolved) {
             await this.slackService.postMessage(
@@ -95,7 +91,6 @@ export class IntegrationsService {
         }
         const { workspace, workspaces } = resolved;
 
-        // 4. Query knowledge base with the thread content
         let cardData: { title: string; description: string; priority: string };
         try {
             const result = await runAIQuery({
@@ -126,7 +121,6 @@ export class IntegrationsService {
             return;
         }
 
-        // 5. Create Jira issue
         const projectKey = process.env.JIRA_PROJECT_KEY || 'MSQ';
         const issue = await this.jiraService.createIssue({
             projectKey,
@@ -145,7 +139,6 @@ export class IntegrationsService {
             return;
         }
 
-        // 6. Reply in Slack with the card link
         await this.slackService.postMessage(
             channelId,
             `:jira: Jira card created from this thread:\n*<${issue.url}|${issue.key}: ${cardData.title}>*\nPriority: ${cardData.priority}`,
@@ -156,13 +149,11 @@ export class IntegrationsService {
         this.logger.log(`Created Jira issue ${issue.key} from Slack thread ${channelId}/${threadTs}`);
     }
 
-    /** Extract a concise title from the first non-empty line of the thread. */
     private extractTitle(threadText: string): string {
         const firstLine = threadText.split('\n').map(l => l.trim()).find(l => l.length > 0) || 'Untitled';
         return firstLine.substring(0, 100);
     }
 
-    /** Extract priority from thread text if a priority tag is present, else default to Medium. */
     private extractPriority(threadText: string): string {
         if (/\[Critical\]/i.test(threadText)) return 'Critical';
         if (/\[High\]/i.test(threadText)) return 'High';
@@ -215,9 +206,4 @@ export class IntegrationsService {
         this.logger.warn(`No team found for channel ${channelName} (${channelId})`);
         return null;
     }
-
-    /**
-     * Handle GitHub Webhook
-     * e.g. PR merged
-     */
 }

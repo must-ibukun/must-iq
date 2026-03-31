@@ -12,7 +12,7 @@ let isRedisDisabled = false;
  */
 export function getRedis(): Redis | null {
   if (isRedisDisabled) return null;
-  
+
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
     if (!isRedisDisabled) {
@@ -25,7 +25,7 @@ export function getRedis(): Redis | null {
   if (!redisClient) {
     try {
       redisClient = new Redis(redisUrl, {
-        maxRetriesPerRequest: 1, // Fail fast
+        maxRetriesPerRequest: 1,
         retryStrategy(times) {
           if (times > 3) {
             logger.error("Redis connection failed after 3 retries. Disabling Redis for this process.");
@@ -55,9 +55,6 @@ export function getRedis(): Redis | null {
   return isRedisDisabled ? null : redisClient;
 }
 
-/**
- * Check if Redis is currently available and healthy.
- */
 export function isRedisAvailable(): boolean {
   const client = getRedis();
   return !!client && client.status === "ready";

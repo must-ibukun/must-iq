@@ -9,21 +9,21 @@ export class PrismaExceptionFilter implements ExceptionFilter {
   catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    
+
     let message = 'Internal database error';
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
 
     // Prisma Error Codes: https://www.prisma.io/docs/reference/api-reference/error-reference#error-codes
     switch (exception.code) {
-      case 'P2002': // Unique constraint violation
+      case 'P2002':
         statusCode = HttpStatus.CONFLICT;
         message = `Unique constraint failed on the fields: ${(exception.meta as any)?.target || 'unknown'}`;
         break;
-      case 'P2003': // Foreign key constraint violation
+      case 'P2003':
         statusCode = HttpStatus.BAD_REQUEST;
         message = 'Foreign key constraint violation. The referenced record does not exist.';
         break;
-      case 'P2025': // Record not found
+      case 'P2025':
         statusCode = HttpStatus.NOT_FOUND;
         message = 'The requested record was not found.';
         break;

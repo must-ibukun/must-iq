@@ -1,4 +1,3 @@
-// @must-iq/config — entry point
 export * from "./llm.factory";
 export * from "./vector.factory";
 export * from "./settings.service";

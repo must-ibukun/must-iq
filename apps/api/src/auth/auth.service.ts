@@ -20,7 +20,6 @@ export class AuthService {
         private readonly mailService: MailService,
     ) { }
 
-    // ── Login ─────────────────────────────────────────────────────
     async login(email: string, password: string) {
         const user = await this.prisma.user.findUnique({
             where: { email },
@@ -68,14 +67,13 @@ export class AuthService {
         };
     }
 
-    // ── Get profile ───────────────────────────────────────────────
     async getProfile(userId: string) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             include: { teams: true },
         });
         if (!user) throw new NotFoundException('User not found');
-        
+
         const initials = user.name
             ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
             : 'U';
@@ -96,7 +94,6 @@ export class AuthService {
         };
     }
 
-    // ── Update profile ────────────────────────────────────────────
     async updateProfile(userId: string, data: { name?: string; teamIds?: string[]; deepSearchEnabled?: boolean }) {
         const user = await this.prisma.user.update({
             where: { id: userId },
@@ -127,7 +124,6 @@ export class AuthService {
         };
     }
 
-    // ── Change password ───────────────────────────────────────────
     async changePassword(userId: string, oldPassword: string, newPassword: string) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new NotFoundException('User not found');
@@ -144,7 +140,6 @@ export class AuthService {
         return { message: 'Password updated successfully' };
     }
 
-    // ── Forgot password ───────────────────────────────────────────
     async forgotPassword(email: string) {
         const user = await this.prisma.user.findUnique({ where: { email } });
 
@@ -169,7 +164,6 @@ export class AuthService {
         return { message: 'If that email exists, a reset link has been sent' };
     }
 
-    // ── Reset password ────────────────────────────────────────────
     async resetPassword(token: string, newPassword: string) {
         if (newPassword.length < 8) {
             throw new BadRequestException('Password must be at least 8 characters');

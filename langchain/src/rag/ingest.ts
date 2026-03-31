@@ -1,8 +1,3 @@
-// ============================================================
-// Document Ingestion — Must-IQ (Dynamic Vector Store)
-// Loads PDF/DOCX/TXT → splits → embeds → stores in active Vector DB
-// ============================================================
-
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
@@ -34,13 +29,9 @@ function getSplitterForFile(extension: string) {
   return new RecursiveCharacterTextSplitter({ chunkSize: 500, chunkOverlap: 50 });
 }
 
-/**
- * Ingests a file from disk into the active vector store.
- */
 export async function ingestFile(filePath: string, workspace = "general", taskType = "RETRIEVAL_DOCUMENT", relativeFilePath?: string, layer = "docs"): Promise<{ chunksStored: number }> {
   const ext = path.extname(filePath).toLowerCase();
 
-  // Deduplication: skip if this exact file content was already ingested
   const fileBuffer = fs.readFileSync(filePath);
   const contentHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
   const sourceName = relativeFilePath || path.basename(filePath);
@@ -65,13 +56,11 @@ export async function ingestFile(filePath: string, workspace = "general", taskTy
   logger.log(`Loading ${filePath}...`);
   const docs = await loader.load();
 
-  // Fetch workspace metadata
   const wsRecord = await prisma.workspace.findFirst({
     where: { OR: [{ id: workspace }, { identifier: workspace }] }
   });
   const techStack = wsRecord?.techStack || null;
 
-  // Tag every chunk with workspace + source
   const langId = CODE_EXTENSIONS[ext] || "text";
 
   const tagged = docs.map((doc: any) => ({
@@ -82,7 +71,6 @@ export async function ingestFile(filePath: string, workspace = "general", taskTy
   const splitter = getSplitterForFile(ext);
   const rawChunks = await splitter.splitDocuments(tagged);
 
-  // 1. Create a parent Document record in Prisma so chunks can refer to it
   logger.log(`Creating Document record for ${sourceName}...`);
   const tags: string[] = [ext.replace('.', '') || 'text'];
   if (langId && langId !== 'text') tags.push(langId);
@@ -100,7 +88,6 @@ export async function ingestFile(filePath: string, workspace = "general", taskTy
     }
   });
 
-  // 2. Tag every chunk with the documentId
   const chunks = rawChunks.map((chunk, idx) => ({
     ...chunk,
     metadata: {
@@ -122,10 +109,9 @@ export async function ingestFile(filePath: string, workspace = "general", taskTy
     } catch (cleanupErr) {
       logger.error(`Failed to delete orphaned Document record ${document.id}:`, cleanupErr);
     }
-    throw err; // Re-throw to be caught by service
+    throw err;
   }
 
-  // 3. Mark document as completed
   await prisma.document.update({
     where: { id: document.id },
     data: { status: "COMPLETED", chunkCount: chunks.length }
@@ -143,7 +129,6 @@ export async function ingestDocument({ content, metadata, taskType = "RETRIEVAL_
   const source = metadata.source || "unknown";
   const workspace = metadata.workspace || "general";
 
-  // Dedup: skip if this exact content from this source was already ingested
   const contentHash = crypto.createHash("sha256").update(content).digest("hex");
 
   const existing = await prisma.document.findFirst({
@@ -155,7 +140,7 @@ export async function ingestDocument({ content, metadata, taskType = "RETRIEVAL_
     return;
   }
 
-  // Track in Document table (same as ingestFile) for visibility + cleanup on failure
+  // Track in Document table for visibility + cleanup on failure
   const docTags: string[] = Array.isArray(metadata.tags) ? metadata.tags : [];
   const document = await prisma.document.create({
     data: {

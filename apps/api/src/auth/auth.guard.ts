@@ -1,8 +1,3 @@
-// ============================================================
-// Auth Guard — Validates JWT on every protected route
-// Extracts user + role from token payload
-// ============================================================
-
 import {
   Injectable,
   CanActivate,
@@ -25,7 +20,6 @@ export class AuthGuard implements CanActivate {
   ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Allow routes decorated with @Public()
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
       context.getHandler(),
       context.getClass(),
@@ -44,7 +38,6 @@ export class AuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET,
       });
 
-      // Verify user actually exists in DB (essential after DB resets)
       const userExists = await this.prisma.user.findUnique({
         where: { id: payload.sub },
         select: { id: true }
@@ -54,7 +47,6 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException("User no longer exists. Please log in again.");
       }
 
-      // Attach user to request — available in all controllers
       request.user = payload;
     } catch (e: any) {
       if (e instanceof UnauthorizedException) throw e;

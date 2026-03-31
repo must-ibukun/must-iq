@@ -1,10 +1,3 @@
-// ============================================================
-// Must-IQ — LLM Settings Types
-// @must-iq/config
-// The active model is controlled from a settings table in DB,
-// not hardcoded imports. Admins change it from the UI.
-// ============================================================
-
 export type LLMProvider = "anthropic" | "openai" | "gemini" | "ollama" | "azure-openai" | "xai";
 export type EmbeddingProvider = "openai" | "gemini" | "ollama";
 export type VectorProvider = "pgvector" | "weaviate";
@@ -18,31 +11,25 @@ export interface APIKeyEntry {
   isActive: boolean;
 }
 
-// ---------------------------------------------------------------
-// Shape stored in the `settings` table (one row, id = "llm")
-// and also readable from .env as fallback
-// ---------------------------------------------------------------
 export interface LLMSettings {
   provider: LLMProvider;
   model: string;
   utilityModel: string; // The "cheaper" model for background tasks like classification
-  temperature: number;       // 0.0 – 1.0
+  temperature: number;
   maxTokens: number;
   embeddingProvider: EmbeddingProvider;
   embeddingModel: string;
   embeddingDimensions: number; // MUST match vector(N) in schema.prisma
   vectorProvider: VectorProvider;
-  vectorIndex: string;         // tableName for pgvector, className for weaviate
+  vectorIndex: string;
   streamingEnabled: boolean;
-  // API keys stored securely in the database (encrypted) or fallen back to env
   apiKeys: APIKeyEntry[];
   ragEnabled?: boolean;
-  topK?: number;             // Candidate pool size fetched from pgvector (Stage 1)
-  hydeEnabled?: boolean;       // Whether to apply HyDE query expansion before embedding
-  hybridSearchEnabled?: boolean; // Whether to run dense + BM25 in parallel and merge via RRF
-  contextTokenBudget?: number; // Target max tokens for the final RAG context block
+  topK?: number;
+  hydeEnabled?: boolean;
+  hybridSearchEnabled?: boolean;
+  contextTokenBudget?: number;
 
-  // Ingestion Settings (Pull Mode)
   slackIngestionEnabled: boolean;
   repoIngestionEnabled: boolean;
   jiraIngestionEnabled: boolean;
@@ -53,25 +40,19 @@ export interface LLMSettings {
   jiraUserEmail?: string;
   jiraBaseUrl?: string;
   ollamaBaseUrl?: string;
-  ollamaClassifierModel?: string; // e.g. 'llama3' or 'gemma:2b'
+  ollamaClassifierModel?: string;
   autoCreateTeams?: boolean;
 
-  // Intent Classification Settings
   intentClassificationEnabled?: boolean;
   intentClassificationThreshold?: number;
 
-  // Reranking Settings
   rerankEnabled?: boolean; // Whether to apply cross-encoder reranking after RRF (ms-marco-MiniLM-L-6-v2)
 
-  // Cache Settings
-  cacheL1Ttl?: number; // In-memory TTL (ms)
-  cacheL2Ttl?: number; // Redis TTL (seconds)
-  cacheL2Key?: string; // Redis key
+  cacheL1Ttl?: number;
+  cacheL2Ttl?: number;
+  cacheL2Key?: string;
 }
 
-// ---------------------------------------------------------------
-// Supported models per provider (used by settings UI dropdown)
-// ---------------------------------------------------------------
 export const PROVIDER_MODELS: Record<LLMProvider, string[]> = {
   anthropic: [
     "claude-opus-4-5",
@@ -124,9 +105,6 @@ export const EMBEDDING_MODELS: Record<EmbeddingProvider, { model: string; dimens
   ],
 };
 
-// ---------------------------------------------------------------
-// Default settings (used when no DB row exists yet)
-// ---------------------------------------------------------------
 export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   provider: (process.env.LLM_PROVIDER as LLMProvider) ?? "gemini",
   model: process.env.LLM_MODEL ?? "gemini-2.5-flash",
@@ -142,24 +120,20 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
   ollamaClassifierModel: process.env.OLLAMA_CLASSIFIER_MODEL ?? "llama3",
 
-  // Default Ingestion Settings
   slackIngestionEnabled: process.env.SLACK_INGESTION_ENABLED === "true",
   repoIngestionEnabled: process.env.REPO_INGESTION_ENABLED === "true",
   jiraIngestionEnabled: process.env.JIRA_INGESTION_ENABLED === "true",
   agenticReasoningEnabled: process.env.AGENTIC_REASONING_ENABLED === "true",
   autoCreateTeams: process.env.AUTO_CREATE_PROJECTS === "true",
 
-  // Default Retrieval / HyDE / Rerank
   hydeEnabled: false,
   hybridSearchEnabled: false,
   rerankEnabled: false,
   contextTokenBudget: process.env.CONTEXT_TOKEN_BUDGET ? parseInt(process.env.CONTEXT_TOKEN_BUDGET) : 16000,
 
-  // Default Intent Classification
   intentClassificationEnabled: true,
   intentClassificationThreshold: 15,
 
-  // Cache Defaults
   cacheL1Ttl: parseInt(process.env.CACHE_L1_TTL ?? "60000"),
   cacheL2Ttl: parseInt(process.env.CACHE_L2_TTL ?? "600"),
   cacheL2Key: process.env.CACHE_L2_KEY ?? "must-iq:settings:llm",

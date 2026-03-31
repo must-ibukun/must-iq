@@ -1,8 +1,3 @@
-// ============================================================
-// Must-IQ — Context Builder Utility
-// Handles deduplication and compression of RAG chunks before LLM injection
-// ============================================================
-
 // Chunks below this score are discarded regardless of rank.
 // After cross-encoder reranking, scores < 0.1 are near-irrelevant.
 // Without reranking, this filters cosine similarity noise (< 0.1 ≈ random match).
@@ -12,10 +7,8 @@ export function buildContext(chunks: any[], maxTokenBudget?: number): string {
   const seen = new Set<string>();
   const deduplicated: any[] = [];
 
-  // 1. Filter out low-confidence chunks before building context
   const qualified = chunks.filter((c) => typeof c.score !== 'number' || c.score >= MIN_SCORE);
 
-  // 2. Deduplicate by exact content (normalize whitespace for safe fingerprint)
   for (const chunk of qualified) {
     if (!chunk.content) continue;
 

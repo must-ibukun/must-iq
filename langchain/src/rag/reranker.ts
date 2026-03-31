@@ -1,11 +1,3 @@
-// ============================================================
-// Must-IQ — Cross-Encoder Reranker
-// Uses ms-marco-MiniLM-L-6-v2 via @xenova/transformers (ONNX, CPU)
-// Runs locally — no external API call, no extra cost.
-//
-// Flow: RRF pool (up to topK) → cross-encoder scores → top-N returned
-// ============================================================
-
 import { Logger } from '@nestjs/common';
 import { DocumentChunk } from '@must-iq/db';
 
@@ -48,10 +40,6 @@ async function getReranker() {
  * Returns the top-N most relevant chunks sorted by cross-encoder score.
  *
  * Falls back to returning the first topN chunks (by RRF score) if inference fails.
- *
- * @param query     The original user query
- * @param chunks    RRF-merged candidate pool
- * @param topN      Number of top chunks to return (default 20)
  */
 export async function rerank(
   query: string,
@@ -65,9 +53,8 @@ export async function rerank(
     const reranker = await getReranker();
     if (!reranker) return chunks.slice(0, topN);
 
-    // Score each chunk individually: Xenova's text-classification pipeline
-    // does not accept batched {text, text_pair} objects — it expects a plain
-    // string as the first arg and text_pair in options.
+    // Xenova's text-classification pipeline does not accept batched {text, text_pair} objects —
+    // it expects a plain string as the first arg and text_pair in options.
     const scores: { score: number }[] = await Promise.all(
       chunks.map((c) =>
         reranker(query, {

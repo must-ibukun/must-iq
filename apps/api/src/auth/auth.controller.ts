@@ -11,7 +11,6 @@ export const Public = () => SetMetadata(IS_PUBLIC, true);
 export class AuthController {
     constructor(private readonly authService: AuthService) { }
 
-    // POST /api/v1/auth/login  (public)
     @Public()
     @Post('login')
     @HttpCode(HttpStatus.OK)
@@ -19,21 +18,18 @@ export class AuthController {
         return this.authService.login(body.email, body.password);
     }
 
-    // GET /api/v1/auth/profile  (requires auth)
     @UseGuards(AuthGuard)
     @Get('profile')
     getProfile(@Req() req: any) {
         return this.authService.getProfile(req.user.sub);
     }
 
-    // PATCH /api/v1/auth/profile  (requires auth)
     @UseGuards(AuthGuard)
     @Patch('profile')
     updateProfile(@Req() req: any, @Body() body: UpdateProfileDto) {
         return this.authService.updateProfile(req.user.sub, body);
     }
 
-    // POST /api/v1/auth/change-password  (requires auth)
     @UseGuards(AuthGuard)
     @Post('change-password')
     @HttpCode(HttpStatus.OK)
@@ -41,7 +37,6 @@ export class AuthController {
         return this.authService.changePassword(req.user.sub, body.oldPassword, body.newPassword);
     }
 
-    // POST /api/v1/auth/forgot-password  (public)
     @Public()
     @Post('forgot-password')
     @HttpCode(HttpStatus.OK)
@@ -49,7 +44,6 @@ export class AuthController {
         return this.authService.forgotPassword(body.email);
     }
 
-    // POST /api/v1/auth/reset-password  (public)
     @Public()
     @Post('reset-password')
     @HttpCode(HttpStatus.OK)

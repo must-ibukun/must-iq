@@ -13,8 +13,7 @@ export class SlackService {
     private readonly logger = new Logger(SlackService.name);
 
     /**
-     * Validate bot permissions/scopes
-     * Uses Slack auth.test API
+     * Validate bot permissions/scopes using Slack auth.test API.
      * Required scopes for ingestion: channels:history, groups:history, im:history (optional), mpim:history
      */
     async validatePermissions(token: string): Promise<{ ok: boolean; error?: string; scopes?: string[] }> {
@@ -35,8 +34,7 @@ export class SlackService {
                 return { ok: false, error: data.error };
             }
 
-            // auth.test doesn't return list of scopes in the JSON body,
-            // but they are available in the 'x-oauth-scopes' header.
+            // auth.test doesn't return scopes in the JSON body — they're in the 'x-oauth-scopes' header
             const scopes = (res.headers['x-oauth-scopes'] as string)?.split(',').map(s => s.trim()) || [];
 
             const required = ['channels:history', 'groups:history'];
@@ -56,10 +54,6 @@ export class SlackService {
         }
     }
 
-    /**
-     * Fetch all messages in a thread via conversations.replies
-     * Requires channels:history or groups:history scope
-     */
     async fetchThread(channelId: string, threadTs: string, token: string): Promise<SlackMessage[]> {
         try {
             const res = await axios.get('https://slack.com/api/conversations.replies', {
@@ -81,10 +75,6 @@ export class SlackService {
         }
     }
 
-    /**
-     * Post a message (or reply to a thread) in a Slack channel
-     * Requires chat:write scope
-     */
     async postMessage(channelId: string, text: string, token: string, threadTs?: string): Promise<boolean> {
         try {
             const body: Record<string, string> = { channel: channelId, text };

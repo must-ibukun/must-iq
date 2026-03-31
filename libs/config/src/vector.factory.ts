@@ -1,9 +1,3 @@
-// ============================================================
-// Must-IQ — Vector Factory
-// Returns the correct VectorStore based on active DB settings
-// No hardcoded imports — the active provider drives everything
-// ============================================================
-
 import { VectorStore } from "@langchain/core/vectorstores";
 import { PGVectorStore } from "@langchain/community/vectorstores/pgvector";
 import { WeaviateStore } from "@langchain/weaviate";
@@ -18,7 +12,7 @@ const logger = new Logger("VectorFactory");
 
 /**
  * Module-level cache to reuse VectorStore initialization promises and avoid "too many clients" DB errors.
- * Keyed by: provider:index
+ * Keyed by: provider:index:taskType
  */
 const vectorStorePromises = new Map<string, Promise<VectorStore>>();
 
@@ -31,7 +25,6 @@ class RelationalPGVectorStore extends PGVectorStore {
     constructor(embeddings: any, config: any) {
         super(embeddings, config);
         const logger = new Logger("RelationalVectorStore");
-        // Ensure a default chunkSize if not provided by base
         (this as any).chunkSize = config.chunkSize ?? (this as any).chunkSize ?? 500;
         logger.log(`Initialized RelationalPGVectorStore instance (chunkSize=${(this as any).chunkSize})`);
         this.patchMethods();
@@ -51,7 +44,6 @@ class RelationalPGVectorStore extends PGVectorStore {
     private patchMethods() {
         const self = this as any;
 
-        // 1. Patch buildInsertQuery
         self.buildInsertQuery = async (rows: any[][]): Promise<string> => {
             const columns = [
                 this.contentColumnName,
@@ -63,7 +55,6 @@ class RelationalPGVectorStore extends PGVectorStore {
                 "chunkIndex"
             ];
 
-            // Add ID if provided
             if (rows[0] && rows[0].length === columns.length + 1) {
                 columns.push(this.idColumnName);
             }
@@ -80,7 +71,6 @@ class RelationalPGVectorStore extends PGVectorStore {
             `;
         };
 
-        // 2. Patch addVectors
         this.addVectors = async (vectors: number[][], documents: Document[], options?: { ids?: string[] }): Promise<void> => {
             const logger = new Logger("RelationalVectorStore");
             logger.log(`Adding ${vectors.length} vectors to DB...`);
@@ -125,7 +115,7 @@ class RelationalPGVectorStore extends PGVectorStore {
             logger.log("All vectors added successfully.");
         };
 
-        // 3. Patch buildFilterClauses to support multi-workspace search via relational column
+        // Supports multi-workspace search via relational column rather than JSON metadata
         self.buildFilterClauses = (filter: any, paramOffset = 0) => {
             const whereClauses: string[] = [];
             const parameters: any[] = [];
@@ -135,7 +125,6 @@ class RelationalPGVectorStore extends PGVectorStore {
 
             for (const [key, value] of Object.entries(filter)) {
                 if (key === 'workspace') {
-                    // Optimized path: Use the top-level 'workspace' column instead of JSON metadata
                     if (typeof value === 'object' && value !== null && 'in' in value) {
                         paramCount += 1;
                         whereClauses.push(`"workspace" = ANY($${paramCount})`);
@@ -150,7 +139,6 @@ class RelationalPGVectorStore extends PGVectorStore {
                         parameters.push(value);
                     }
                 } else {
-                    // Default fallback for other metadata fields
                     paramCount += 1;
                     whereClauses.push(`"${this.metadataColumnName}"->>'${key}' = $${paramCount}`);
                     parameters.push(value);
@@ -162,17 +150,12 @@ class RelationalPGVectorStore extends PGVectorStore {
     }
 }
 
-/**
- * Creates the active VectorStore - driven by settings.
- * Supports "pgvector" (integrated) and "weaviate" (external).
- */
 export async function createVectorStore(taskType?: string): Promise<VectorStore> {
     const settings = await getActiveSettings();
     const { vectorProvider, vectorIndex } = settings;
 
-    // Generate a unique cache key for this configuration
-    // Note: VectorStore binds the Embeddings instance permanently.
-    // We MUST include taskType in the cache key to prevent cross-contamination of embedding spaces.
+    // VectorStore binds the Embeddings instance permanently.
+    // taskType must be included in the cache key to prevent cross-contamination of embedding spaces.
     const cacheKey = `${vectorProvider}:${vectorIndex || 'default'}:${taskType || 'default'}`;
 
     if (vectorStorePromises.has(cacheKey)) {
@@ -190,10 +173,9 @@ export async function createVectorStore(taskType?: string): Promise<VectorStore>
                     instance = await RelationalPGVectorStore.initialize(embeddings, {
                         postgresConnectionOptions: {
                             connectionString: process.env.DATABASE_URL!,
-                            // Allow a few connections when multiple chunks ingest concurrently.
                             max: 3,
-                            idleTimeoutMillis: 30_000,      // release idle connections after 30 s
-                            connectionTimeoutMillis: 60_000, // allow 60 s to connect to Supabase pooler
+                            idleTimeoutMillis: 30_000,
+                            connectionTimeoutMillis: 60_000,
                         },
                         tableName: vectorIndex || "document_chunks",
                         columns: {

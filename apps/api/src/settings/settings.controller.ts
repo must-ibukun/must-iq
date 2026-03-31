@@ -1,11 +1,3 @@
-// ============================================================
-// Settings Controller — Must-IQ API
-// Admin-only endpoints to read and update the active LLM
-// GET  /api/v1/settings/llm  → current settings
-// PUT  /api/v1/settings/llm  → update provider/model
-// GET  /api/v1/settings/llm/providers → available providers + models
-// ============================================================
-
 import {
   Controller, Get, Put, Body, UseGuards, Req,
   ForbiddenException, HttpCode, HttpStatus,
@@ -28,15 +20,11 @@ import { UpdateLLMSettingsDto } from "./dto/settings.dto";
 @UseGuards(AuthGuard)
 export class SettingsController {
 
-  // -----------------------------------------------------------
-  // GET /api/v1/settings/llm
-  // Returns current active settings (no API keys)
-  // -----------------------------------------------------------
   @Get("llm")
   async getLLMSettings() {
     const settings = await getActiveSettings();
 
-    // Mask API keys for front-end management
+    // Mask API keys for front-end display
     const maskedApiKeys = Array.isArray(settings.apiKeys)
       ? settings.apiKeys.map(k => ({
         ...k,
@@ -50,14 +38,10 @@ export class SettingsController {
     };
   }
 
-  // -----------------------------------------------------------
-  // PUT /api/v1/settings/llm
-  // Update active model — ADMIN only
-  // -----------------------------------------------------------
   @Put("llm")
   @HttpCode(HttpStatus.OK)
   async updateLLMSettings(
-    @Body() body: any, // Allow flexible updates for multi-key array
+    @Body() body: any,
     @Req() req: any
   ) {
     if (req.user.role !== "ADMIN") {
@@ -69,11 +53,6 @@ export class SettingsController {
     return { message: "Settings updated" };
   }
 
-  // -----------------------------------------------------------
-  // GET /api/v1/settings/llm/providers
-  // Returns all available providers + their models
-  // Used to populate the settings UI dropdowns
-  // -----------------------------------------------------------
   @Get("llm/providers")
   getAvailableProviders() {
     return {
@@ -82,19 +61,11 @@ export class SettingsController {
     };
   }
 
-  // -----------------------------------------------------------
-  // GET /api/v1/settings/system
-  // Returns current system settings
-  // -----------------------------------------------------------
   @Get("system")
   async getSystemSettings() {
     return await getSystemSettings();
   }
 
-  // -----------------------------------------------------------
-  // PUT /api/v1/settings/system
-  // Update system settings — ADMIN only
-  // -----------------------------------------------------------
   @Put("system")
   @HttpCode(HttpStatus.OK)
   async updateSystemSettings(

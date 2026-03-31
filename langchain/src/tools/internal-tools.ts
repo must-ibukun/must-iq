@@ -1,21 +1,9 @@
-// ============================================================
-// Must-IQ — Agent Tools  (READ-ONLY + INGEST)
-//
-// Philosophy: integrations are one-way pipelines.
-// The agent can READ from Jira, Slack, GitHub, Confluence
-// and INGEST that data into Must-IQ's knowledge base.
-// It CANNOT create tickets, post messages, or modify
-// anything in external systems.
-// ============================================================
-
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { getActiveSettings } from '../../../libs/config/src/settings.service';
 import { prisma } from '@must-iq/db';
 import { buildRAGChain } from '../chains/rag-chain';
 import { ingestDocument } from '../rag/ingest';
-
-// ── HELPERS ────────────────────────────────────────────────────
 
 async function jiraFetch(path: string) {
   const base = process.env.JIRA_BASE_URL;
@@ -56,7 +44,6 @@ async function githubFetch(path: string) {
   return res.json();
 }
 
-// ── TOOL 1: Search Internal Knowledge Base (RAG) ───────────────
 export const searchKnowledgeBaseTool = tool(
   async ({ query, workspaces }: { query: string; workspaces: string[] }) => {
     const chain = await buildRAGChain(workspaces.length ? workspaces : ['general',"vault-v2"]);
@@ -75,7 +62,6 @@ Returns relevant chunks with source citations.`,
   }
 );
 
-// ── TOOL 2: Search Jira (READ-ONLY) ───────────────────────────
 export const searchJiraTool = tool(
   async ({ jql, maxResults }: { jql: string; maxResults: number }) => {
     const data = await jiraFetch(
@@ -113,7 +99,6 @@ Cannot create or modify tickets.`,
   }
 );
 
-// ── TOOL 3: Get Full Jira Ticket (READ-ONLY) ──────────────────
 export const getJiraTicketTool = tool(
   async ({ ticketKey }: { ticketKey: string }) => {
     const data = await jiraFetch(
@@ -148,7 +133,6 @@ Cannot modify the ticket.`,
   }
 );
 
-// ── TOOL 4: Search Slack Threads (READ-ONLY) ──────────────────
 export const searchSlackTool = tool(
   async ({ query, channelHint }: { query: string; channelHint?: string }) => {
     const q = channelHint ? `${query} in:${channelHint}` : query;
@@ -176,7 +160,6 @@ Cannot send messages or modify anything in Slack.`,
   }
 );
 
-// ── TOOL 5: Get Slack Thread (READ-ONLY) ──────────────────────
 export const getSlackThreadTool = tool(
   async ({ channelId, threadTs }: { channelId: string; threadTs: string }) => {
     const data = await slackFetch('/conversations.replies', { channel: channelId, ts: threadTs, limit: '20' });
@@ -199,7 +182,6 @@ Cannot post replies or modify the thread.`,
   }
 );
 
-// ── TOOL 6: Get GitHub File (READ-ONLY) ───────────────────────
 export const getGithubFileTool = tool(
   async ({ repo, filePath, branch }: { repo: string; filePath: string; branch: string }) => {
     const data = await githubFetch(`/repos/${repo}/contents/${filePath}?ref=${branch}`);
@@ -223,7 +205,6 @@ Cannot commit or modify files.`,
   }
 );
 
-// ── TOOL 7: Search GitHub Issues (READ-ONLY) ──────────────────
 export const searchGithubIssuesTool = tool(
   async ({ repo, query, state }: { repo: string; query: string; state: 'open' | 'closed' | 'all' }) => {
     const data = await githubFetch(
@@ -254,7 +235,6 @@ Cannot create or comment on issues.`,
   }
 );
 
-// ── TOOL 8: Search Confluence (READ-ONLY) ─────────────────────
 export const searchConfluenceTool = tool(
   async ({ query, space }: { query: string; space?: string }) => {
     const base = process.env.CONFLUENCE_BASE_URL;
@@ -307,13 +287,10 @@ Cannot edit or create pages.`,
   }
 );
 
-// ── TOOL 9: Ingest into Must-IQ ───────────────────────────────
-// The ONLY write action the agent can take — saving knowledge
-// into Must-IQ's own knowledge base.
+// The ONLY write action the agent can take — saving knowledge into Must-IQ's own knowledge base.
 export const ingestToMustIQTool = tool(
   async ({ title, content, source, sourceType, workspace, knowledgeType }) => {
     try {
-      // Fetch workspace metadata for layer tagging
       const wsRecord = await prisma.workspace.findFirst({
         where: { OR: [{ id: workspace }, { identifier: workspace }] }
       });
@@ -356,7 +333,6 @@ not any external system.`,
   }
 );
 
-// ── TOOL 10: Utility tools (unchanged) ────────────────────────
 export const getCurrentDateTool = tool(
   async () => new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
   {
@@ -390,15 +366,10 @@ export const lookupEmployeeTool = tool(
   }
 );
 
-// ── EXPORT ────────────────────────────────────────────────────
-// ALL_TOOLS: every tool available to the agent.
 // All external integrations are READ-ONLY.
 // The only "write" action is ingest_to_mustiq (writes to Must-IQ only).
 export const ALL_TOOLS = [
-  // Primary: search Must-IQ first
   searchKnowledgeBaseTool,
-
-  // External sources — READ-ONLY
   searchJiraTool,
   getJiraTicketTool,
   searchSlackTool,
@@ -406,16 +377,11 @@ export const ALL_TOOLS = [
   getGithubFileTool,
   searchGithubIssuesTool,
   searchConfluenceTool,
-
-  // The only write action — saves into Must-IQ
   ingestToMustIQTool,
-
-  // Utilities
   getCurrentDateTool,
   lookupEmployeeTool,
 ];
 
-// Convenience export: tools that touch external systems (for logging/audit)
 export const EXTERNAL_TOOLS = [
   searchJiraTool,
   getJiraTicketTool,

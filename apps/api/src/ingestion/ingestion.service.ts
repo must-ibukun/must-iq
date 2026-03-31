@@ -18,8 +18,6 @@ import { SlackService } from '../integrations/slack.service';
 import { getActiveSettings } from '@must-iq/config';
 import { sanitizeError } from '../common/helpers/error.helper';
 
-// Removed redundant import from @prisma/client
-
 @Injectable()
 export class IngestionService {
     private readonly logger = new Logger(IngestionService.name);
@@ -29,15 +27,11 @@ export class IngestionService {
         private readonly prisma: PrismaService,
         private readonly slackService: SlackService
     ) {
-        // Ensure temp upload directory exists
         if (!fs.existsSync(this.uploadDir)) {
             fs.mkdirSync(this.uploadDir, { recursive: true });
         }
     }
 
-    /**
-     * Ingest a file buffer into the vector store for the given workspace.
-     */
     async ingestFileBuffer(
         buffer: Buffer,
         originalName: string,
@@ -52,7 +46,6 @@ export class IngestionService {
             let chunksStored = 0;
             let status: IngestionStatus = IngestionStatus.STORED;
             let errorMessage: string | undefined;
-            // Fetch workspace layer metadata
             const wsRecord = await this.prisma.workspace.findFirst({
                 where: { OR: [{ id: workspace }, { identifier: workspace }] }
             });
@@ -88,7 +81,6 @@ export class IngestionService {
             }
             return { status, chunksStored, workspace, source: originalName, error: errorMessage, zipUpload: false };
         } else {
-            // ZIP handling
             this.logger.log(`Ingesting ZIP: ${originalName} → workspace: ${workspace}`);
             const extractDir = path.join(this.uploadDir, `${Date.now()}-extracted`);
             fs.mkdirSync(extractDir, { recursive: true });
@@ -97,7 +89,6 @@ export class IngestionService {
             let status: IngestionStatus = IngestionStatus.STORED;
             let errorMessage: string | undefined;
 
-            // Fetch workspace layer metadata
             const wsRecord = await this.prisma.workspace.findFirst({
                 where: { OR: [{ id: workspace }, { identifier: workspace }] }
             });
@@ -175,9 +166,6 @@ export class IngestionService {
         }
     }
 
-    /**
-     * Paginated list of ingestion events with optional filtering.
-     */
     async getIngestionEvents(query: { page?: number; size?: number; type?: string; startDate?: string; endDate?: string }): Promise<PaginatedResponse<IngestionEvent>> {
         const page = query.page || 1;
         const limit = query.size || 20;
@@ -219,20 +207,16 @@ export class IngestionService {
         const start = startDate ? new Date(startDate) : undefined;
         const end = endDate ? new Date(endDate) : undefined;
 
-        // 1. Identify targeted workspaces
         let targetWorkspaces: any[] = [];
         if (all && teamId) {
-            // All workspaces for a team
             targetWorkspaces = await this.prisma.workspace.findMany({
                 where: { teams: { some: { id: teamId } } }
             });
         } else if (workspaceIds?.length) {
-            // Specific workspaces
             targetWorkspaces = await this.prisma.workspace.findMany({
                 where: { id: { in: workspaceIds } }
             });
         } else if (all && !teamId) {
-            // Conceptual "General" team scenario - just ingest all for now or specific 'general' workspace
             const generalWs = await this.prisma.workspace.findFirst({ where: { identifier: 'general' } });
             if (generalWs) targetWorkspaces = [generalWs];
         }

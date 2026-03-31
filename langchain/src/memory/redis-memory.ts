@@ -1,21 +1,12 @@
-// ============================================================
-// Must-IQ — Redis-Backed Memory (Production)
 // Persists conversation history in Redis so memory survives
-// server restarts and works across multiple API instances
-//
+// server restarts and works across multiple API instances.
 // In development: use session-memory.ts (in-process Map)
 // In production:  use this file (Redis)
-// ============================================================
 
 import { BufferMemory } from "@langchain/classic/memory";
 import { RedisChatMessageHistory } from "@langchain/community/stores/message/ioredis";
 import { getRedis } from "@must-iq/config";
 
-// ---------------------------------------------------------------
-// Create Redis-backed memory for a session
-// Messages stored as: must-iq:memory:{sessionId}
-// TTL: 7 days (configurable)
-// ---------------------------------------------------------------
 export function createRedisMemory(sessionId: string): BufferMemory {
   const ttlSeconds = parseInt(process.env.MEMORY_TTL_SECONDS ?? "604800"); // 7 days
   const redis = getRedis();
@@ -39,9 +30,6 @@ export function createRedisMemory(sessionId: string): BufferMemory {
   });
 }
 
-// ---------------------------------------------------------------
-// Clear a session's memory from Redis
-// ---------------------------------------------------------------
 export async function clearRedisMemory(sessionId: string): Promise<void> {
   const redis = getRedis();
   if (redis) {

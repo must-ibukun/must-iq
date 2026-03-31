@@ -5,10 +5,6 @@ import { getActiveSettings, createUtilityLLM } from "@must-iq/config";
 import { ingestDocument } from "./ingest";
 import { INGESTION_ANALYSIS_PROMPT, SOURCE_ANALYSIS_PROMPTS } from "../prompts/ingestion-analysis.prompt";
 
-/**
- * Intelligent Pull Ingestion Utility
- */
-
 async function analyzeContent(content: string, sourceType: IngestionSourceType) {
     const llm = await createUtilityLLM();
     const sourceGuidance = SOURCE_ANALYSIS_PROMPTS[sourceType as keyof typeof SOURCE_ANALYSIS_PROMPTS];
@@ -24,7 +20,6 @@ async function analyzeContent(content: string, sourceType: IngestionSourceType) 
 
     try {
         const text = typeof response.content === 'string' ? response.content : JSON.stringify(response.content);
-        // Find JSON in response (in case of markdown blocks)
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
     } catch (e) {
@@ -33,28 +28,23 @@ async function analyzeContent(content: string, sourceType: IngestionSourceType) 
     }
 }
 
-/**
- * Common ingestion helper to handle workspace mapping and tracking
- */
 export async function processAndIngest(content: string, sourceType: IngestionSourceType, sourceId: string, workspace: string, projectId?: string) {
     const analysis = await analyzeContent(content, sourceType);
     if (!analysis) return;
 
-    // 0. Protection: Ensure targetWorkspace matches either the provided identifier OR is 'general'
-    // This prevents the LLM from hallucinating a workspace name that has no corresponding filter
+    // Ensure targetWorkspace matches either the provided identifier OR is 'general'.
+    // This prevents the LLM from hallucinating a workspace name that has no corresponding filter.
     const suggestedWorkspace = analysis.appropriate_workspace?.toLowerCase();
     const targetWorkspace = (suggestedWorkspace && suggestedWorkspace !== 'general' && suggestedWorkspace === workspace.toLowerCase())
         ? suggestedWorkspace
         : workspace;
 
-    // Fetch workspace metadata for layer tagging
     const wsRecord = await prisma.workspace.findFirst({
         where: { OR: [{ id: targetWorkspace }, { identifier: targetWorkspace }] }
     });
     const layer = wsRecord?.layer || 'docs';
     const techStack = wsRecord?.techStack || null;
 
-    // 1. Ingest into Vector Store
     await ingestDocument({
         content: JSON.stringify(analysis, null, 2) + "\n\nOriginal Context:\n" + content,
         metadata: {
@@ -70,8 +60,6 @@ export async function processAndIngest(content: string, sourceType: IngestionSou
         }
     } as any);
 
-
-    // 2. Track Event in DB
     await prisma.ingestionEvent.create({
         data: {
             sourceId,
@@ -85,9 +73,6 @@ export async function processAndIngest(content: string, sourceType: IngestionSou
     });
 }
 
-/**
- * Pull Slack Data
- */
 export async function pullSlackData(channelId: string, workspace: string, projectId?: string, startDate?: Date, endDate?: Date) {
     const settings = await getActiveSettings();
     if (!settings.slackIngestionEnabled || !settings.slackBotToken) {
@@ -119,9 +104,6 @@ export async function pullSlackData(channelId: string, workspace: string, projec
     }
 }
 
-/**
- * Pull GitHub PRs
- */
 export async function pullRepoPRs(repo: string, workspace: string, projectId?: string, startDate?: Date, endDate?: Date) {
     const settings = await getActiveSettings();
     if (!settings.repoIngestionEnabled || !settings.githubToken) {
@@ -154,9 +136,6 @@ export async function pullRepoPRs(repo: string, workspace: string, projectId?: s
     }
 }
 
-/**
- * Pull Jira Issues
- */
 export async function pullJiraIssues(jiraProjects: string[], workspace: string, projectId?: string, startDate?: Date, endDate?: Date) {
     const settings = await getActiveSettings();
     if (!settings.jiraIngestionEnabled || !settings.jiraApiToken) {

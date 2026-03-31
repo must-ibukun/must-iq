@@ -18,9 +18,6 @@ import { IngestionService } from '../ingestion/ingestion.service';
 import { sanitizeError } from '../common/helpers/error.helper';
 import { MailService } from '../notification/mail.service';
 
-
-// Removed redundant RequestUser interface (moved to shared-types)
-
 @Injectable()
 export class AdminService {
     private readonly logger = new Logger(AdminService.name);
@@ -31,7 +28,6 @@ export class AdminService {
         private readonly mailService: MailService,
     ) { }
 
-    // ── Overview stats ────────────────────────────────────────────
     async getStats(user: RequestUser): Promise<AdminStats> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -82,7 +78,6 @@ export class AdminService {
         };
     }
 
-    // ── Users ─────────────────────────────────────────────────────
     async getUsers(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AdminUser>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -105,7 +100,6 @@ export class AdminService {
             }),
         ]);
 
-        // Today's token usage per user
         const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
         const todayLogs = await this.prisma.tokenLog.groupBy({
             by: ['userId'],
@@ -179,7 +173,6 @@ export class AdminService {
             }
         });
 
-        // Audit log for update
         await this.prisma.auditLog.create({
             data: {
                 userId: id,
@@ -202,8 +195,6 @@ export class AdminService {
         const requesterTeamIds = requester.teamIds || [];
 
         if (isManager) {
-            // Managers can only update teams they have access to.
-            // We need to keep memberships in teams they DON'T have access to.
             const user = await this.prisma.user.findUnique({
                 where: { id },
                 include: { teams: { select: { id: true } } }
@@ -215,10 +206,8 @@ export class AdminService {
                 .filter(t => !requesterTeamIds.includes(t.id))
                 .map(t => t.id);
 
-            // Intersection of requested teams and manager's teams
             const allowedRequestedTeams = teamIds.filter(tid => requesterTeamIds.includes(tid));
 
-            // Final set: teams the user had that the manager can't see + teams the manager invited them to
             const finalTeamIds = [...new Set([...otherTeams, ...allowedRequestedTeams])];
 
             await this.prisma.user.update({
@@ -228,7 +217,6 @@ export class AdminService {
                 }
             });
         } else {
-            // Admins can set teams directly
             await this.prisma.user.update({
                 where: { id },
                 data: {
@@ -237,7 +225,6 @@ export class AdminService {
             });
         }
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 userId: id,
@@ -249,7 +236,6 @@ export class AdminService {
         return { success: true };
     }
 
-    // ── Token usage ───────────────────────────────────────────────
     async getTokenUsage(user: RequestUser): Promise<AdminTokenUsage> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -268,14 +254,12 @@ export class AdminService {
             select: { totalTokens: true, cached: true, createdAt: true, userId: true },
         });
 
-        // Group by day (YYYY-MM-DD key)
         const dailyMap: Record<string, number> = {};
         for (const log of weeklyLogs) {
             const day = log.createdAt.toISOString().slice(0, 10);
             dailyMap[day] = (dailyMap[day] ?? 0) + log.totalTokens;
         }
 
-        // Top users today
         const todayLogs = weeklyLogs.filter(l => l.createdAt >= todayStart);
         const userMap = new Map<string, number>();
         for (const log of todayLogs) {
@@ -313,7 +297,6 @@ export class AdminService {
         };
     }
 
-    // ── Audit log ─────────────────────────────────────────────────
     async getAuditLog(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AuditLogEntry>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -337,7 +320,6 @@ export class AdminService {
         return new Pagination<AuditLogEntry>(logs, meta);
     }
 
-    // ── Workspaces ───────────────────────────────────────────────
     async getWorkspaces(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AdminWorkspace>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -405,12 +387,8 @@ export class AdminService {
 
     async getAvailableWorkspaces(user: RequestUser): Promise<AdminWorkspace[]> {
         const isManager = user.role === 'MANAGER';
-        const teamIds = user.teamIds || [];
 
-        // Managers can only see available workspaces IF those workspaces are somehow linked?
-        // Requirement says "Filtered to their team" for Knowledge Base. 
-        // If it's available (teamId is null), a manager shouldn't really see it unless we want them to be able to pick them.
-        // For now, I'll restrict it so managers see NOTHING in available if they are strictly team-scoped.
+        // Managers are strictly team-scoped and cannot see available (unassigned) workspaces
         if (isManager) return [];
 
         const items = await this.prisma.workspace.findMany({
@@ -445,7 +423,6 @@ export class AdminService {
             }
         });
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 action: 'admin.workspace_created',
@@ -467,7 +444,6 @@ export class AdminService {
             }
         });
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 action: 'admin.workspace_updated',
@@ -484,7 +460,6 @@ export class AdminService {
 
         await this.prisma.workspace.delete({ where: { id } });
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 action: 'admin.workspace_deleted',
@@ -505,17 +480,12 @@ export class AdminService {
             }
         } else {
             const discovery = await this.discoverWorkspaces();
-            // 1. Sync Jira
             for (const p of discovery.jira) {
                 created.push(await this.getOrCreateWorkspace(p.name, 'JIRA', p.key));
             }
-
-            // 2. Sync Slack
             for (const c of discovery.slack) {
                 created.push(await this.getOrCreateWorkspace(c.name, 'SLACK', c.id));
             }
-
-            // 3. Sync GitHub
             for (const r of discovery.github) {
                 created.push(await this.getOrCreateWorkspace(r.name, 'GITHUB', r.full_name));
             }
@@ -525,7 +495,6 @@ export class AdminService {
     }
 
     private async getOrCreateWorkspace(identifier: string, type: 'SLACK' | 'JIRA' | 'GITHUB' | 'GENERIC', externalId?: string, layer?: string, tokenBudget?: number) {
-        // We might want to find it by externalId if possible, else identifier
         const existing = await this.prisma.workspace.findFirst({
             where: externalId ? { externalId, type } : { identifier, type }
         });
@@ -540,7 +509,7 @@ export class AdminService {
                 }
             });
         }
-        // If it exists but externalId is missing (e.g., from an old sync), we might want to update it.
+        // If it exists but externalId is missing (e.g., from an old sync), update it
         if (externalId && !existing.externalId) {
             return this.prisma.workspace.update({
                 where: { id: existing.id },
@@ -550,8 +519,6 @@ export class AdminService {
         return existing;
     }
 
-
-    // ── Teams ────────────────────────────────────────────────────
     async getTeams(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AdminTeam>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -564,7 +531,7 @@ export class AdminService {
                 orderBy: { createdAt: 'desc' },
                 skip: query.skip,
                 take: query.size,
-                include: { 
+                include: {
                     _count: { select: { chunks: true } },
                     workspaces: true
                 },
@@ -647,7 +614,6 @@ export class AdminService {
         return { ...base, chunkCount: item._count?.chunks || 0 };
     }
 
-    // ── Workspace Discovery ───────────────────────────────────────
     async discoverWorkspaces() {
         const settings = await getActiveSettings();
         const results: any = { jira: [], slack: [], github: [] };
@@ -659,10 +625,8 @@ export class AdminService {
         const slackToken = process.env.SLACK_BOT_TOKEN || settings.slackBotToken;
         const githubToken = process.env.GITHUB_TOKEN || settings.githubToken;
 
-        // 1. Jira Discovery
         if (jiraToken && jiraEmail && jiraBaseUrl) {
             try {
-
                 this.logger.log(`Jira credentials → source: ${process.env.JIRA_API_TOKEN ? 'env' : 'db'} | email: ${jiraEmail} | tokenLen: ${jiraToken.length} | tokenStart: ${jiraToken.slice(0, 8)} | url: ${jiraBaseUrl}`);
                 const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
 
@@ -705,7 +669,6 @@ export class AdminService {
             errors.jira = "Missing Jira credentials (Email or API Token)";
         }
 
-        // 2. Slack Discovery
         if (slackToken) {
             try {
                 let cursor = '';
@@ -736,7 +699,7 @@ export class AdminService {
                         this.logger.warn(`Slack discovery: Missing 'groups:read' scope for private channels. Falling back to public channels only.`);
                         types = 'public_channel';
                         cursor = '';
-                        allChannels.length = 0; // Clear and restart
+                        allChannels.length = 0;
                         retryWithoutPrivate = true;
                         errors.slack_note = "Limited to public channels (missing 'groups:read' scope)";
                     } else {
@@ -750,12 +713,8 @@ export class AdminService {
                 this.logger.error("Slack discover error:", sanitized.technicalDetails);
                 errors.slack = sanitized.message;
             }
-        } else {
-            // Optional: only report if they have other integrations but not slack
-            // errors.slack = "Missing Slack Bot Token";
         }
 
-        // 3. GitHub Discovery
         if (githubToken) {
             try {
                 let page = 1;
@@ -843,11 +802,9 @@ export class AdminService {
     async getDocContent(filename: string) {
         const docsDir = join(process.cwd(), 'doc');
         const filePath = join(docsDir, filename);
-        // Security check to prevent path traversal
         if (!filePath.startsWith(docsDir) || !existsSync(filePath) || !filename.endsWith('.md')) {
             throw new ForbiddenException('Invalid document path');
         }
         return { content: await readFile(filePath, 'utf-8') };
     }
 }
-

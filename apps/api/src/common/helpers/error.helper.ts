@@ -14,24 +14,21 @@ export interface SanitizedError {
  */
 export function sanitizeError(error: any): SanitizedError {
     const rawError = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
-    
-    // 1. Identify common sensitive patterns
+
     const sensitivePatterns = [
-        /(api[_-]?key[:=]\s*)['"]?([a-zA-Z0-9_\-]{10,})['"]?/gi, // API Keys with values
-        /(bearer\s+)([a-zA-Z0-9.\-_]{20,})/gi,                  // Bearer Tokens
-        /(https?:\/\/)([a-zA-Z0-9.\-_/]+)/gi,                  // ALL external URLs
-        /([a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_\-\.]+\.[a-zA-Z]{2,5})/gi, // Emails
-        /(api[_-]?key)/gi,                                     // The phrase "API Key" itself
+        /(api[_-]?key[:=]\s*)['"]?([a-zA-Z0-9_\-]{10,})['"]?/gi,
+        /(bearer\s+)([a-zA-Z0-9.\-_]{20,})/gi,
+        /(https?:\/\/)([a-zA-Z0-9.\-_/]+)/gi,
+        /([a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_\-\.]+\.[a-zA-Z]{2,5})/gi,
+        /(api[_-]?key)/gi,
     ];
 
     let technicalDetails = rawError;
 
-    // 2. Redact sensitive patterns from technical details
     sensitivePatterns.forEach(pattern => {
         technicalDetails = technicalDetails.replace(pattern, (match, prefix) => `${prefix}[REDACTED]`);
     });
 
-    // 3. Map common error categories to user-friendly messages
     let message = "An unexpected error occurred while processing your request.";
     let code = 500;
 
@@ -49,13 +46,12 @@ export function sanitizeError(error: any): SanitizedError {
     } else if (lowerError.includes('prisma') || lowerError.includes('database') || lowerError.includes('unique constraint')) {
         message = "A database error occurred. We could not save or retrieve the required information.";
         code = 500;
-        // Further obfuscate DB errors
         technicalDetails = "Internal Database Error [Obfuscated]";
     }
 
     return {
         message,
-        technicalDetails: technicalDetails.slice(0, 500), // Cap length
+        technicalDetails: technicalDetails.slice(0, 500),
         code
     };
 }

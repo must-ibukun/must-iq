@@ -11,11 +11,6 @@ export class GithubIngestCron {
 
     constructor(private readonly prisma: PrismaService) { }
 
-    /**
-     * Runs at 06:00 and 18:00 every day.
-     * Discovers all GitHub workspaces configured in teams and ingests
-     * merged PRs from the last 12 hours via pullRepoPRs.
-     */
     @Cron('0 6,18 * * *', { name: 'github-ingest' })
     async ingestGithubRepos(): Promise<void> {
         if (this.isRunning) {
@@ -46,7 +41,7 @@ export class GithubIngestCron {
             for (const ws of workspaces) {
                 const activeTeam = ws.teams.find(t => t.status === 'active') ?? ws.teams[0];
                 const workspace = activeTeam?.id ?? 'general';
-                const repo = ws.identifier; // e.g. "must-iq/api"
+                const repo = ws.identifier;
 
                 try {
                     this.logger.log(`Ingesting GitHub repo ${repo} → workspace: ${workspace}`);

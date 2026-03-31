@@ -18,8 +18,8 @@ class BasePrismaService
     constructor() {
         let finalUrl = process.env.DATABASE_URL;
         if (finalUrl && !finalUrl.includes('connection_limit')) {
-            finalUrl = finalUrl.includes('?') 
-                ? `${finalUrl}&connection_limit=3` 
+            finalUrl = finalUrl.includes('?')
+                ? `${finalUrl}&connection_limit=3`
                 : `${finalUrl}?connection_limit=3`;
         }
 
@@ -33,7 +33,7 @@ class BasePrismaService
     }
 
     private extendModels() {
-        // Note: No soft-delete query filtering here because must-iq models
+        // No soft-delete query filtering here because must-iq models
         // do not have a `deletedAt` field natively yet.
         // If soft-delete is needed in the future, add it to this `$extends` block.
         const extendedClient = this.$extends({});
@@ -48,11 +48,9 @@ class BasePrismaService
             const originalModel = (this as any)[modelName];
             const extendedModel = (extendedClient as any)[modelName];
 
-            // Store references to original methods before extending
             const originalDelete = originalModel.delete.bind(originalModel);
             const originalDeleteMany = originalModel.deleteMany.bind(originalModel);
 
-            // Add custom methods to the extended model
             Object.assign(extendedModel, {
                 hardDeleteOne: async (args: any) => {
                     return originalDelete(args);
@@ -93,7 +91,6 @@ class BasePrismaService
     }
 }
 
-// Create a Proxy that automatically returns extended models
 const ExtendedPrismaServiceProxy = new Proxy(BasePrismaService, {
     construct(target) {
         const instance = new target();
@@ -107,7 +104,6 @@ const ExtendedPrismaServiceProxy = new Proxy(BasePrismaService, {
                     typeof value === 'object' &&
                     typeof value.findMany === 'function'
                 ) {
-                    // Return the extended model from the extended client
                     const extendedClient = (target as any)._extendedClient;
                     if (extendedClient?.[prop]) {
                         return extendedClient[prop];
@@ -115,7 +111,6 @@ const ExtendedPrismaServiceProxy = new Proxy(BasePrismaService, {
                     return value;
                 }
 
-                // For other properties, return as-is
                 return value;
             },
         });

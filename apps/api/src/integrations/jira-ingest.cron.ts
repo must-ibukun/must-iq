@@ -11,11 +11,6 @@ export class JiraIngestCron {
 
     constructor(private readonly prisma: PrismaService) { }
 
-    /**
-     * Runs at 06:00 and 18:00 every day.
-     * Discovers all Jira workspaces configured in teams and ingests
-     * recently resolved issues from the last 12 hours via pullJiraIssues.
-     */
     @Cron('0 6,18 * * *', { name: 'jira-ingest' })
     async ingestJiraProjects(): Promise<void> {
         if (this.isRunning) {
@@ -43,8 +38,6 @@ export class JiraIngestCron {
 
             const since = new Date(Date.now() - 12 * 60 * 60 * 1000);
 
-            // Group project keys by team so we make one pullJiraIssues call per team
-            // (pullJiraIssues accepts an array of project keys)
             const byTeam = new Map<string, { projectKeys: string[]; teamId: string }>();
 
             for (const ws of workspaces) {

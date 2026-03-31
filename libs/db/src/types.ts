@@ -3,16 +3,15 @@ import { PrismaClient } from "./generated-client";
 export interface DocumentChunk {
     id: string;
     content: string;
-    source: string;       // filename or URL
+    source: string;
     page?: number;
-    score: number;        // relevance score 0-1
-    workspace?: string;   // namespace isolation
-    layer?: string;       // architectural layer (mobile | backend | web | docs | etc.)
-    language?: string;    // programming language (ts, swift, python, etc.)
-    techStack?: string;   // specific frameworks or stack assigned to the workspace
+    score: number;
+    workspace?: string;
+    layer?: string;
+    language?: string;
+    techStack?: string;
 }
 
-// Define extended methods interface
 export interface ExtendedModelMethods {
     hardDeleteOne: (args: any) => Promise<any>;
     hardDeleteMany: (args: any) => Promise<any>;
@@ -21,7 +20,6 @@ export interface ExtendedModelMethods {
     findManyIncludingDeleted: (args: any) => Promise<any>;
 }
 
-// Type for extended Prisma models
 // We use a simpler approach to avoid OOM in the type-checker.
 export type ExtendedPrismaModels = {
     [K in keyof PrismaClient]: PrismaClient[K] & Partial<ExtendedModelMethods>;

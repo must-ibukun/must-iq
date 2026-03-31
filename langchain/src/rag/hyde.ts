@@ -1,11 +1,3 @@
-// ============================================================
-// Must-IQ — HyDE (Hypothetical Document Embedding)
-// Generates a synthetic code/doc snippet that "looks like"
-// the answer to the user query, then embeds that instead.
-// This bridges the vocabulary gap between natural-language
-// queries and code-heavy vector stores.
-// ============================================================
-
 import { createUtilityLLM } from "@must-iq/config";
 import { Logger } from "@nestjs/common";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
@@ -26,10 +18,6 @@ Rules:
  * Generates a hypothetical code/document snippet that answers the query.
  * Used to embed a code-like representation of the query instead of raw natural language,
  * dramatically improving retrieval when the corpus is code-heavy.
- *
- * @param query     The original user natural language query
- * @param taskType  Optional task type (CODE, GENERAL) to hint the generation style
- * @returns A string containing a realistic hypothetical code/doc snippet
  */
 export async function generateHypotheticalDocument(
   query: string,

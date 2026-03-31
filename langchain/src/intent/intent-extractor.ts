@@ -1,21 +1,6 @@
-// ============================================================
-// Must-IQ — Rich Intent Extractor
-//
-// Runs ONE fast LLM call before embedding to extract structured
-// intent from the raw query. The enriched_query field closes the
-// vocabulary gap between natural language and stored code/docs.
-//
-// Example:
-//   raw:      "CS team needs inquiry access"
-//   enriched: "grant CS team inquiry.show inquiry.create permissions
-//              MSQ Admin platform users roleValidationMiddleware"
-// ============================================================
-
 import { createFastClassifierLLM } from '@must-iq/config';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { COMBINED_INTENT_PROMPT } from '../prompts/must-iq-classifier.prompt';
-
-// ── Types ────────────────────────────────────────────────────
 
 export type IntentDomain = 'engineering' | 'operations' | 'hr' | 'general';
 
@@ -48,8 +33,6 @@ export interface ExtractedIntent {
   enriched_query: string;
 }
 
-// ── Constants ────────────────────────────────────────────────
-
 const VALID_DOMAINS: IntentDomain[] = ['engineering', 'operations', 'hr', 'general'];
 
 const VALID_ISSUE_TYPES: IntentIssueType[] = [
@@ -64,8 +47,6 @@ const VALID_ISSUE_TYPES: IntentIssueType[] = [
   'policy_lookup',
   'other',
 ];
-
-// ── Helpers ──────────────────────────────────────────────────
 
 /**
  * Validates and sanitizes raw LLM JSON output into a typed ExtractedIntent.
@@ -105,25 +86,18 @@ function sanitizeIntent(raw: any, originalQuery: string): ExtractedIntent {
  * Handles models that wrap output in markdown code fences or add conversational preamble.
  */
 function extractJSON(raw: string): string | null {
-  // Direct JSON parse attempt first (ideal case)
   const trimmed = raw.trim();
   if (trimmed.startsWith('{')) return trimmed;
 
-  // Extract first {...} block — handles markdown wrapping and preamble
   const match = trimmed.match(/\{[\s\S]*\}/);
   return match ? match[0] : null;
 }
-
-// ── Main Export ──────────────────────────────────────────────
 
 /**
  * Extracts structured intent from a user query using a fast LLM call.
  *
  * Returns a fully typed ExtractedIntent. Never throws — all errors
  * produce a safe fallback with enriched_query = originalQuery.
- *
- * @param query    The raw user query string
- * @param settings Active settings object (provides LLM config)
  */
 export async function extractIntent(query: string, settings: any): Promise<ExtractedIntent> {
   const fallback: ExtractedIntent = {

@@ -1,7 +1,3 @@
-// ============================================================
-// Must-IQ — Chat Service
-// ============================================================
-
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getActiveSettings, getSystemSettings } from '@must-iq/config';
@@ -90,9 +86,6 @@ export class ChatService {
         return `[${displayTeams}] ${displayMsg}`;
     }
 
-    // ─────────────────────────────────────────────────────────
-    // JSON response — used by integrations and direct API calls
-    // ─────────────────────────────────────────────────────────
     async chat(body: ChatRequest, user: RequestUser): Promise<{ message: string; sources?: any[]; sessionId: string }> {
         if (MOCK_RESPONSES[body.message]) {
             return { message: MOCK_RESPONSES[body.message], sessionId: 'mock' };
@@ -158,9 +151,6 @@ export class ChatService {
         return { message: result.response, sources: result.sources, sessionId };
     }
 
-    // ─────────────────────────────────────────────────────────
-    // SSE streaming — used by the web frontend
-    // ─────────────────────────────────────────────────────────
     async streamChat(body: ChatRequest, user: RequestUser, onChunk: (chunk: string) => void): Promise<void> {
         if (MOCK_RESPONSES[body.message]) {
             const reply = MOCK_RESPONSES[body.message];
@@ -256,9 +246,6 @@ export class ChatService {
         onChunk(JSON.stringify({ sessionId, sources }));
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Session management
-    // ─────────────────────────────────────────────────────────
     async getSessions(userId: string, query: PaginationOptionsDto): Promise<Pagination<ChatSession>> {
         const [count, items] = await Promise.all([
             this.prisma.chatSession.count({ where: { userId } }),

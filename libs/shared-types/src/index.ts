@@ -1,10 +1,4 @@
-// ============================================================
-// @platform/shared-types — All TypeScript interfaces
-// Shared across web, api, and ai-engine apps
-// ============================================================
 export * from './constants';
-
-// --- Users & Auth ---
 
 export type UserRole = "ADMIN" | "MANAGER" | "EMPLOYEE" | "VIEWER";
 
@@ -18,7 +12,7 @@ export interface User {
   teamIds: string[];
   deepSearchEnabled: boolean;
   teams?: { id: string; name: string }[];
-  tokenBudgetOverride?: number; // null = use role default
+  tokenBudgetOverride?: number;
   createdAt: Date;
   lastActiveAt: Date;
 }
@@ -33,7 +27,7 @@ export interface RequestUser {
 }
 
 export interface JWTPayload {
-  sub: string;        // userId
+  sub: string;
   email: string;
   role: UserRole;
   teamIds: string[];
@@ -48,8 +42,6 @@ export interface AuthTokens {
   expiresAt: number;
 }
 
-// --- Chat & Messages ---
-
 export type MessageRole = "user" | "assistant" | "system";
 
 export interface Message {
@@ -57,8 +49,8 @@ export interface Message {
   role: MessageRole;
   content: string;
   tokensUsed?: number;
-  sources?: DocumentChunk[];  // RAG sources used
-  localImageId?: string;      // ID linking to an IndexedDB Base64 image
+  sources?: DocumentChunk[];
+  localImageId?: string;
   createdAt: Date;
 }
 
@@ -72,17 +64,15 @@ export interface ChatSession {
   updatedAt: Date;
 }
 
-// --- RAG / Documents ---
-
 export type IngestionSourceType = "slack" | "github" | "jira" | "doc";
 
 export interface DocumentChunk {
   id: string;
   content: string;
-  source: string;       // filename or URL
+  source: string;
   page?: number;
-  score: number;        // relevance score 0-1
-  workspace?: string;   // namespace isolation
+  score: number;
+  workspace?: string;
 }
 
 export interface RagChunk {
@@ -102,20 +92,18 @@ export interface RerankCandidate {
   layer?: string;
   language?: string;
   techStack?: string;
-  score: number; // original pgvector cosine score
+  score: number;
 }
 
 export interface IngestRequest {
-  source: string;       // file path, S3 URL, or DB connection
-  workspace?: string;   // restrict access to this workspace
+  source: string;
+  workspace?: string;
   tags?: string[];
 }
 
-// --- Token Management ---
-
 export interface TokenUsage {
   userId: string;
-  date: string;           // YYYY-MM-DD
+  date: string;
   tokensUsed: number;
   tokenBudget: number;
   percentUsed: number;
@@ -126,23 +114,22 @@ export interface TokenLog {
   id: string;
   userId: string;
   sessionId: string;
-  queryTokens: number;    // tokens in prompt
-  responseTokens: number; // tokens in completion
+  queryTokens: number;
+  responseTokens: number;
   totalTokens: number;
-  cached: boolean;        // was this a cache hit?
+  cached: boolean;
   model: string;
   createdAt: Date;
 }
 
-// --- API Request/Response ---
-
 export interface ChatRequest {
   message: string;
-  sessionId?: string;     // null = new session
+  sessionId?: string;
   stream?: boolean;
   deepSearch?: boolean;
-  workspaces?: string[];  // Pre-resolved workspace identifiers (e.g. ["#backend-help", "vault-v2"]) — derived by the frontend from availableTeams
-  image?: string | null;  // Base64 data URL from frontend
+  // Pre-resolved workspace identifiers (e.g. ["#backend-help", "vault-v2"]) — derived by the frontend from availableTeams
+  workspaces?: string[];
+  image?: string | null;
 }
 
 export interface ChatResponse {
@@ -154,10 +141,8 @@ export interface ChatResponse {
 export interface APIError {
   statusCode: number;
   message: string;
-  code: string;           // e.g. "TOKEN_BUDGET_EXCEEDED"
+  code: string;
 }
-
-// --- Admin ---
 
 export interface AdminUser {
   id: string;
@@ -217,9 +202,9 @@ export interface IngestionEvent {
 export interface AdminWorkspace {
   id: string;
   type: WorkspaceType;
-  name?: string;       // Human-readable display name
-  identifier: string;  // Human-readable identifier used for UI
-  externalId?: string; // API identifier used for ingestion
+  name?: string;
+  identifier: string;
+  externalId?: string;
   tokenBudget: number;
   layer: string;
   techStack?: string | null;
@@ -291,20 +276,19 @@ export interface NotificationModalContent {
   details?: string;
 }
 
-// --- AI Engine ---
-
 export interface AIQueryParams {
     query: string;
     userId: string;
-    workspace: string; // primary workspace
+    workspace: string;
     sessionId: string;
     history: { role: "user" | "assistant"; content: string }[];
     useAgent?: boolean;
     stream?: boolean;
     onChunk?: (chunk: string) => void;
-    workspaces?: string[]; // secondary workspaces for RAG
-    image?: string | null; // Base64 data URL for vision/OCR analysis
-    includeSources?: boolean; // default true — set false for integration paths (Slack/Jira) where sources are unused
+    workspaces?: string[];
+    image?: string | null;
+    // Set false for integration paths (Slack/Jira) where sources are unused
+    includeSources?: boolean;
 }
 
 export interface AIQueryResult {
@@ -312,5 +296,5 @@ export interface AIQueryResult {
     provider: string;
     model: string;
     sessionId: string;
-    sources?: any[]; // Keep as any[] for now to match the complex mapping in ChatService
+    sources?: any[];
 }

@@ -1,9 +1,3 @@
-// ============================================================
-// Must-IQ RAG Chain — LangChain
-// Active LLM driven by settings (DB → .env fallback)
-// No hardcoded provider imports — swap model from admin UI
-// ============================================================
-
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
@@ -13,7 +7,6 @@ import type { IntentIssueType, IntentDomain } from '../intent/intent-extractor';
 import * as dotenv from "dotenv";
 dotenv.config();
 
-// Build a workspace-scoped RAG chain.
 // Receives pre-resolved workspace identifiers from ai-engine (no second DB lookup needed).
 export async function buildRAGChain(
   resolvedWorkspaces: string[],
@@ -57,4 +50,3 @@ export async function buildRAGChain(
 
   return chain;
 }
-
