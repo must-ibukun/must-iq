@@ -18,7 +18,6 @@ export function ScopeSelector() {
 
   return (
     <div className="px-3.5 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-      {/* Label */}
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
           <div className="h-px w-3.5" style={{ background: 'var(--border-2)' }} />
@@ -44,7 +43,6 @@ export function ScopeSelector() {
         )}
       </div>
 
-      {/* General — always on top (only on page 1) */}
       {page === 1 && (() => {
         const isActive = selectedTeams.includes('general');
         return (
@@ -55,7 +53,6 @@ export function ScopeSelector() {
             onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
             onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
           >
-            {/* Checkbox */}
             <div
               className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 text-[10px] transition-all"
               style={{
@@ -80,7 +77,6 @@ export function ScopeSelector() {
         );
       })()}
 
-      {/* Team scopes */}
       {paginatedTeams.map((team) => {
         const isActive = selectedTeams.includes(team.id);
 
@@ -93,7 +89,6 @@ export function ScopeSelector() {
               onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
               onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
-              {/* Checkbox */}
               <div
                 className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 text-[10px] transition-all"
                 style={{
@@ -105,7 +100,6 @@ export function ScopeSelector() {
                 {isActive && <IconCheck size={10} />}
               </div>
 
-              {/* Name + details */}
               <div className="flex-1 min-w-0">
                 <div
                   className="text-[12.5px] truncate"
@@ -116,7 +110,6 @@ export function ScopeSelector() {
               </div>
             </div>
 
-            {/* Sub-workspace chips — shown when team is active */}
             {isActive && team.workspaces.length > 0 && (
               <div className="flex flex-wrap gap-1 px-7 pb-1">
                 {team.workspaces.map((ws) => (

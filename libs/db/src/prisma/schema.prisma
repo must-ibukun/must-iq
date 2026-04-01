@@ -1,9 +1,7 @@
-// ============================================================
 // Must-IQ — Prisma Schema
 // PostgreSQL + pgvector extension
 // Vectors stored directly in Postgres — no Weaviate needed
 // Run: nx run db:migrate
-// ============================================================
 
 generator client {
   provider        = "prisma-client-js"
@@ -126,10 +124,8 @@ model TokenLog {
   @@map("token_logs")
 }
 
-// ============================================================
 // DOCUMENTS + VECTOR EMBEDDINGS (pgvector)
 // Replaces Weaviate entirely — one DB for everything
-// ============================================================
 
 model Document {
   id          String          @id @default(cuid())
@@ -175,11 +171,9 @@ model DocumentChunk {
   @@map("document_chunks")
 }
 
-// ============================================================
 // SETTINGS TABLE
 // One-row-per-key store for admin-controlled configuration
 // Key "llm" stores the active LLM provider + model as JSON
-// ============================================================
 model Setting {
   key       String   @id             // e.g. "llm", "token-budgets"
   value     String   @db.Text        // JSON string
@@ -189,9 +183,7 @@ model Setting {
   @@map("settings")
 }
 
-// ============================================================
 // ADMIN MODELS
-// ============================================================
 
 model Workspace {
   id           String        @id @default(cuid())

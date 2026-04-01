@@ -14,7 +14,6 @@ import {
 import remarkGfm from 'remark-gfm';
 import { getLocalImage } from '@must-iq-web/lib/utils/idb';
 
-// ── SOURCE BADGE ───────────────────────────────────────────────
 function SourceBadge({ type }: { type: Source['sourceType'] }) {
   const icons: Record<string, any> = {
     jira: <IconAudit size={11} />,
@@ -32,7 +31,6 @@ function SourceBadge({ type }: { type: Source['sourceType'] }) {
   );
 }
 
-// ── SOURCE CITATIONS ───────────────────────────────────────────
 function SourceCitations({ sources }: { sources: Source[] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -51,7 +49,6 @@ function SourceCitations({ sources }: { sources: Source[] }) {
           onMouseEnter={() => setHoveredIndex(i)}
           onMouseLeave={() => setHoveredIndex(null)}
         >
-          {/* Main Icon Chip */}
           <div 
             className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all hover:scale-105"
             style={{ 
@@ -64,7 +61,6 @@ function SourceCitations({ sources }: { sources: Source[] }) {
             <span className="text-[10px] font-mono opacity-60">{(src.score || 0).toFixed(2)}</span>
           </div>
 
-          {/* Hover Preview Tooltip */}
           {hoveredIndex === i && (
             <div 
               className="absolute bottom-full left-0 mb-2 w-80 p-3 rounded-xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
@@ -107,7 +103,6 @@ function SourceCitations({ sources }: { sources: Source[] }) {
   );
 }
 
-// ── MESSAGE BUBBLE ─────────────────────────────────────────────
 function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean }) {
   const isUser = msg.role === 'user';
   const [localImg, setLocalImg] = useState<string | null>(null);
@@ -120,7 +115,6 @@ function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean })
 
   return (
     <div className="flex gap-3.5 px-7 py-1.5 max-w-3xl mx-auto w-full animate-fade-up">
-      {/* Avatar */}
       <div
         className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-[12px] mt-1"
         style={
@@ -132,7 +126,6 @@ function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean })
         {isUser ? 'JD' : <IconBrain size={18} color="var(--primary)" />}
       </div>
 
-      {/* Body */}
       <div className="flex-1 min-w-0 pt-1">
         <div
           className="text-[11px] font-semibold tracking-widest uppercase mb-1.5"
@@ -141,7 +134,6 @@ function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean })
           {isUser ? 'You' : 'Must-IQ'}
         </div>
 
-        {/* Local Image Render (IndexedDB Cache) */}
         {localImg && (
           <div className="mb-3 mt-1">
             <img 
@@ -203,7 +195,6 @@ function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean })
 }
 
 
-// ── TYPING INDICATOR ───────────────────────────────────────────
 function TypingIndicator({ thought }: { thought?: string | null }) {
   return (
     <div className="flex gap-3.5 px-7 py-1.5 max-w-3xl mx-auto w-full animate-pulse">
@@ -228,7 +219,6 @@ function TypingIndicator({ thought }: { thought?: string | null }) {
 }
 
 
-// ── EMPTY STATE ──────────────────────────────────────────────
 function EmptyState({ onSuggest }: { onSuggest: (text: string) => void }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-2.5 px-6 text-center">
@@ -262,7 +252,6 @@ function EmptyState({ onSuggest }: { onSuggest: (text: string) => void }) {
   );
 }
 
-// ── CHAT WINDOW ────────────────────────────────────────────────
 export function ChatWindow({
   messages, isStreaming, isWaiting, thought, onSuggest,
 }: {

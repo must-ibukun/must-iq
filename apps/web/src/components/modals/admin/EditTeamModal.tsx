@@ -22,7 +22,7 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
   const [editTeamJiraSearch, setEditTeamJiraSearch] = useState('');
   const [editTeamSaving, setEditTeamSaving] = useState(false);
 
-  // Initialize state based on the team being edited
+
   useEffect(() => {
     if (editTeam) {
       setEditTeamName(editTeam.name || '');
@@ -72,7 +72,6 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
           </button>
         </div>
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Team Name — read-only */}
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Team Name</label>
             <div style={{ width: '100%', padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--ink-muted)', fontSize: 14, boxSizing: 'border-box' }}>
@@ -83,7 +82,6 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
 
           <hr style={{ border: '0 none', borderTop: '1px solid var(--border)', margin: '2px 0' }} />
 
-          {/* Status toggle */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: editTeamStatus === 'active' ? 'rgba(22,163,74,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${editTeamStatus === 'active' ? 'rgba(22,163,74,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setEditTeamStatus(s => s === 'active' ? 'inactive' : 'active')}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Team Status</div>
@@ -101,7 +99,6 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
 
           <hr style={{ border: '0 none', borderTop: '1px solid var(--border)', margin: '2px 0' }} />
 
-          {/* Slack Channels */}
           {(() => {
             const wsType = 'SLACK';
             const teamWs = editTeam.workspaces?.filter((w: any) => w.type === wsType) || [];
@@ -131,7 +128,6 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
             );
           })()}
 
-          {/* GitHub Repos */}
           {(() => {
             const wsType = 'GITHUB';
             const teamWs = editTeam.workspaces?.filter((w: any) => w.type === wsType) || [];
@@ -161,7 +157,6 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
             );
           })()}
 
-          {/* Jira Projects */}
           {(() => {
             const wsType = 'JIRA';
             const teamWs = editTeam.workspaces?.filter((w: any) => w.type === wsType) || [];

@@ -49,7 +49,7 @@ export const chatApi = {
             buffer += decoder.decode(value, { stream: true });
 
             const lines = buffer.split('\n');
-            buffer = lines.pop() ?? ''; // keep incomplete line
+            buffer = lines.pop() ?? '';
 
             for (const line of lines) {
                 if (!line.startsWith('data: ')) continue;
@@ -57,7 +57,7 @@ export const chatApi = {
                 if (data === '[DONE]') return;
                 try {
                     const p = JSON.parse(data);
-                    onChunk(data); // Pass the raw data string so ChatPage can handle sessionId, sources, and chunks
+                    onChunk(data);
                     if (p.tokenUsage) onTokenUsage(p.tokenUsage);
                     // onSources is handled internally by onChunk in ChatPage.tsx now, but we keep the callback for compatibility
                     if (p.sources) onSources(p.sources, p.tokensUsed);

@@ -56,6 +56,6 @@ export function decrypt(encryptedText: string): string {
     return decrypted;
   } catch (err) {
     console.error('[Encryption] Decryption failed:', err.message);
-    return encryptedText; // Fallback to raw if decryption fails
+    return encryptedText;
   }
 }

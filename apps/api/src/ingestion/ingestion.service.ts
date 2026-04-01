@@ -18,8 +18,6 @@ import { SlackService } from '../integrations/slack.service';
 import { getActiveSettings } from '@must-iq/config';
 import { sanitizeError } from '../common/helpers/error.helper';
 
-// Removed redundant import from @prisma/client
-
 @Injectable()
 export class IngestionService {
     private readonly logger = new Logger(IngestionService.name);
@@ -29,7 +27,6 @@ export class IngestionService {
         private readonly prisma: PrismaService,
         private readonly slackService: SlackService
     ) {
-        // Ensure temp upload directory exists
         if (!fs.existsSync(this.uploadDir)) {
             fs.mkdirSync(this.uploadDir, { recursive: true });
         }
@@ -52,7 +49,6 @@ export class IngestionService {
             let chunksStored = 0;
             let status: IngestionStatus = IngestionStatus.STORED;
             let errorMessage: string | undefined;
-            // Fetch workspace layer metadata
             const wsRecord = await this.prisma.workspace.findFirst({
                 where: { OR: [{ id: workspace }, { identifier: workspace }] }
             });
@@ -88,7 +84,6 @@ export class IngestionService {
             }
             return { status, chunksStored, workspace, source: originalName, error: errorMessage, zipUpload: false };
         } else {
-            // ZIP handling
             this.logger.log(`Ingesting ZIP: ${originalName} → workspace: ${workspace}`);
             const extractDir = path.join(this.uploadDir, `${Date.now()}-extracted`);
             fs.mkdirSync(extractDir, { recursive: true });

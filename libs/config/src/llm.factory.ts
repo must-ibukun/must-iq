@@ -1,13 +1,3 @@
-// ============================================================
-// Must-IQ — LLM Factory
-// Returns the correct BaseChatModel based on active DB settings
-// No hardcoded imports — the active provider drives everything
-//
-// Usage (anywhere in the codebase):
-//   const llm = await createLLM();
-//   const embeddings = await createEmbeddings();
-// ============================================================
-
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { Embeddings } from "@langchain/core/embeddings";
 import { ChatAnthropic } from "@langchain/anthropic";
@@ -65,7 +55,6 @@ class CustomGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
     return normalizeVector(v);
   }
 
-  // Override to prevent LangChain from swallowing errors or returning empty vectors on failure
   protected async _embedDocumentsContent(documents: string[]): Promise<number[][]> {
     const self = this as any;
 
@@ -105,8 +94,6 @@ class CustomGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
     }
   }
 
-  // Embeds text + image together into a single unified vector.
-  // Only works with gemini-embedding-2-preview (multimodal embedding model).
   async embedMultimodalQuery(text: string, imageDataUrl: string): Promise<number[]> {
     const self = this as any;
     const commaIdx = imageDataUrl.indexOf(',');
@@ -131,9 +118,6 @@ class CustomGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
     }
   }
 }
-// ---------------------------------------------------------------
-// Create the active LLM — driven by settings, not hardcoded
-// ---------------------------------------------------------------
 export async function createLLM(overrides?: {
   temperature?: number;
   maxTokens?: number;
@@ -147,10 +131,8 @@ export async function createLLM(overrides?: {
   return buildLLM(settings, temperature, maxTokens);
 }
 
-// ---------------------------------------------------------------
 // Create a cheaper "utility" LLM for tasks like summarization
 // Uses the smallest/cheapest model from the active provider
-// ---------------------------------------------------------------
 export async function createUtilityLLM(): Promise<BaseChatModel> {
   const settings = await getActiveSettings();
   logger.log(`Building Utility LLM for provider: ${settings.provider} (model: ${settings.utilityModel})`);
@@ -164,11 +146,9 @@ export async function createUtilityLLM(): Promise<BaseChatModel> {
   return buildLLM(utilitySettings, 0.1, 512);
 }
 
-// ---------------------------------------------------------------
 // Create the fastest possible classifier LLM
 // Attempts to use local Ollama first to save API latency & cost.
 // Falls back to the standard Provider Utility LLM if Ollama is down.
-// ---------------------------------------------------------------
 export async function createFastClassifierLLM(settings: LLMSettings) {
   const utilityLLM = await createUtilityLLM();
 
@@ -184,8 +164,7 @@ export async function createFastClassifierLLM(settings: LLMSettings) {
       baseUrl: settings.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434",
     });
 
-    // Use LangChain's native fallback mechanism
-    return localOllama.withFallbacks({
+      return localOllama.withFallbacks({
       fallbacks: [utilityLLM],
     });
   } catch (err) {
@@ -193,9 +172,6 @@ export async function createFastClassifierLLM(settings: LLMSettings) {
   }
 }
 
-// ---------------------------------------------------------------
-// Create the active Embeddings model
-// ---------------------------------------------------------------
 export async function createEmbeddings(taskType?: string): Promise<Embeddings> {
   const settings = await getActiveSettings();
   // Query path: default to RETRIEVAL_QUERY if caller didn't specify.
@@ -225,9 +201,6 @@ export async function createMultimodalQueryVector(
   return embeddings.embedMultimodalQuery(text, imageDataUrl);
 }
 
-// ---------------------------------------------------------------
-// Internal builders — switched on provider
-// ---------------------------------------------------------------
 async function buildLLM(
   settings: LLMSettings,
   temperature: number,
@@ -357,7 +330,6 @@ async function buildEmbeddings(settings: LLMSettings, taskType?: string): Promis
       const maskedKey = apiKey.substring(0, 6) + "..." + apiKey.substring(apiKey.length - 4);
       logger.debug(`Using Gemini Key: ${maskedKey} for embeddings`);
 
-      // Use our custom class to force the dimensions if needed
       return new CustomGoogleGenerativeAIEmbeddings({
         model: settings.embeddingModel,
         apiKey,

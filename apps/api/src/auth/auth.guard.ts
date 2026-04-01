@@ -1,7 +1,3 @@
-// ============================================================
-// Auth Guard — Validates JWT on every protected route
-// Extracts user + role from token payload
-// ============================================================
 
 import {
   Injectable,
@@ -25,7 +21,6 @@ export class AuthGuard implements CanActivate {
   ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Allow routes decorated with @Public()
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
       context.getHandler(),
       context.getClass(),

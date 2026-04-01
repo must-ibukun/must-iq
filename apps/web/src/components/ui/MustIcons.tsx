@@ -18,7 +18,6 @@ interface IconProps {
     style?: React.CSSProperties;
 }
 
-// ─── Brand Logo ────────────────────────────────────────────────────────────
 /** Three-bar Must Company trademark — matches icon.svg exactly */
 export function MustLogo({ size = 24, className, style }: IconProps) {
     return (
@@ -62,7 +61,6 @@ export function MustLogoDark({ size = 24, className, style }: IconProps) {
     );
 }
 
-// ─── Generic wrapper ────────────────────────────────────────────────────────
 function Icon({ size = 18, color = 'currentColor', className, style, children }: IconProps & { children: React.ReactNode }) {
     return (
         <svg
@@ -83,7 +81,6 @@ function Icon({ size = 18, color = 'currentColor', className, style, children }:
     );
 }
 
-// ─── Navigation Icons ────────────────────────────────────────────────────────
 
 /** Dashboard / Overview */
 export function IconDashboard(props: IconProps) {
@@ -190,7 +187,6 @@ export function IconSettings(props: IconProps) {
     );
 }
 
-// ─── Utility Icons ───────────────────────────────────────────────────────────
 
 export function IconUpload(props: IconProps) {
     return (
@@ -474,7 +470,6 @@ export function IconPaperclip(props: IconProps) {
     );
 }
 
-// ─── Map section names to icon components ────────────────────────────────────
 export function IconInfo(props: IconProps) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className} style={props.style}>

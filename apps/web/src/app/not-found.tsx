@@ -6,7 +6,6 @@ export default function NotFound() {
             className="flex flex-col items-center justify-center min-h-screen p-8 text-center"
             style={{ background: 'var(--bg)', color: 'var(--ink)' }}
         >
-            {/* SVG Illustration */}
             <svg
                 width="160"
                 height="160"
@@ -16,17 +15,11 @@ export default function NotFound() {
                 className="mb-8"
                 style={{ opacity: 0.85 }}
             >
-                {/* Outer glow ring */}
                 <circle cx="80" cy="80" r="72" stroke="var(--primary)" strokeWidth="1" strokeDasharray="6 4" opacity="0.3" />
-                {/* Inner circle */}
                 <circle cx="80" cy="80" r="54" fill="var(--card)" stroke="var(--border-2)" strokeWidth="1.5" />
-                {/* Magnifying glass body */}
                 <circle cx="72" cy="72" r="24" stroke="var(--primary)" strokeWidth="3" fill="none" />
-                {/* Magnifying glass handle */}
                 <line x1="90" y1="90" x2="106" y2="106" stroke="var(--primary)" strokeWidth="4" strokeLinecap="round" />
-                {/* Question mark */}
                 <text x="72" y="79" fontSize="22" fontWeight="700" fill="var(--primary)" textAnchor="middle" fontFamily="monospace">?</text>
-                {/* Small dots around */}
                 <circle cx="30" cy="50" r="2.5" fill="var(--primary)" opacity="0.4" />
                 <circle cx="130" cy="110" r="2" fill="var(--purple)" opacity="0.4" />
                 <circle cx="120" cy="40" r="3" fill="var(--primary)" opacity="0.25" />

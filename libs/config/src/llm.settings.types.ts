@@ -1,9 +1,7 @@
-// ============================================================
 // Must-IQ — LLM Settings Types
 // @must-iq/config
 // The active model is controlled from a settings table in DB,
 // not hardcoded imports. Admins change it from the UI.
-// ============================================================
 
 export type LLMProvider = "anthropic" | "openai" | "gemini" | "ollama" | "azure-openai" | "xai";
 export type EmbeddingProvider = "openai" | "gemini" | "ollama";
@@ -18,10 +16,8 @@ export interface APIKeyEntry {
   isActive: boolean;
 }
 
-// ---------------------------------------------------------------
 // Shape stored in the `settings` table (one row, id = "llm")
 // and also readable from .env as fallback
-// ---------------------------------------------------------------
 export interface LLMSettings {
   provider: LLMProvider;
   model: string;
@@ -71,9 +67,7 @@ export interface LLMSettings {
   cacheL2Key?: string; // Redis key
 }
 
-// ---------------------------------------------------------------
 // Supported models per provider (used by settings UI dropdown)
-// ---------------------------------------------------------------
 export const PROVIDER_MODELS: Record<LLMProvider, string[]> = {
   anthropic: [
     "claude-opus-4-5",
@@ -126,9 +120,7 @@ export const EMBEDDING_MODELS: Record<EmbeddingProvider, { model: string; dimens
   ],
 };
 
-// ---------------------------------------------------------------
 // Default settings (used when no DB row exists yet)
-// ---------------------------------------------------------------
 export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   provider: (process.env.LLM_PROVIDER as LLMProvider) ?? "gemini",
   model: process.env.LLM_MODEL ?? "gemini-2.5-flash",

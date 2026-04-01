@@ -111,9 +111,7 @@ export function TechStackPicker({ value, onChange, small }: TechStackPickerProps
   );
 }
 
-// -------------------------------------------------------------------
 // Wrapper that shows the picker inside a popover dropdown
-// -------------------------------------------------------------------
 
 import { useState, useRef, useEffect } from 'react';
 
@@ -121,7 +119,7 @@ export function TechStackDropdown({ value, onChange }: TechStackPickerProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close when clicking outside
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {

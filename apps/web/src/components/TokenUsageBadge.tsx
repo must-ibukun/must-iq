@@ -1,7 +1,5 @@
-// ============================================================
 // TokenUsageBadge — Shows current token usage to the user
 // Turns yellow at 80%, red at 95%
-// ============================================================
 
 "use client";
 
