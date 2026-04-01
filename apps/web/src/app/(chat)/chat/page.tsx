@@ -26,14 +26,12 @@ export default function ChatPage() {
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
-  // ── Load sessions & teams from API on mount ──────────────────────────
   useEffect(() => {
     const { refreshSessions, refreshTeams } = useChatStore.getState();
     refreshSessions();
     refreshTeams();
   }, []);
 
-  // ── Load messages when session changes ──────────────────────
   useEffect(() => {
     if (activeSessionId) {
       chatApi.getSession(activeSessionId)
@@ -48,7 +46,7 @@ export default function ChatPage() {
             })));
           }
         })
-        .catch(() => { /* handle error */ });
+        .catch(() => { });
     } else {
       setMessages([]);
     }
@@ -62,7 +60,6 @@ export default function ChatPage() {
     setShowTechnical(false);
   }, []);
 
-  // ── Chat submit ───────────────────────────────────────────────
   const handleSubmit = useCallback(async (image: string | null = null) => {
     const text = input.trim();
     if ((!text && !image) || isStreaming) return;

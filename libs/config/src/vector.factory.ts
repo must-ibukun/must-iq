@@ -1,8 +1,6 @@
-// ============================================================
 // Must-IQ — Vector Factory
 // Returns the correct VectorStore based on active DB settings
 // No hardcoded imports — the active provider drives everything
-// ============================================================
 
 import { VectorStore } from "@langchain/core/vectorstores";
 import { PGVectorStore } from "@langchain/community/vectorstores/pgvector";

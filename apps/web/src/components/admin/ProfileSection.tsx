@@ -118,7 +118,6 @@ export function ProfileSection({ onBack }: { onBack?: () => void }) {
                 )}
             </div>
 
-            {/* Profile Details */}
             <section className="p-6 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                 <h2 className="text-[14px] font-semibold mb-5 uppercase tracking-wider opacity-60 font-['DM_Mono',monospace]">
                     Personal Information
@@ -185,7 +184,6 @@ export function ProfileSection({ onBack }: { onBack?: () => void }) {
                 </form>
             </section>
 
-            {/* Change Password */}
             <section className="p-6 rounded-2xl shadow-sm border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
                 <h2 className="text-[14px] font-semibold mb-5 uppercase tracking-wider opacity-60 font-['DM_Mono',monospace]">
                     Security

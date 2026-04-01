@@ -1,9 +1,3 @@
-// ============================================================
-// pgvector RAG Utility — Must-IQ
-// Replaces Weaviate with direct PostgreSQL vector search
-// Used by all three providers (Gemini, OpenAI, Claude)
-// ============================================================
-
 import * as dotenv from "dotenv";
 dotenv.config();
 import { prisma } from './prisma.service';
@@ -12,27 +6,19 @@ import { Logger } from '@nestjs/common';
 
 const logger = new Logger('PGVectorStore');
 
-// -------------------------------------------------------------------
-// Retrieve top-K relevant chunks using pgvector cosine similarity
-// Department filter ensures employees only see their own workspace + general
-// -------------------------------------------------------------------
 export async function retrieveChunks(
   queryVector: number[],
   workspace: string | string[],
   topK = 5
 ): Promise<DocumentChunk[]> {
   try {
-    // Normalise workspace(s) into a de-duped array
     const scopes = Array.from(
       new Set(Array.isArray(workspace) ? workspace : [workspace])
     );
 
-    // Format vector for PostgreSQL: [0.1, 0.2, ...]
     const vectorLiteral = `[${queryVector.join(",")}]`;
 
-    // pgvector cosine similarity query
-    // <=> operator = cosine distance (0 = identical, 2 = opposite)
-    // 1 - distance = similarity score
+    // <=> operator = cosine distance (0 = identical, 2 = opposite); 1 - distance = similarity score
     const results = await prisma.$queryRaw<
       Array<{
         id: string;
@@ -81,17 +67,7 @@ export async function retrieveChunks(
   }
 }
 
-// -------------------------------------------------------------------
-// BM25 keyword search using PostgreSQL full-text search (ts_rank)
-// Uses the generated tsvector column added in migration 20260324000000
-// Perfect for exact matches: function names, error codes, identifiers
-// -------------------------------------------------------------------
-
-// Build an OR-based tsquery from plain text.
-// - Strips punctuation so tokens like "(PIP)" → "PIP"
-// - Filters tokens shorter than 3 chars to skip noise
-// - Joins with | (OR) so a truncated/unknown word like "managemen"
-//   doesn't AND-kill the entire query — other terms still match
+// Build an OR-based tsquery from plain text so a missing term doesn't kill the whole query.
 function buildOrTsQuery(text: string): string {
   return text
     .replace(/[^\w\s]/g, ' ')   // strip punctuation
@@ -161,12 +137,10 @@ export async function retrieveChunksKeyword(
   }
 }
 
-// -------------------------------------------------------------------
 // Reciprocal Rank Fusion (RRF)
 // Merges dense + sparse ranked lists without weight tuning.
 // Formula: score(d) = Σ 1 / (k + rank(d)) for each list
 // k=60 is the standard value (Robertson et al., 2009)
-// -------------------------------------------------------------------
 export function reciprocalRankFusion(
   ...rankedLists: DocumentChunk[][]
 ): DocumentChunk[] {
@@ -186,16 +160,11 @@ export function reciprocalRankFusion(
     });
   }
 
-  // Sort by combined RRF score descending
   return Array.from(scores.values())
     .sort((a, b) => b.score - a.score)
     .map(({ chunk, score }) => ({ ...chunk, score }));
 }
 
-// -------------------------------------------------------------------
-// Store a chunk with its embedding vector
-// Called during document ingestion
-// -------------------------------------------------------------------
 export async function storeChunk(params: {
   documentId: string;
   content: string;
@@ -217,9 +186,6 @@ export async function storeChunk(params: {
   `;
 }
 
-// -------------------------------------------------------------------
-// Create a document record (before ingesting its chunks)
-// -------------------------------------------------------------------
 export async function createDocument(params: {
   filename: string;
   source: string;
@@ -235,9 +201,6 @@ export async function createDocument(params: {
   });
 }
 
-// -------------------------------------------------------------------
-// Mark document as ready after all chunks are stored
-// -------------------------------------------------------------------
 export async function finalizeDocument(id: string, chunkCount: number) {
   return prisma.document.update({
     where: { id },

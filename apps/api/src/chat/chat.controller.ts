@@ -1,9 +1,3 @@
-// ============================================================
-// Chat Controller
-// POST /api/v1/chat — Main chat endpoint
-// GET  /api/v1/chat/sessions — List user's sessions
-// ============================================================
-
 import {
   Controller, Post, Get, Body, Param,
   UseGuards, Req, Res, HttpCode, HttpStatus,
@@ -25,10 +19,6 @@ import { Query } from "@nestjs/common";
 export class ChatController {
   constructor(private readonly chatService: ChatService) { }
 
-  // -------------------------------------------------------------------
-  // POST /api/v1/chat
-  // Send a message. Supports streaming (SSE) or JSON response.
-  // -------------------------------------------------------------------
   @Post()
   @HttpCode(HttpStatus.OK)
   async chat(
@@ -39,7 +29,6 @@ export class ChatController {
     const user = (req as any).user;
 
     if (body.stream) {
-      // Server-Sent Events for streaming response
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
@@ -56,10 +45,6 @@ export class ChatController {
     }
   }
 
-  // -------------------------------------------------------------------
-  // POST /api/v1/chat/upload
-  // Receives an image to avoid Base64 JSON network overhead
-  // -------------------------------------------------------------------
   @Post("upload")
   @UseInterceptors(FileInterceptor("file", {
     storage: diskStorage({
@@ -79,19 +64,11 @@ export class ChatController {
     return { url: `${backendUrl}/api/v1/chat/uploads/${file.filename}` };
   }
 
-  // -------------------------------------------------------------------
-  // GET /api/v1/chat/uploads/:filename
-  // Serves temporary files for local visualization (before AI consumes it)
-  // -------------------------------------------------------------------
   @Get("uploads/:filename")
   async getUploadedFile(@Param("filename") filename: string, @Res() res: Response) {
     return res.sendFile(filename, { root: "./uploads" });
   }
 
-  // -------------------------------------------------------------------
-  // GET /api/v1/chat/sessions
-  // Return all sessions for the logged-in user
-  // -------------------------------------------------------------------
   @Get("sessions")
   async getSessions(
     @Req() req: Request,
@@ -101,10 +78,6 @@ export class ChatController {
     return this.chatService.getSessions(user.sub, query);
   }
 
-  // -------------------------------------------------------------------
-  // GET /api/v1/chat/sessions/:id
-  // Return a specific session with all messages
-  // -------------------------------------------------------------------
   @Get("sessions/:id")
   async getSession(@Param("id") id: string, @Req() req: Request) {
     const user = (req as any).user;

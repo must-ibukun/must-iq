@@ -18,9 +18,6 @@ import { IngestionService } from '../ingestion/ingestion.service';
 import { sanitizeError } from '../common/helpers/error.helper';
 import { MailService } from '../notification/mail.service';
 
-
-// Removed redundant RequestUser interface (moved to shared-types)
-
 @Injectable()
 export class AdminService {
     private readonly logger = new Logger(AdminService.name);
@@ -31,7 +28,6 @@ export class AdminService {
         private readonly mailService: MailService,
     ) { }
 
-    // ── Overview stats ────────────────────────────────────────────
     async getStats(user: RequestUser): Promise<AdminStats> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -82,7 +78,6 @@ export class AdminService {
         };
     }
 
-    // ── Users ─────────────────────────────────────────────────────
     async getUsers(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AdminUser>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -179,7 +174,6 @@ export class AdminService {
             }
         });
 
-        // Audit log for update
         await this.prisma.auditLog.create({
             data: {
                 userId: id,
@@ -202,8 +196,6 @@ export class AdminService {
         const requesterTeamIds = requester.teamIds || [];
 
         if (isManager) {
-            // Managers can only update teams they have access to.
-            // We need to keep memberships in teams they DON'T have access to.
             const user = await this.prisma.user.findUnique({
                 where: { id },
                 include: { teams: { select: { id: true } } }
@@ -237,7 +229,6 @@ export class AdminService {
             });
         }
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 userId: id,
@@ -249,7 +240,6 @@ export class AdminService {
         return { success: true };
     }
 
-    // ── Token usage ───────────────────────────────────────────────
     async getTokenUsage(user: RequestUser): Promise<AdminTokenUsage> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -313,7 +303,6 @@ export class AdminService {
         };
     }
 
-    // ── Audit log ─────────────────────────────────────────────────
     async getAuditLog(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AuditLogEntry>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -337,7 +326,6 @@ export class AdminService {
         return new Pagination<AuditLogEntry>(logs, meta);
     }
 
-    // ── Workspaces ───────────────────────────────────────────────
     async getWorkspaces(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AdminWorkspace>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -445,7 +433,6 @@ export class AdminService {
             }
         });
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 action: 'admin.workspace_created',
@@ -467,7 +454,6 @@ export class AdminService {
             }
         });
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 action: 'admin.workspace_updated',
@@ -484,7 +470,6 @@ export class AdminService {
 
         await this.prisma.workspace.delete({ where: { id } });
 
-        // Audit log
         await this.prisma.auditLog.create({
             data: {
                 action: 'admin.workspace_deleted',
@@ -551,7 +536,6 @@ export class AdminService {
     }
 
 
-    // ── Teams ────────────────────────────────────────────────────
     async getTeams(query: PaginationOptionsDto, user: RequestUser): Promise<Pagination<AdminTeam>> {
         const isManager = user.role === 'MANAGER';
         const teamIds = user.teamIds || [];
@@ -647,7 +631,6 @@ export class AdminService {
         return { ...base, chunkCount: item._count?.chunks || 0 };
     }
 
-    // ── Workspace Discovery ───────────────────────────────────────
     async discoverWorkspaces() {
         const settings = await getActiveSettings();
         const results: any = { jira: [], slack: [], github: [] };
@@ -750,9 +733,6 @@ export class AdminService {
                 this.logger.error("Slack discover error:", sanitized.technicalDetails);
                 errors.slack = sanitized.message;
             }
-        } else {
-            // Optional: only report if they have other integrations but not slack
-            // errors.slack = "Missing Slack Bot Token";
         }
 
         // 3. GitHub Discovery

@@ -111,9 +111,7 @@ export function TechStackPicker({ value, onChange, small }: TechStackPickerProps
   );
 }
 
-// -------------------------------------------------------------------
 // Wrapper that shows the picker inside a popover dropdown
-// -------------------------------------------------------------------
 
 import { useState, useRef, useEffect } from 'react';
 

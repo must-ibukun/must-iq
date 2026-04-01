@@ -1,10 +1,3 @@
-// ============================================================
-// Must-IQ — Settings Service
-// Reads active LLM config from the `settings` table in Postgres
-// Falls back to .env if no DB row exists
-// Cached in memory (TTL: 60s) — avoids a DB hit on every request
-// ============================================================
-
 import { PrismaClient } from "../../db/src/generated-client";
 import {
   LLMSettings,
@@ -22,15 +15,10 @@ const logger = new Logger('SettingsService');
 
 const prisma = new PrismaClient();
 
-// In-memory cache (L1) so every chat message doesn't hit the DB or Redis
 let cachedSettings: LLMSettings | null = null;
 let lastLoadTime = 0;
 
-// ---------------------------------------------------------------
-// Get active LLM settings (DB → cache → .env fallback)
-// ---------------------------------------------------------------
 export async function getActiveSettings(): Promise<LLMSettings> {
-  // 1. Check L1 Cache (In-process memory)
   const now = Date.now();
   const l1Ttl = cachedSettings?.cacheL1Ttl ?? DEFAULT_LLM_SETTINGS.cacheL1Ttl ?? 60000;
   
@@ -41,7 +29,6 @@ export async function getActiveSettings(): Promise<LLMSettings> {
   const redis = getRedis();
   const l2Key = cachedSettings?.cacheL2Key ?? DEFAULT_LLM_SETTINGS.cacheL2Key ?? "must-iq:settings:llm";
 
-  // 2. Check L2 Cache (Redis) if available
   if (redis) {
     try {
       const cached = await redis.get(l2Key);
@@ -58,13 +45,11 @@ export async function getActiveSettings(): Promise<LLMSettings> {
     }
   }
 
-  // 3. Fallback to DB (L3)
   try {
     const row = await prisma.setting.findUnique({ where: { key: "llm" } });
     const stored = row ? (JSON.parse(row.value) as Partial<LLMSettings>) : {};
     const settings = await processAndMergeSettings(stored);
 
-    // 4. Save to Redis (L2) for future requests
     if (redis) {
       try {
         const l2Ttl = settings.cacheL2Ttl ?? DEFAULT_LLM_SETTINGS.cacheL2Ttl ?? 600;
@@ -79,7 +64,6 @@ export async function getActiveSettings(): Promise<LLMSettings> {
     return settings;
   } catch (err) {
     logger.error("Error in getActiveSettings (DB fetch):", err);
-    // If DB is unavailable, fall back to env-only settings
     return getEnvFallbackSettings();
   }
 }
@@ -88,7 +72,6 @@ export async function getActiveSettings(): Promise<LLMSettings> {
  * Common logic to take raw DB/Redis data and merge it with defaults and decrypted keys.
  */
 async function processAndMergeSettings(stored: Partial<LLMSettings>): Promise<LLMSettings> {
-  // Decrypt API keys if they exist
   const dbApiKeys: APIKeyEntry[] = [];
   if (Array.isArray(stored.apiKeys)) {
     for (const entry of stored.apiKeys) {
@@ -100,14 +83,12 @@ async function processAndMergeSettings(stored: Partial<LLMSettings>): Promise<LL
     }
   }
 
-  // Decrypt ingestion tokens
   const slackBotToken = stored.slackBotToken ? tryDecrypt(stored.slackBotToken) : undefined;
   const githubToken = stored.githubToken ? tryDecrypt(stored.githubToken) : undefined;
   const jiraApiToken = stored.jiraApiToken ? tryDecrypt(stored.jiraApiToken) : undefined;
   const jiraUserEmail = stored.jiraUserEmail ? tryDecrypt(stored.jiraUserEmail) : undefined;
   const jiraBaseUrl = stored.jiraBaseUrl ? tryDecrypt(stored.jiraBaseUrl) : undefined;
 
-  // Merge logic: If DB has no keys, populate from ENV as defaults
   if (dbApiKeys.length === 0) {
     const providers: LLMProvider[] = ["anthropic", "openai", "gemini", "azure-openai", "xai"];
     providers.forEach(p => {
@@ -137,9 +118,6 @@ async function processAndMergeSettings(stored: Partial<LLMSettings>): Promise<LL
   } as LLMSettings;
 }
 
-/**
- * Hard fallback for when both Cache and DB are unavailable.
- */
 function getEnvFallbackSettings(): LLMSettings {
   const envApiKeys: APIKeyEntry[] = [];
   const providers: LLMProvider[] = ["anthropic", "openai", "gemini", "azure-openai", "xai"];
@@ -164,17 +142,14 @@ function getEnvFallbackSettings(): LLMSettings {
   } as LLMSettings;
 }
 
-// ---------------------------------------------------------------
 // Save active settings to DB (called from admin settings UI)
 // Invalidates the cache immediately so next request picks up change
-// ---------------------------------------------------------------
 export async function saveActiveSettings(
   patch: Partial<LLMSettings>
 ): Promise<void> {
   const current = await getActiveSettings();
   const updated = { ...current, ...patch };
 
-  // Encrypt ingestion tokens
   let encryptedSlackToken = updated.slackBotToken;
   let encryptedGithubToken = updated.githubToken;
   let encryptedJiraToken = updated.jiraApiToken;
@@ -197,7 +172,6 @@ export async function saveActiveSettings(
     encryptedJiraBaseUrl = encryptText(updated.jiraBaseUrl);
   }
 
-  // Encrypt API keys before storing
   const encryptedApiKeys: APIKeyEntry[] = [];
   if (Array.isArray(updated.apiKeys)) {
     for (const entry of updated.apiKeys) {
@@ -239,7 +213,6 @@ export async function saveActiveSettings(
           }
         }
       } else {
-        // It's a fresh plain-text key (newly entered by user)
         encryptedApiKeys.push({
           ...entry,
           key: encryptText(entry.key.trim())
@@ -265,7 +238,6 @@ export async function saveActiveSettings(
     create: { key: "llm", value: JSON.stringify(safeToStore) },
   });
 
-  // 5. Invalidate Caches
   const redis = getRedis();
   if (redis) {
     try {
@@ -282,9 +254,6 @@ export async function saveActiveSettings(
   lastLoadTime = 0;
 }
 
-// ---------------------------------------------------------------
-// SYSTEM SETTINGS
-// ---------------------------------------------------------------
 let cachedSystemSettings: SystemSettings | null = null;
 
 export async function getSystemSettings(): Promise<SystemSettings> {
@@ -317,13 +286,9 @@ export async function saveSystemSettings(patch: Partial<SystemSettings>): Promis
     create: { key: "system", value: JSON.stringify(updated) },
   });
 
-  // Update cache immediately
   cachedSystemSettings = updated;
 }
 
-// ---------------------------------------------------------------
-// Quick helper used by API controllers
-// ---------------------------------------------------------------
 export async function getActiveProvider(): Promise<LLMProvider> {
   return (await getActiveSettings()).provider;
 }

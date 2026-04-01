@@ -19,11 +19,9 @@ async function main() {
     const managerPassword = await hash('manager123', saltRounds);
     const employeePassword = await hash('employee123', saltRounds);
 
-    // ── Clean up existing to prevent dupes during seed testing ──────────────
     await prisma.workspace.deleteMany({});
     await prisma.team.deleteMany({});
 
-    // ── Seed Teams (formerly Projects) with nested Workspace sources ────────
     const teamDefs = [
         {
             name: 'API Infrastructure',
@@ -85,7 +83,6 @@ async function main() {
         }
     ];
 
-    // ── Pre-create shared workspaces for the seed ──────────────
     const sharedJira = await prisma.workspace.create({
         data: { type: 'JIRA', identifier: 'Global MSQ', tokenBudget: 40000 }
     });
@@ -118,12 +115,10 @@ async function main() {
     }
     logger.log('Teams and Workspaces seeded.');
 
-    // ── Load teams by name so we can assign team IDs to users ───────────────
     const teams = await prisma.team.findMany({ select: { id: true, name: true } });
     const teamByName = Object.fromEntries(teams.map(t => [t.name, t.id]));
     logger.log(`Teams loaded: ${teams.map(t => t.name).join(', ')}`);
 
-    // ── Seed Users — connect via teamId FK ──────────────────────────────────
     const users = [
         {
             email: 'admin@mustcompany.com',
@@ -199,21 +194,16 @@ async function main() {
         temperature: 0.3,
         topK: 40,
         apiKeys: [
-            // ── Google Gemini ──────────────────────────────────────
             { id: 'seed-gemini-1', provider: 'gemini', label: 'Must-IQ - Gemini (System Default)', model: 'gemini-1.5-flash', key: 'AIzaSyDTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxHPUs', isActive: false },
             { id: 'seed-gemini-2', provider: 'gemini', label: 'Must-IQ - Gemini (Primary Admin)', model: 'gemini-1.5-flash', key: 'AIzaSyAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxBNU0', isActive: false },
             { id: 'seed-gemini-3', provider: 'gemini', label: 'Must-IQ - Gemini (Secondary)', model: 'gemini-1.5-flash', key: 'AIzaSyAmxxxxxxxxxxxxxxxxxxxxxxxxxxxxSoLw', isActive: false },
             { id: 'seed-gemini-4', provider: 'gemini', label: 'Must-IQ - Gemini (DevOps)', model: 'gemini-1.5-flash', key: 'AIzaSyBtxxxxxxxxxxxxxxxxxxxxxxxxxxxxEJ_I', isActive: false },
-            // ── OpenAI ────────────────────────────────────────────
             { id: 'seed-openai-1', provider: 'openai', label: 'Must-IQ - OpenAI (Pro)', model: 'gpt-4o-mini', key: 'sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxvhwA', isActive: false },
             { id: 'seed-openai-2', provider: 'openai', label: 'Must-IQ - OpenAI (Backup)', model: 'gpt-4o', key: 'sk-proj-yyyyyyyyyyyyyyyyyyyyyyyyyyyyWqzP', isActive: false },
-            // ── Anthropic Claude ──────────────────────────────────
             { id: 'seed-anthropic-1', provider: 'anthropic', label: 'Must-IQ - Anthropic (Sonnet)', model: 'claude-3-5-sonnet-20240620', key: 'sk-ant-axxxxxxxxxxxxxxxxxxxxxxxxxxxxTgAA', isActive: false },
             { id: 'seed-anthropic-2', provider: 'anthropic', label: 'Must-IQ - Anthropic (Opus)', model: 'claude-3-opus-20240229', key: 'sk-ant-byyyyyyyyyyyyyyyyyyyyyyyyyyyyRmBB', isActive: false },
-            // ── xAI Grok ──────────────────────────────────────────
             { id: 'seed-xai-1', provider: 'xai', label: 'Must-IQ - xAI (Grok-3)', model: 'grok-3-mini', key: 'xai-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxMnZ1', isActive: false },
             { id: 'seed-xai-2', provider: 'xai', label: 'Must-IQ - xAI (Grok-Beta)', model: 'grok-beta', key: 'xai-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyKpQ2', isActive: false },
-            // ── Local Ollama ──────────────────────────────────────
             { id: 'seed-ollama-1', provider: 'ollama', label: 'Must-IQ - Ollama (Llama 3)', model: 'llama3', key: 'local-no-key-required-xxxxxxxxxxxxLLM8', isActive: false },
             { id: 'seed-ollama-2', provider: 'ollama', label: 'Must-IQ - Ollama (Mistral)', model: 'mistral', key: 'local-no-key-required-yyyyyyyyyyyyMST2', isActive: false },
             { id: 'seed-ollama-3', provider: 'ollama', label: 'Must-IQ - Ollama (Gemma 3)', model: 'gemma3:27b', key: 'local-no-key-required-zzzzzzzzzzzzGMA3', isActive: false },

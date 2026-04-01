@@ -14,7 +14,6 @@ import {
   IconTrash, IconEdit, IconLogout, IconBrain, IconSparkles, IconSend, IconPaperclip 
 } from '@must-iq-web/components/ui/MustIcons';
 
-// ── PAGE ───────────────────────────────────────────────────────
 export default function LandingPage() {
     const [scrolled, setScrolled] = useState(false);
     const { resolvedTheme, setTheme } = useTheme();
@@ -29,7 +28,6 @@ export default function LandingPage() {
 
     return (
         <div style={{ background: THEME_COLORS.bg, color: THEME_COLORS.text, fontFamily: '"Geist",system-ui,sans-serif', overflowX: 'hidden' }}>
-            {/* ── NAV ───────────────────────────────────── */}
             <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6%', height: 64, background: 'var(--bg)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--surface)', boxShadow: scrolled ? '0 4px 30px rgba(0,0,0,0.5)' : 'none', transition: 'box-shadow 0.3s' }}>
                 <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${THEME_COLORS.primary}`, background: 'rgba(var(--primary-rgb),0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -64,7 +62,6 @@ export default function LandingPage() {
                 </div>
             </nav>
 
-            {/* ── HERO ──────────────────────────────────── */}
             <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 6% 80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
                 {/* Grid bg */}
                 <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(var(--primary-rgb),0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(var(--primary-rgb),0.04) 1px,transparent 1px)', backgroundSize: '60px 60px', WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%,black 30%,transparent 100%)', maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%,black 30%,transparent 100%)', pointerEvents: 'none' }} />
@@ -160,7 +157,6 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ── PROBLEM ───────────────────────────────── */}
             <section id="problem" style={{ padding: '100px 6%', background: THEME_COLORS.surface, borderTop: `1px solid ${THEME_COLORS.border}`, borderBottom: `1px solid ${THEME_COLORS.border}` }}>
                 <Tag>The Problem</Tag>
                 <H2>Knowledge dies in <em style={{ color: THEME_COLORS.primary, fontStyle: 'italic' }}>closed tabs.</em></H2>
@@ -187,7 +183,6 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ── HOW IT WORKS ──────────────────────────── */}
             <section id="how" style={{ padding: '100px 6%' }}>
                 <Tag>How it works</Tag>
                 <H2>From source to <em style={{ color: THEME_COLORS.primary, fontStyle: 'italic' }}>searchable</em> in seconds.</H2>
@@ -211,7 +206,6 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ── FEATURES ──────────────────────────────── */}
             <section id="features" style={{ padding: '100px 6%', background: THEME_COLORS.surface, borderTop: `1px solid ${THEME_COLORS.border}`, borderBottom: `1px solid ${THEME_COLORS.border}` }}>
                 <Tag>Features</Tag>
                 <H2>Built for how your <em style={{ color: THEME_COLORS.primary, fontStyle: 'italic' }}>team actually works.</em></H2>
@@ -260,7 +254,6 @@ export default function LandingPage() {
                 </Reveal>
             </section>
 
-            {/* ── TERMINAL ──────────────────────────────── */}
             <section id="terminal" style={{ padding: '100px 6%' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center' }}>
                     <Reveal><Terminal /></Reveal>
@@ -279,7 +272,6 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ── INTEGRATIONS ──────────────────────────── */}
             <section id="integrations" style={{ padding: '100px 6%', background: THEME_COLORS.surface, borderTop: `1px solid ${THEME_COLORS.border}`, borderBottom: `1px solid ${THEME_COLORS.border}` }}>
                 <Tag>Integrations</Tag>
                 <H2>Connects to where <em style={{ color: THEME_COLORS.primary, fontStyle: 'italic' }}>work actually lives.</em></H2>
@@ -310,7 +302,6 @@ export default function LandingPage() {
                 </Reveal>
             </section>
 
-            {/* ── STATS ─────────────────────────────────── */}
             <section style={{ padding: '80px 6%', textAlign: 'center' }}>
                 <Reveal>
                     <Tag>By the numbers</Tag>
@@ -326,7 +317,6 @@ export default function LandingPage() {
                 </Reveal>
             </section>
 
-            {/* ── CTA ───────────────────────────────────── */}
             <section style={{ padding: '120px 6%', textAlign: 'center', position: 'relative', overflow: 'hidden', background: THEME_COLORS.surface, borderTop: `1px solid ${THEME_COLORS.border}` }}>
                 <div style={{ position: 'absolute', width: 700, height: 700, borderRadius: '50%', background: 'radial-gradient(circle,rgba(var(--primary-rgb),0.07),transparent 70%)', top: -250, left: -150, filter: 'blur(80px)', animation: 'drift1 18s ease-in-out infinite', pointerEvents: 'none' }} />
                 <div style={{ position: 'absolute', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle,rgba(157,111,255,0.06),transparent 70%)', bottom: -200, right: -150, filter: 'blur(80px)', animation: 'drift2 14s ease-in-out infinite', pointerEvents: 'none' }} />
@@ -343,7 +333,6 @@ export default function LandingPage() {
                 </Reveal>
             </section>
 
-            {/* ── FOOTER ────────────────────────────────── */}
             <footer style={{ padding: '56px 6% 36px', borderTop: `1px solid ${THEME_COLORS.border}`, display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 36 }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>

@@ -1,10 +1,5 @@
-// ============================================================
-// @platform/shared-types — All TypeScript interfaces
-// Shared across web, api, and ai-engine apps
-// ============================================================
 export * from './constants';
 
-// --- Users & Auth ---
 
 export type UserRole = "ADMIN" | "MANAGER" | "EMPLOYEE" | "VIEWER";
 
@@ -48,7 +43,6 @@ export interface AuthTokens {
   expiresAt: number;
 }
 
-// --- Chat & Messages ---
 
 export type MessageRole = "user" | "assistant" | "system";
 
@@ -72,7 +66,6 @@ export interface ChatSession {
   updatedAt: Date;
 }
 
-// --- RAG / Documents ---
 
 export type IngestionSourceType = "slack" | "github" | "jira" | "doc";
 
@@ -111,7 +104,6 @@ export interface IngestRequest {
   tags?: string[];
 }
 
-// --- Token Management ---
 
 export interface TokenUsage {
   userId: string;
@@ -134,7 +126,6 @@ export interface TokenLog {
   createdAt: Date;
 }
 
-// --- API Request/Response ---
 
 export interface ChatRequest {
   message: string;
@@ -157,7 +148,6 @@ export interface APIError {
   code: string;           // e.g. "TOKEN_BUDGET_EXCEEDED"
 }
 
-// --- Admin ---
 
 export interface AdminUser {
   id: string;
@@ -291,7 +281,6 @@ export interface NotificationModalContent {
   details?: string;
 }
 
-// --- AI Engine ---
 
 export interface AIQueryParams {
     query: string;

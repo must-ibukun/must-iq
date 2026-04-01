@@ -49,7 +49,6 @@ import { SYSTEM_SETTINGS_DESCRIPTIONS } from '../../../lib/constants/settingsCon
 import { IngestionResult, NotificationModalContent, IngestionEvent, PaginatedResponse } from '@must-iq/shared-types';
 
 
-// ── MAIN PAGE ─────────────────────────────────────────────────
 const Mermaid = ({ chart }: { chart: string }) => {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +113,6 @@ export default function AdminPage() {
   useEffect(() => setMounted(true), []);
   const isDark = resolvedTheme === 'dark';
 
-  // ── Data state ────────────────────────────────────
   const [stats, setStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [tokenData, setTokenData] = useState<any>(null);
@@ -135,16 +133,12 @@ export default function AdminPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [teams, setTeams] = useState<any[]>([]);
   const [sectionLoading, setSectionLoading] = useState(false);
-  // which user is currently being edited (team edit)
   const [teamEditTarget, setTeamEditTarget] = useState<any | null>(null);
   const [teamEditDraft, setTeamEditDraft] = useState<string[]>([]);
-  // Team modals
   const [viewTeam, setViewTeam] = useState<any | null>(null);
   const [editTeam, setEditTeam] = useState<any | null>(null);
-  // Workspace (Integration) modals
   const [viewWs, setViewWs] = useState<any | null>(null);
   const [editWs, setEditWs] = useState<any | null>(null);
-  // User edit state
   const [editUserTarget, setEditUserTarget] = useState<any | null>(null);
   const [editUserName, setEditUserName] = useState('');
   const [editUserRole, setEditUserRole] = useState('');
@@ -154,7 +148,6 @@ export default function AdminPage() {
   const [isSavingUserRef, setIsSavingUserRef] = useState(false); // To avoid conflict with isSavingUser which was for teams
   const [isSyncingSources, setIsSyncingSources] = useState(false);
 
-  // Bulk Ingest UI states
   const [ingestWsIds, setIngestWsIds] = useState<string[]>([]);
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestStartDate, setIngestStartDate] = useState('');
@@ -163,10 +156,8 @@ export default function AdminPage() {
   const [ingestFilterStart, setIngestFilterStart] = useState('');
   const [ingestFilterEnd, setIngestFilterEnd] = useState('');
 
-  // Bulk Ingest UI states
   const [ingestTeamId, setIngestTeamId] = useState<string>(''); // Initialized in useEffect
 
-  // Form states for New Team
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamOwner, setNewTeamOwner] = useState('');
   const [newTeamSlackEnabled, setNewTeamSlackEnabled] = useState(false);
@@ -177,7 +168,6 @@ export default function AdminPage() {
   const [newTeamGithub, setNewTeamGithub] = useState<string[]>([]);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // ── Pagination state ────────────────
   const [teamsPage, setTeamsPage] = useState(1);
   const [usersPage, setUsersPage] = useState(1);
   const [auditPage, setAuditPage] = useState(1);
@@ -185,18 +175,15 @@ export default function AdminPage() {
   const [channelsPage, setChannelsPage] = useState(1);
   const [topUsersPage, setTopUsersPage] = useState(1);
   const [discoveryPage, setDiscoveryPage] = useState(1);
-  // Confirm Modal state
   const [confirmCfg, setConfirmCfg] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; variant: 'primary' | 'danger'; isLoading: boolean }>({
     open: false, title: '', message: '', onConfirm: () => { }, variant: 'primary', isLoading: false
   });
 
-  // Documentation state
   const [adminDocs, setAdminDocs] = useState<any[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [docContent, setDocContent] = useState<string>('');
   const [isDocLoading, setIsDocLoading] = useState(false);
 
-  // ── Add Workspace form state ─────────────────────────────
   const [showAddWs, setShowAddWs] = useState(true);
   const [newWsType, setNewWsType] = useState('SLACK');
   const [newWsId, setNewWsId] = useState('');
@@ -298,7 +285,6 @@ export default function AdminPage() {
     loaders[section]?.().catch(() => { }).finally(() => setSectionLoading(false));
   }, [section, ingestionPage, ingestFilterType, ingestFilterStart, ingestFilterEnd]);
 
-  // ── LLM Settings state ─────────────────────────────────────
   const [llmSettings, setLlmSettings] = useState<any>(null);
   const [llmMeta, setLlmMeta] = useState<{ providers: Record<string, string[]>, embeddingProviders: Record<string, { model: string, dimensions: number }[]> } | null>(null);
   const [llmSaving, setLlmSaving] = useState(false);
@@ -583,9 +569,6 @@ export default function AdminPage() {
 
   async function handleSaveDiscoveredSource(id: string, type: 'SLACK' | 'JIRA' | 'GITHUB', identifier: string, originalName?: string) {
     setIsSyncingSources(true);
-    // Remember id here is passed as item.id originally where item.id might be the name.
-    // wait, I need to check how it's called. Above I found it was handleSaveDiscoveredSource(item.id, item.type, item.identifier)
-    // Actually let's look at the callers below to fix them.
     const key = `${type}:${identifier}`;
     const layer = discoveredGuesses[key] || 'docs';
     const techStack = discoveredTechStacks[key] || undefined;
@@ -714,11 +697,8 @@ export default function AdminPage() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)', position: 'relative', zIndex: 1 }}>
       <div className="bg-dots" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
 
-      {/* ── NAV ── */}
       <nav style={{ width: 220, flexShrink: 0, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
-        {/* Logo */}
         <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Must Company brand logo mark */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30 }}>
             <MustLogo size={26} />
           </div>
@@ -726,7 +706,6 @@ export default function AdminPage() {
           <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', background: user?.role === 'MANAGER' ? 'rgba(79,70,229,0.12)' : 'rgba(255,183,64,0.12)', border: `1px solid ${user?.role === 'MANAGER' ? 'rgba(79,70,229,0.3)' : 'rgba(255,183,64,0.3)'}`, color: user?.role === 'MANAGER' ? 'var(--primary)' : 'var(--amber)', padding: '2px 7px', borderRadius: 20 }}>{user?.role ?? 'ADMIN'}</span>
         </div>
 
-        {/* Nav items */}
         <div style={{ flex: 1, overflow: 'auto', padding: '8px 8px' }}>
           {NAV.filter(item => {
             if (user?.role === 'MANAGER') {
@@ -756,7 +735,6 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* Footer */}
         <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 9 }}>
           <div 
             onClick={() => setSection('profile')}
@@ -778,9 +756,7 @@ export default function AdminPage() {
         </div>
       </nav>
 
-      {/* ── MAIN ── */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
-        {/* Topbar */}
         <div style={{ height: 52, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 14, background: 'var(--bg)', backdropFilter: 'blur(10px)', flexShrink: 0 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: '"DM Serif Display",Georgia,serif', fontSize: 16, color: 'var(--ink)' }}>{sectionTitles[section]}</div>
@@ -817,10 +793,8 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
 
-          {/* ── OVERVIEW ── */}
           {section === 'overview' && (sectionLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
               <Spinner size={32} />
@@ -868,7 +842,6 @@ export default function AdminPage() {
 
 
 
-          {/* ── TEAMS ── */}
           {section === 'teams' && (
             <Panel title={`Teams (${teams.length})`} action={user?.role === 'ADMIN' && <Button variant="primary" size="sm" onClick={() => setShowModal(true)}><IconPlus size={14} style={{ marginRight: 6 }} /> New Team</Button>}>
               {sectionLoading ? (
@@ -894,19 +867,15 @@ export default function AdminPage() {
                         </div>,
                         <Badge key="s" variant={t.status === 'active' ? 'active' : 'warn'}>{t.status ?? 'active'}</Badge>,
                         <div key="a" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {/* View */}
                           <button onClick={() => setViewTeam(t)} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#4f46e5', display: 'flex' }}>
                             <IconEye size={17} />
                           </button>
-                          {/* Edit */}
                           <button onClick={() => setEditTeam(t)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d97706', display: 'flex' }}>
                             <IconEdit size={17} />
                           </button>
-                          {/* Copy ID */}
                           <button onClick={() => { navigator.clipboard?.writeText(t.id); showToast('Team ID copied!'); }} title="Copy ID" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#16a34a', display: 'flex' }}>
                             <IconCopy size={17} />
                           </button>
-                          {/* Delete */}
                           {user?.role === 'ADMIN' && (
                             <button onClick={() => {
                               setConfirmCfg({
@@ -992,14 +961,12 @@ export default function AdminPage() {
                   </>
               }
 
-              {/* ── Team Edit Modal ── */}
               {teamEditTarget && (
                 <div
                   onClick={(e) => e.target === e.currentTarget && setTeamEditTarget(null)}
                   style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}
                 >
                   <div style={{ background: 'var(--card)', border: '1px solid var(--border-2)', borderRadius: 16, width: 440, maxWidth: '95vw', boxShadow: '0 32px 80px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
-                    {/* Header */}
                     <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Edit Teams for {teamEditTarget.name}</div>
@@ -1010,7 +977,6 @@ export default function AdminPage() {
                       </button>
                     </div>
 
-                    {/* Search */}
                     <div style={{ padding: '16px 24px 8px' }}>
                       <div style={{ position: 'relative' }}>
                         <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }}>
@@ -1025,7 +991,6 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* Team List */}
                     <div style={{ padding: '0', maxHeight: 300, overflowY: 'auto' }}>
                       {(() => {
                         const filtered = teams.filter(t =>
@@ -1049,7 +1014,6 @@ export default function AdminPage() {
                               onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface)')}
                               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             >
-                              {/* Checkbox-style check */}
                               <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${isChecked ? 'var(--primary)' : 'var(--border-2)'}`, background: isChecked ? 'var(--primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
                                 {isChecked && <div style={{ fontSize: 12, color: '#fff', fontWeight: 900 }}>✓</div>}
                               </div>
@@ -1066,7 +1030,6 @@ export default function AdminPage() {
                       })()}
                     </div>
 
-                    {/* Footer actions */}
                     <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>{teamEditDraft.length} team(s) selected</span>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -1089,7 +1052,6 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* ── Edit User Modal ── */}
               {editUserTarget && (
                 <div
                   onClick={(e) => e.target === e.currentTarget && setEditUserTarget(null)}
@@ -1175,7 +1137,6 @@ export default function AdminPage() {
             </Panel>
           )}
 
-          {/* ── INTEGRATIONS ── */}
           {section === 'workspaces' && (user?.role !== 'ADMIN' ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
               <h3>Access Restricted</h3>
@@ -1184,7 +1145,6 @@ export default function AdminPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
 
-              {/* ── Integration Sources with tabbed filter ── */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
                   <div>
@@ -1197,7 +1157,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* ── Discovery Results Review ── */}
                 {(discoveryResults.slack.length > 0 || discoveryResults.jira.length > 0 || discoveryResults.github.length > 0) && (
                   <div style={{ background: 'var(--surface)', border: '1px solid var(--primary)', borderRadius: 12, padding: 24, marginBottom: 28 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -1213,9 +1172,7 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* Filter + Select All toolbar */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                      {/* Select All checkbox */}
                       {(() => {
                         const allFound = [
                           ...discoveryResults.slack.map((x: any) => ({ ...x, type: 'SLACK', key: `SLACK:${x.id}`, identifier: x.id })),
@@ -1249,7 +1206,6 @@ export default function AdminPage() {
                           </label>
                         );
                       })()}
-                      {/* Filter input */}
                       <div style={{ position: 'relative', flex: 1 }}>
                         <IconSearch size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} />
                         <input
@@ -1259,7 +1215,6 @@ export default function AdminPage() {
                           style={{ width: '100%', paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 12, color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
                         />
                       </div>
-                      {/* Type filter */}
                       <select
                         value={discoveryTypeFilter}
                         onChange={e => { setDiscoveryTypeFilter(e.target.value); setDiscoveryPage(1); }}
@@ -1364,7 +1319,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* ── Add Workspace Form (toggled) ── */}
                 {showAddWs && (
                   <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, marginBottom: 20, marginTop: 16 }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 18 }}>Add Workspace Manually</div>
@@ -1437,7 +1391,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Tabbed filter + Search */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
                   <div style={{ display: 'flex', gap: 4 }}>
                     {['ALL', 'SLACK', 'JIRA', 'GITHUB'].map(t => (
@@ -1504,19 +1457,15 @@ export default function AdminPage() {
                           <span key="c" style={{ fontFamily: 'monospace' }}>{d.chunkCount?.toLocaleString() ?? 0}</span>,
                           <span key="b" style={{ color: 'var(--muted)' }}>{d.tokenBudget?.toLocaleString() ?? '—'}/day</span>,
                           <div key="a" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {/* View */}
                             <button onClick={() => setViewWs(d)} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#4f46e5', display: 'flex' }}>
                               <IconEye size={17} />
                             </button>
-                            {/* Edit budget & layer */}
                             <button onClick={() => setEditWs(d)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d97706', display: 'flex' }}>
                               <IconEdit size={17} />
                             </button>
-                            {/* Copy ID */}
                             <button onClick={() => { navigator.clipboard?.writeText(d.identifier || d.identifier || d.id); showToast('Integration ID copied!'); }} title="Copy" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#16a34a', display: 'flex' }}>
                               <IconCopy size={17} />
                             </button>
-                            {/* Delete */}
                             {user?.role === 'ADMIN' && (
                               <button onClick={() => {
                                 setConfirmCfg({
@@ -1555,7 +1504,6 @@ export default function AdminPage() {
             </div>
           ))}
 
-          {/* ── LLM & RAG SETTINGS ── */}
           {section === 'llm' && (sectionLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
               <Spinner size={32} />
@@ -1587,7 +1535,6 @@ export default function AdminPage() {
           )))}
 
 
-          {/* ── TOKENS ── */}
           {section === 'tokens' && (sectionLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
               <Spinner size={32} />
@@ -1684,7 +1631,6 @@ export default function AdminPage() {
             })()}
           </>))}
 
-          {/* ── AUDIT ── */}
           {section === 'audit' && (
             <Panel title="Audit Log">
               {sectionLoading ? (
@@ -1710,7 +1656,6 @@ export default function AdminPage() {
             </Panel>
           )}
 
-          {/* ── PROFILE ── */}
           {section === 'profile' && <ProfileSection onBack={() => setSection('overview')} />}
           {section === 'docs' && (sectionLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
@@ -1731,7 +1676,6 @@ export default function AdminPage() {
               </div>
               
               <div style={{ display: 'flex', flex: 1, overflow: 'hidden', padding: '0 32px 32px', gap: 32 }}>
-                {/* Sidebar Navigation */}
                 <div style={{ 
                   width: 280, 
                   flexShrink: 0, 
@@ -1777,7 +1721,6 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {/* Content Area */}
                 <div style={{ 
                   flex: 1, 
                   background: 'var(--bg)', 
@@ -1846,13 +1789,11 @@ export default function AdminPage() {
                 <IconKnowledge size={22} /> Knowledge Base Ingestion
               </h2>
 
-              {/* Upload Card */}
               <div style={{
                 background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 24
               }}>
                 <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 16, marginTop: 0 }}>Upload Document</h3>
 
-                {/* Drag & Drop Zone */}
                 <div
                   onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                   onDragLeave={() => setIsDragging(false)}
@@ -1899,7 +1840,6 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                {/* Workspace selector + Upload button */}
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <label style={{ fontSize: 12, color: 'var(--ink-muted)', display: 'block', marginBottom: 6 }}>Target Team</label>
@@ -2004,7 +1944,6 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* Success result */}
                 {uploadResult && (
                   <div style={{
                     marginTop: 16,
@@ -2024,7 +1963,6 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* ── ON-DEMAND BULK INGESTION ── */}
               <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>On-Demand Ingestion</div>
@@ -2032,7 +1970,6 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 20 }}>
-                  {/* Team Selector */}
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Target Team</label>
                     <select
@@ -2048,7 +1985,6 @@ export default function AdminPage() {
                     </select>
                   </div>
 
-                  {/* Date Range Selector */}
                   <div style={{ display: 'flex', gap: 12 }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>From</label>
@@ -2070,7 +2006,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Workspace Multi-Selector */}
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Specific Workspaces (Optional)</label>
                     <div style={{ position: 'relative', marginBottom: 8 }}>
@@ -2131,7 +2066,6 @@ export default function AdminPage() {
               </div>
 
 
-              {/* Ingestion Event Log */}
               <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -2139,7 +2073,6 @@ export default function AdminPage() {
                     <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>{ingestionMeta?.total ?? 0} total events</span>
                   </div>
 
-                  {/* Filters */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <select
                       value={ingestFilterType}
@@ -2246,7 +2179,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* ── SETTINGS ── */}
           {section === 'settings' && (sectionLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80, width: '100%' }}>
               <Spinner size={32} />
@@ -2259,11 +2191,9 @@ export default function AdminPage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, alignItems: 'start' }}>
 
-              {/* ── Left: Settings Groups ── */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
 
-                {/* Security & Compliance Group */}
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
                     <IconAudit size={18} />
@@ -2298,7 +2228,6 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {/* Advanced Search & Retrieval Group */}
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
                     <IconSearch size={18} />
@@ -2308,7 +2237,6 @@ export default function AdminPage() {
                     </div>
                   </div>
                   
-                  {/* Hybrid Search */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(59,130,246,1)' }}><IconSearch size={16} /></div>
@@ -2328,7 +2256,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Top-K */}
                   <div style={{ borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -2357,7 +2284,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Min Score */}
                   <div style={{ borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -2386,7 +2312,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Intent Classification */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -2423,7 +2348,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Scheduled Ingestion Group */}
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
                     <IconRefresh size={18} />
@@ -2515,10 +2439,8 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* ── Right: Summary Panel ── */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 80 }}>
 
-                {/* System Health Card */}
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>System Health</div>
@@ -2559,7 +2481,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Tip card */}
                 <div style={{ background: 'rgba(var(--primary-rgb),0.05)', border: '1px solid rgba(var(--primary-rgb),0.15)', borderRadius: 16, padding: '16px 20px' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span>💡</span> Tip
@@ -2575,7 +2496,6 @@ export default function AdminPage() {
         </div>
       </main>
 
-      {/* ── VIEW TEAM MODAL ── */}
       {viewTeam && (
         <ViewTeamModal
           viewTeam={viewTeam}
@@ -2587,7 +2507,6 @@ export default function AdminPage() {
         />
       )}
 
-      {/* ── EDIT TEAM MODAL ── */}
       {editTeam && (
         <EditTeamModal
           editTeam={editTeam}
@@ -2599,7 +2518,6 @@ export default function AdminPage() {
           }}
         />
       )}
-      {/* ── VIEW WORKSPACE MODAL ── */}
       {viewWs && (
         <ViewWorkspaceModal
           viewWs={viewWs}
@@ -2611,7 +2529,6 @@ export default function AdminPage() {
         />
       )}
 
-      {/* ── EDIT WORKSPACE MODAL ── */}
       {editWs && (
         <EditWorkspaceModal
           editWs={editWs}
@@ -2628,7 +2545,6 @@ export default function AdminPage() {
           }}
         />
       )}
-      {/* ── NEW TEAM MODAL ── */}
       {showModal && (
         <CreateTeamModal
           onClose={() => setShowModal(false)}
@@ -2640,7 +2556,6 @@ export default function AdminPage() {
         />
       )}
 
-      {/* ── INVITE USER MODAL ── */}
       {showInviteModal && (
         <InviteUserModal
           teams={teams}
@@ -2650,7 +2565,6 @@ export default function AdminPage() {
         />
       )}
 
-      {/* ── ADD API KEY MODAL ── */}
       {addingKeyForProvider && (
         <AddApiKeyModal
           initialProvider={addingKeyForProvider}
@@ -2661,7 +2575,6 @@ export default function AdminPage() {
         />
       )}
 
-      {/* Notification Modal */}
       <NotificationModal 
         notification={notification} 
         onClose={() => setNotification(null)} 

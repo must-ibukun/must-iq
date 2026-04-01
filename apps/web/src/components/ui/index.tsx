@@ -3,7 +3,6 @@ import { ReactNode } from 'react';
 
 import { BADGE_STYLES, BadgeVariant } from '@must-iq-web/lib/constants/admin.constants';
 
-// ── BADGE ──────────────────────────────────────────────────────
 export function Badge({ 
   variant, children, className = '', style 
 }: { 
@@ -58,7 +57,6 @@ export function Button({
   );
 }
 
-// ── INPUT ──────────────────────────────────────────────────────
 // Pass `error` to show a red border + inline error text below the field.
 export function Input({
   error,
@@ -86,7 +84,6 @@ export function Input({
   );
 }
 
-// ── FORM FIELD ─────────────────────────────────────────────────
 // Convenience wrapper: label + input + inline error in one component.
 // Usage: <FormField label="Email" error={errors.email} type="email" ... />
 export function FormField({
@@ -113,7 +110,6 @@ export function FormField({
 }
 
 
-// ── TOGGLE ─────────────────────────────────────────────────────
 export function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <div
@@ -124,7 +120,6 @@ export function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) 
   );
 }
 
-// ── PROGRESS BAR ───────────────────────────────────────────────
 export function ProgressBar({ value, color = '#00d4ff' }: { value: number; color?: string }) {
   return (
     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border2)' }}>
@@ -132,7 +127,6 @@ export function ProgressBar({ value, color = '#00d4ff' }: { value: number; color
     </div>
   );
 }
-// ── PAGINATOR ──────────────────────────────────────────────────
 export function Paginator({ page, setPage, total }: { page: number; setPage: (n: number) => void; total: number }) {
   if (total <= 1) return null;
   return (
@@ -158,7 +152,6 @@ export function Paginator({ page, setPage, total }: { page: number; setPage: (n:
   );
 }
 
-// ── SPINNER ────────────────────────────────────────────────────
 export function Spinner({ size = 24, color = 'var(--primary)', className = '' }: { size?: number; color?: string; className?: string }) {
   return (
     <div className={`animate-spin rounded-full border-2 border-t-transparent ${className}`} 
@@ -166,6 +159,5 @@ export function Spinner({ size = 24, color = 'var(--primary)', className = '' }:
   );
 }
 
-// ── MUST ICONS (Brand SVG library) ─────────────────────────────
 export * from './MustIcons';
 export * from './ConfirmModal';

@@ -32,7 +32,6 @@ export class IntegrationsService {
         const event = payload.event;
         if (!event) return { success: true };
 
-        // ── app_mention: @must-iq was mentioned in a thread/channel ──
         if (event.type === 'app_mention') {
             // Run async so Slack's 3-second ack deadline is met
             this.handleAppMention(event).catch(err =>
@@ -216,8 +215,4 @@ export class IntegrationsService {
         return null;
     }
 
-    /**
-     * Handle GitHub Webhook
-     * e.g. PR merged
-     */
 }

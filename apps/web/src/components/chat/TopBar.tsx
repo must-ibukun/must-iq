@@ -38,14 +38,12 @@ function TopBarContent({ title }: { title: string }) {
       className="flex-shrink-0 h-[52px] flex items-center px-6 gap-3 border-b"
       style={{ borderColor: 'var(--border)', background: 'var(--bg)', backdropFilter: 'blur(10px)' }}
     >
-      {/* Title */}
       <div className="flex-1 min-w-0 flex items-baseline gap-2">
         <span style={{ fontFamily: '"DM Serif Display",Georgia,serif', fontSize: 15, color: 'var(--ink)' }} className="truncate">
           {title}
         </span>
       </div>
 
-      {/* Scope pills */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <span className="text-[10px]" style={{ color: 'var(--muted)' }}>Scope:</span>
         {displayTeams.map((team) => (
@@ -91,7 +89,6 @@ function TopBarContent({ title }: { title: string }) {
         </button>
       )}
 
-      {/* Dark mode toggle */}
       {mounted && (
         <button
           onClick={() => setTheme(isDark ? 'light' : 'dark')}

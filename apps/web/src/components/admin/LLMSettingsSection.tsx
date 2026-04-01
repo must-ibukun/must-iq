@@ -54,7 +54,6 @@ export function LLMSettingsSection({
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
 
-      {/* RAG Settings */}
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Retrieval-Augmented Generation</div>
@@ -72,7 +71,6 @@ export function LLMSettingsSection({
           Enable advanced agentic reasoning (Deep Search) for complex queries. This allows the AI to perform multiple search steps and reason more deeply about the results.
         </div>
 
-        {/* HyDE Query Expansion */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(139,92,246,1)' }}>
@@ -89,7 +87,6 @@ export function LLMSettingsSection({
           </div>
         </div>
 
-        {/* Cross-Encoder Reranking */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(245,158,11,1)' }}>
@@ -230,7 +227,6 @@ export function LLMSettingsSection({
 
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
-            {/* Temperature */}
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Temperature</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Controls randomness: 0 is focused, 1 is creative</div>
@@ -248,7 +244,6 @@ export function LLMSettingsSection({
               </div>
             </div>
 
-            {/* Max Output Tokens */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Max Output Tokens</div>
@@ -277,7 +272,6 @@ export function LLMSettingsSection({
               )}
             </div>
 
-            {/* Context Token Budget */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Context Token Budget</div>
@@ -312,7 +306,6 @@ export function LLMSettingsSection({
         </Button>
       </div>
 
-      {/* Providers Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16 }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>AI Provider</div>
@@ -325,7 +318,6 @@ export function LLMSettingsSection({
         </Button>
       </div>
 
-      {/* Active Provider Summary */}
       {llmSettings?.provider && (
         <div style={{
           background: 'var(--surface)',
@@ -360,7 +352,6 @@ export function LLMSettingsSection({
         </div>
       )}
 
-      {/* Provider Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
         {AI_PROVIDERS.map((p) => {
           const isCurrentSystemProvider = llmSettings?.provider?.toLowerCase() === p.id;
@@ -380,7 +371,6 @@ export function LLMSettingsSection({
         })}
       </div>
 
-      {/* API Keys Table */}
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <Table headers={['PROVIDER', 'LABEL', 'API KEY', 'MODEL', 'STATUS', 'ACTIONS']} rows={
           (Array.isArray(llmSettings?.apiKeys) ? llmSettings.apiKeys : [])

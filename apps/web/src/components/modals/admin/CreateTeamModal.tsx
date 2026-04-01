@@ -122,7 +122,6 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
 
         <div style={{ padding: 24, maxHeight: '75vh', overflowY: 'auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
-            {/* Team Info */}
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Team Name *</label>
               <input value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="Payments API Enhancement" style={{ width: '100%', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, color: 'var(--ink)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
@@ -135,7 +134,6 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
 
             <hr style={{ border: '0 none', borderTop: '1px solid var(--border)', margin: '10px 0' }} />
 
-            {/* Integrations */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--muted)' }}>Integrations</label>
               <Button variant="ghost" size="sm" onClick={onDiscover} disabled={isDiscovering} style={{ fontSize: 10, padding: '4px 8px' }}>
@@ -144,7 +142,6 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Slack */}
               <div ref={slackRef} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, position: 'relative', zIndex: 30 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: newTeamSlackEnabled ? 12 : 0 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>
@@ -196,7 +193,6 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
                 )}
               </div>
 
-              {/* Jira */}
               <div ref={jiraRef} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, position: 'relative', zIndex: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: newTeamJiraEnabled ? 12 : 0 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>
@@ -248,7 +244,6 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
                 )}
               </div>
 
-              {/* GitHub */}
               <div ref={githubRef} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, position: 'relative', zIndex: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: newTeamGithubEnabled ? 12 : 0 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>

@@ -93,7 +93,6 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
         style={{ background: 'var(--card)', border: '1px solid var(--border-2)' }}
         onFocus={() => { }}
       >
-        {/* Image Preview Area */}
         {image && (
           <div className="px-4 pt-3 pb-1 border-b relative" style={{ borderColor: 'var(--border-2)' }}>
             <div className="relative inline-block group">
@@ -108,7 +107,6 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
           </div>
         )}
 
-        {/* Textarea row */}
         <div className="flex items-end">
           <textarea
             ref={textareaRef}
@@ -121,7 +119,6 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
             className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed px-4 py-3.5"
             style={{ color: 'var(--ink)', minHeight: 52, maxHeight: 180, fontFamily: 'Geist,system-ui,sans-serif' }}
           />
-          {/* Action icons */}
           <div className="flex items-center gap-1.5 px-3 py-2.5">
             <input 
               type="file" 
@@ -153,19 +150,16 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
           </div>
         </div>
 
-        {/* Footer row */}
         <div
           className="flex items-center justify-between px-3.5 py-2 border-t"
           style={{ borderColor: 'var(--border)' }}
         >
-          {/* Scope + Mode */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 px-1 truncate max-w-[200px]">
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--primary)', boxShadow: '0 0 8px var(--primary)' }} />
               <span className="text-[10.5px] font-medium tracking-wide uppercase opacity-70 truncate" style={{ color: 'var(--ink)' }}>{scopeLabel}</span>
             </div>
 
-            {/* Mode toggle (Premium Sliding Version) */}
             <div 
               className="relative flex items-center p-1 rounded-lg" 
               style={{ 
@@ -174,7 +168,6 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
                 minWidth: '220px'
               }}
             >
-              {/* Sliding Highlight */}
               <div 
                 className="absolute top-1 bottom-1 transition-all duration-300 ease-out rounded-md"
                 style={{ 
@@ -207,7 +200,6 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
             </div>
           </div>
 
-          {/* Char count */}
           <span className="text-[10px] font-mono" style={{ color: 'var(--muted)' }}>
             {value.length} / 4000
           </span>
