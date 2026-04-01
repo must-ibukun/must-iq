@@ -44,7 +44,7 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
     }
   }, [user?.id]);
 
-  // Auto-resize
+
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -70,7 +70,7 @@ export function InputBar({ value, onChange, onSubmit, disabled }: InputBarProps)
   const handleFinalSubmit = () => {
     if (disabled || (!value.trim() && !image)) return;
     
-    // Call original onSubmit
+
     onSubmit(image);
     setImage(null);
 

@@ -20,8 +20,8 @@ function TopBarContent({ title }: { title: string }) {
 
   const isDark = resolvedTheme === 'dark';
   
-  // Map IDs to names and colors
-  // Only compute and show if mounted
+
+
   const resolvedTeams = mounted ? selectedTeams.map(id => {
     if (id === 'general') return { id, name: 'General', color: 'var(--primary)' };
     const team = availableTeams.find(t => t.id === id);

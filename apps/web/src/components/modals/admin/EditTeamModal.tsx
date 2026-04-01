@@ -22,7 +22,7 @@ export function EditTeamModal({ editTeam, availableWorkspaces, onClose, showToas
   const [editTeamJiraSearch, setEditTeamJiraSearch] = useState('');
   const [editTeamSaving, setEditTeamSaving] = useState(false);
 
-  // Initialize state based on the team being edited
+
   useEffect(() => {
     if (editTeam) {
       setEditTeamName(editTeam.name || '');

@@ -29,7 +29,7 @@ export function Sidebar() {
 
   const pct = Math.round((tokenUsage.used / tokenUsage.limit) * 100);
 
-  // Paginated sessions
+
   const paginatedSessions = sessions.slice((sessionPage - 1) * 10, sessionPage * 10);
   const totalSessionPages = Math.ceil(sessions.length / 10);
 

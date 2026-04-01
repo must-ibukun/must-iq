@@ -24,7 +24,6 @@ export default function GlobalError({
                 }}
             >
                 <div style={{ maxWidth: 400 }}>
-                    {/* SVG Illustration */}
                     <svg
                         width="160"
                         height="160"
@@ -33,11 +32,8 @@ export default function GlobalError({
                         xmlns="http://www.w3.org/2000/svg"
                         style={{ marginBottom: 32, opacity: 0.9 }}
                     >
-                        {/* Outer glow ring */}
                         <circle cx="80" cy="80" r="72" stroke="#ff4d6d" strokeWidth="1" strokeDasharray="6 4" opacity="0.3" />
-                        {/* Inner circle */}
                         <circle cx="80" cy="80" r="54" fill="#0c1220" stroke="#1d2b42" strokeWidth="1.5" />
-                        {/* Warning triangle */}
                         <path
                             d="M80 46 L108 98 L52 98 Z"
                             stroke="#ff4d6d"
@@ -45,11 +41,8 @@ export default function GlobalError({
                             fill="none"
                             strokeLinejoin="round"
                         />
-                        {/* exclamation line */}
                         <line x1="80" y1="62" x2="80" y2="78" stroke="#ff4d6d" strokeWidth="3.5" strokeLinecap="round" />
-                        {/* exclamation dot */}
                         <circle cx="80" cy="86" r="2.5" fill="#ff4d6d" />
-                        {/* Small decorative dots */}
                         <circle cx="30" cy="50" r="2.5" fill="#ff4d6d" opacity="0.3" />
                         <circle cx="130" cy="108" r="2" fill="#9d6fff" opacity="0.4" />
                         <circle cx="120" cy="38" r="3" fill="#ff4d6d" opacity="0.2" />

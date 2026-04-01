@@ -30,12 +30,12 @@ export function CreateTeamModal({ onClose, availableWorkspaces, isDiscovering, o
 
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
 
-  // Refs for click-outside detection
+
   const slackRef = useRef<HTMLDivElement>(null);
   const jiraRef = useRef<HTMLDivElement>(null);
   const githubRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns on outside click
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (openDropdown === 'slack' && slackRef.current && !slackRef.current.contains(event.target as Node)) {

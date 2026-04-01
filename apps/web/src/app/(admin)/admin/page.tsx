@@ -70,7 +70,7 @@ const Mermaid = ({ chart }: { chart: string }) => {
         setError(null);
       } catch (err) {
         console.error('Mermaid render error:', err);
-        setError(chart); // fallback to showing the code if it fails
+        setError(chart);
       }
     };
     renderChart();
@@ -123,7 +123,7 @@ export default function AdminPage() {
   const [ingestionData, setIngestionData] = useState<IngestionEvent[]>([]);
   const [ingestionMeta, setIngestionMeta] = useState<PaginatedResponse<IngestionEvent>['meta'] | null>(null);
   const [ingestionPage, setIngestionPage] = useState(1);
-  // Upload state
+
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTeamId, setUploadTeamId] = useState<string>('all');
   const [uploadWorkspace, setUploadWorkspace] = useState('vault-v2');
@@ -145,7 +145,7 @@ export default function AdminPage() {
   const [editUserBudget, setEditUserBudget] = useState('');
   const [editUserActive, setEditUserActive] = useState(true);
   const [isSavingUser, setIsSavingUser] = useState(false);
-  const [isSavingUserRef, setIsSavingUserRef] = useState(false); // To avoid conflict with isSavingUser which was for teams
+  const [isSavingUserRef, setIsSavingUserRef] = useState(false);
   const [isSyncingSources, setIsSyncingSources] = useState(false);
 
   const [ingestWsIds, setIngestWsIds] = useState<string[]>([]);
@@ -156,7 +156,7 @@ export default function AdminPage() {
   const [ingestFilterStart, setIngestFilterStart] = useState('');
   const [ingestFilterEnd, setIngestFilterEnd] = useState('');
 
-  const [ingestTeamId, setIngestTeamId] = useState<string>(''); // Initialized in useEffect
+  const [ingestTeamId, setIngestTeamId] = useState<string>('');
 
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamOwner, setNewTeamOwner] = useState('');
@@ -192,7 +192,7 @@ export default function AdminPage() {
   const [newWsTechStack, setNewWsTechStack] = useState('');
   const [workspaceIds, setWorkspaceIds] = useState<string[]>([]);
 
-  // Search states for dropdowns
+
   const [ingestSearch, setIngestSearch] = useState('');
   const [userTeamSearch, setUserTeamSearch] = useState('');
   const [workspaceSearch, setWorkspaceSearch] = useState('');
@@ -218,7 +218,7 @@ export default function AdminPage() {
     setSectionLoading(true);
     const loaders: Record<string, () => Promise<void>> = {
       overview: async () => { const d = await getStats(); setStats(d); },
-      // Paginated endpoints — unwrap .data from Pagination<T>
+
       users: async () => {
         const [d, teamsData] = await Promise.all([getUsers(), getTeams()]);
         setUsers(d?.data ?? []);
@@ -269,7 +269,7 @@ export default function AdminPage() {
         setIngestionMeta(d?.meta ?? null);
         setTeams(fetchedTeams);
         setGroupedWorkspaces(allWs);
-        // Ensure ingestTeamId is set to first team if empty
+
         if (fetchedTeams.length > 0) {
           setIngestTeamId(prev => prev || fetchedTeams[0].id);
         }
@@ -331,7 +331,7 @@ export default function AdminPage() {
       await saveLLMSettings(payload);
 
       if (!silentSave) {
-        // Only re-fetch when needed (e.g. adding a brand new key)
+
         const refreshed = await getLLMSettings();
         setLlmSettings(refreshed);
       }
@@ -339,7 +339,7 @@ export default function AdminPage() {
       showToast('✓ LLM settings saved');
     } catch (e: any) {
       showToast(`Error: ${e?.response?.data?.message ?? 'Could not save settings'}`);
-      // Revert to last known good state on failure
+
       const reverted = await getLLMSettings();
       setLlmSettings(reverted);
     } finally {
@@ -431,7 +431,7 @@ export default function AdminPage() {
       await updateUserTeams(teamEditTarget.id, teamEditDraft);
       showToast('✓ Teams updated successfully');
       setTeamEditTarget(null);
-      // Refresh users
+
       const res = await getUsers();
       setUsers(res.data);
     } catch (err: any) {
@@ -585,7 +585,7 @@ export default function AdminPage() {
       
       showToast(`✓ ${type} source added`);
       
-      // Remove from discovery results state
+
       setDiscoveryResults((prev: any) => {
         const updated = { ...prev };
         if (type === 'SLACK') updated.slack = updated.slack.filter((x: any) => x.id !== identifier);
@@ -594,7 +594,7 @@ export default function AdminPage() {
         return updated;
       });
 
-      // Refresh active workspaces
+
       const d = await getWorkspacesGrouped();
       setGroupedWorkspaces(d);
     } catch (e) {
@@ -616,11 +616,11 @@ export default function AdminPage() {
         techStack: newWsTechStack.trim() || undefined
       });
       showToast('✓ Workspace added manually');
-      // setShowAddWs(false); // Keep the form visible as requested
+
       setNewWsId('');
       setNewWsBudget('');
       setNewWsTechStack('');
-      // Refresh
+
       const d = await getWorkspacesGrouped();
       setGroupedWorkspaces(d);
     } catch (e) {
@@ -652,7 +652,7 @@ export default function AdminPage() {
       };
       await bulkIngest(payload);
       showToast('✓ Ingestion triggered');
-      // Refresh ingestion events after a short delay
+
       setTimeout(async () => {
         const d = await getIngestionEvents({ page: 1, size: 20 });
         setIngestionData(d?.data ?? []);

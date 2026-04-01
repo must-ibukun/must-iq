@@ -68,7 +68,7 @@ export default function ChatPage() {
     let localImageId: string | undefined = undefined;
     let serverImageUrl: string | null = null;
     
-    // Process image: cache locally, upload binary to server
+
     if (image) {
       localImageId = crypto.randomUUID();
       saveLocalImage(localImageId, image).catch(console.error);
@@ -85,7 +85,7 @@ export default function ChatPage() {
       }
     }
 
-    // Fallback text if user sends only an image
+
     const displayMessage = text || 'Please analyze this screenshot.';
     addUserMessage(displayMessage, localImageId);
     addAssistantMessage('');
@@ -98,7 +98,7 @@ export default function ChatPage() {
         ...new Set([
           // 'general' + 'vault-v2' are the Global Knowledge Base — only include if user selected them
           ...(selectedTeams.includes('general') ? ['general', 'vault-v2'] : []),
-          // Expand each selected team into its workspace identifiers
+
           ...selectedTeams
             .filter(id => id !== 'general')
             .flatMap(teamId => {
@@ -127,14 +127,14 @@ export default function ChatPage() {
             } else if (p.thought) {
                 setThought(p.thought);
             } else if (p.chunk) {
-                setThought(null); // Clear thought when first real content arrives
+                setThought(null);
                 updateLastAssistantMessage(p.chunk);
             }
             
-            // Early sessionId handling
+
             if (p.sessionId && p.sessionId !== finalSessionId) {
                 finalSessionId = p.sessionId;
-                useChatStore.getState().refreshSessions(); // Update sidebar immediately
+                useChatStore.getState().refreshSessions();
             }
             
             if (p.sources) finishStream(p.sources as Source[], undefined, finalSessionId || undefined);
