@@ -93,7 +93,7 @@ export default function AdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [notification, setNotification] = useState<NotificationModalContent | null>(null);
-  const [systemSettings, setSystemSettings] = useState({ audit: true, piiMasking: false });
+  const [systemSettings, setSystemSettings] = useState<any>({ audit: true, piiMasking: false, emailProvider: 'smtp' });
   const [isSavingSystem, setIsSavingSystem] = useState(false);
   const [discoveryResults, setDiscoveryResults] = useState<any>({ jira: [], slack: [], github: [] });
   const [discoveredGuesses, setDiscoveredGuesses] = useState<Record<string, string>>({});
@@ -2222,10 +2222,35 @@ export default function AdminPage() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                         {systemSettings[key as keyof typeof systemSettings] && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(var(--primary-rgb),0.1)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>ACTIVE</span>}
-                        <Toggle on={Boolean(systemSettings[key as keyof typeof systemSettings])} onToggle={() => setSystemSettings(t => ({ ...t, [key]: !t[key as keyof typeof t] }))} />
+                        <Toggle on={Boolean(systemSettings[key as keyof typeof systemSettings])} onToggle={() => setSystemSettings((t: any) => ({ ...t, [key]: !t[key as keyof typeof t] }))} />
                       </div>
                     </div>
                   ))}
+                </div>
+
+                <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+                    <IconZap size={18} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Email Delivery Provider</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Toggle between traditional SMTP or direct API HTTP integrations</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(59,130,246,1)' }}>@</div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Send Emails via API</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Enabled: HTTP post to generic API provider.<br/>Disabled: Standard nodemailer SMTP delivery.</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: systemSettings.emailProvider === 'api' ? 'var(--primary)' : 'var(--muted)', background: systemSettings.emailProvider === 'api' ? 'rgba(var(--primary-rgb),0.1)' : 'var(--surface)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.05em' }}>{systemSettings.emailProvider === 'api' ? 'API ACTIVE' : 'SMTP ACTIVE'}</span>
+                      <Toggle on={systemSettings.emailProvider === 'api'} onToggle={() => setSystemSettings((t: any) => ({ ...t, emailProvider: t.emailProvider === 'api' ? 'smtp' : 'api' }))} />
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
