@@ -191,6 +191,23 @@ export class AdminService {
         return convertPrismaModelToIInterface<AdminUser>(user as any);
     }
 
+    async deleteUser(id: string) {
+        const item = await this.prisma.user.findUnique({ where: { id } });
+        if (!item) return { success: false, message: 'User not found' };
+
+        await this.prisma.user.delete({ where: { id } });
+
+        await this.prisma.auditLog.create({
+            data: {
+                action: 'admin.user_deleted',
+                userId: id,
+                metadata: { email: item.email }
+            }
+        });
+
+        return { success: true };
+    }
+
     async updateUserTeams(id: string, teamIds: string[], requester: RequestUser) {
         const isManager = requester.role === 'MANAGER';
         const requesterTeamIds = requester.teamIds || [];

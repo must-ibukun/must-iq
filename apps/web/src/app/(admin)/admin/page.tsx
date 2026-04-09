@@ -20,7 +20,7 @@ import { EditTeamModal } from '@must-iq-web/components/modals/admin/EditTeamModa
 import { ViewWorkspaceModal } from '@must-iq-web/components/modals/admin/ViewWorkspaceModal';
 import { EditWorkspaceModal } from '@must-iq-web/components/modals/admin/EditWorkspaceModal';
 import { TechStackPicker, TechStackDropdown } from '@must-iq-web/components/admin/TechStackPicker';
-import { getUsers, inviteUser, updateUser, updateUserTeams } from '@must-iq-web/lib/api/admin/users';
+import { getUsers, inviteUser, updateUser, updateUserTeams, deleteUser } from '@must-iq-web/lib/api/admin/users';
 import { getTokenUsage } from '@must-iq-web/lib/api/admin/tokens';
 import { getAuditLog } from '@must-iq-web/lib/api/admin/audit';
 import { getWorkspacesGrouped, getAvailableWorkspaces, bulkSyncWorkspaces, updateWorkspace, deleteWorkspace, createWorkspace } from '@must-iq-web/lib/api/admin/workspaces';
@@ -952,6 +952,27 @@ export default function AdminPage() {
                           <div key="a" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <button onClick={() => handleEditUser(u)} title="Edit Details" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d97706', display: 'flex' }}>
                               <IconEdit size={17} />
+                            </button>
+                            <button 
+                              onClick={async () => {
+                                if (confirm(`Are you sure you want to delete user ${u.name}?`)) {
+                                  try {
+                                    setIsSavingUser(true);
+                                    await deleteUser(u.id);
+                                    const res = await getUsers();
+                                    setUsers(res.data);
+                                    showToast('✓ User deleted successfully');
+                                  } catch (e: any) {
+                                    showToast('× Failed to delete user: ' + (e.response?.data?.message || e.message));
+                                  } finally {
+                                    setIsSavingUser(false);
+                                  }
+                                }
+                              }}
+                              title="Delete User"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--red)', display: 'flex' }}
+                            >
+                              <IconTrash size={17} />
                             </button>
                           </div>
                         ];
