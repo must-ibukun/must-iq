@@ -1,6 +1,6 @@
 # Must-IQ: Full-Stack AI Flow
 
-![Architecture Overview](image/ai_ingestion_flow/design.png)
+![Architecture Overview](/image/ai_ingestion_flow/design.png)
 
 The interaction between the user interface, the backend, and the AI ingestion process follows a structured **RAG (Retrieval-Augmented Generation)** architecture. This ensures a seamless, streaming chat experience backed by internal company knowledge, scoped to the user's **assigned teams and their associated workspaces**. Jira workspaces are uniquely shareable across multiple teams.
 
