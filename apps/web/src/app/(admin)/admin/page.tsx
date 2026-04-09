@@ -954,20 +954,27 @@ export default function AdminPage() {
                               <IconEdit size={17} />
                             </button>
                             <button 
-                              onClick={async () => {
-                                if (confirm(`Are you sure you want to delete user ${u.name}?`)) {
-                                  try {
-                                    setIsSavingUser(true);
-                                    await deleteUser(u.id);
-                                    const res = await getUsers();
-                                    setUsers(res.data);
-                                    showToast('✓ User deleted successfully');
-                                  } catch (e: any) {
-                                    showToast('× Failed to delete user: ' + (e.response?.data?.message || e.message));
-                                  } finally {
-                                    setIsSavingUser(false);
+                              onClick={() => {
+                                setConfirmCfg({
+                                  open: true,
+                                  title: 'Delete User',
+                                  message: `Are you sure you want to delete user "${u.name}"? This action cannot be undone and will remove all their associated data (sessions, history, etc.).`,
+                                  variant: 'danger',
+                                  isLoading: false,
+                                  onConfirm: async () => {
+                                    setConfirmCfg(prev => ({ ...prev, isLoading: true }));
+                                    try {
+                                      await deleteUser(u.id);
+                                      const res = await getUsers();
+                                      setUsers(res?.data ?? []);
+                                      showToast(`✓ User "${u.name}" deleted`);
+                                    } catch (e: any) {
+                                      showToast('× Failed to delete user: ' + (e.response?.data?.message || e.message));
+                                    } finally {
+                                      setConfirmCfg(prev => ({ ...prev, open: false, isLoading: false }));
+                                    }
                                   }
-                                }
+                                });
                               }}
                               title="Delete User"
                               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--red)', display: 'flex' }}

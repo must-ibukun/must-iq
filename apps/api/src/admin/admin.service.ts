@@ -191,19 +191,25 @@ export class AdminService {
         return convertPrismaModelToIInterface<AdminUser>(user as any);
     }
 
-    async deleteUser(id: string) {
+    async deleteUser(id: string, requester: RequestUser) {
         const item = await this.prisma.user.findUnique({ where: { id } });
         if (!item) return { success: false, message: 'User not found' };
 
-        await this.prisma.user.delete({ where: { id } });
-
+        // Create audit log BEFORE deletion so the foreign key is valid
+        // Deleting the user will subsequently set this userId to NULL (due to onDelete: SetNull)
         await this.prisma.auditLog.create({
             data: {
                 action: 'admin.user_deleted',
                 userId: id,
-                metadata: { email: item.email }
+                metadata: { 
+                    email: item.email,
+                    deletedBy: requester.sub,
+                    deletedByName: (requester as any).name
+                }
             }
         });
+
+        await this.prisma.user.delete({ where: { id } });
 
         return { success: true };
     }

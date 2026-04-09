@@ -63,8 +63,8 @@ export class AdminController {
     @Roles('ADMIN', 'MANAGER')
     @HttpCode(HttpStatus.OK)
     @Delete('users/:id')
-    deleteUser(@Param('id') id: string) {
-        return this.adminService.deleteUser(id);
+    deleteUser(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+        return this.adminService.deleteUser(id, req.user as any);
     }
 
     @Get('tokens/usage')

@@ -23,9 +23,9 @@ export class MailService {
     }): Promise<void> {
         try {
             const html = await this.templateService.renderTemplate(data.template, data.context);
-            
+
             const settings = await getSystemSettings();
-            
+
             if (settings.emailProvider === 'api') {
                 await this.sendViaApi({
                     to: data.to,
@@ -45,7 +45,7 @@ export class MailService {
     async sendViaApi(data: { to: string; subject: string; html: string }): Promise<void> {
         const url = this.configService.get<string>('PROVIDER_URL') || process.env.PROVIDER_URL;
         const apiKey = this.configService.get<string>('PROVIDER_API_KEY') || process.env.PROVIDER_API_KEY;
-        const from = this.configService.get<string>('SMTP_FROM_EMAIL', 'noreply@mustiq.com');
+        const from = this.configService.get<string>('SMTP_FROM_EMAIL', 'admin@libertychristiancentre.online');
 
         if (!url || !apiKey) {
             throw new Error("Email API configuration missing (PROVIDER_URL or PROVIDER_API_KEY)");
