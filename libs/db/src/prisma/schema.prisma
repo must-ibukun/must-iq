@@ -109,7 +109,7 @@ model Message {
 model TokenLog {
   id              String      @id @default(cuid())
   userId          String
-  user            User        @relation(fields: [userId], references: [id])
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionId       String
   session         ChatSession @relation(fields: [sessionId], references: [id])
   queryTokens     Int
