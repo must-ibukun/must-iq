@@ -20,3 +20,8 @@ export const updateUserTeams = async (id: string, teamIds: string[]) => {
     const res = await apiClient.post<any>(API_ENDPOINTS.admin.updateUserTeams(id), { teamIds });
     return res.data;
 };
+
+export const deleteUser = async (id: string) => {
+    const res = await apiClient.delete<any>(`${API_ENDPOINTS.admin.users}/${id}`);
+    return res.data;
+};

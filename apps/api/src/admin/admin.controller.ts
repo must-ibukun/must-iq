@@ -60,6 +60,13 @@ export class AdminController {
         return this.adminService.updateUserTeams(id, body.teamIds, req.user as any);
     }
 
+    @Roles('ADMIN', 'MANAGER')
+    @HttpCode(HttpStatus.OK)
+    @Delete('users/:id')
+    deleteUser(@Param('id') id: string) {
+        return this.adminService.deleteUser(id);
+    }
+
     @Get('tokens/usage')
     @Roles('ADMIN', 'MANAGER')
     getTokenUsage(@Req() req: AuthenticatedRequest) {
