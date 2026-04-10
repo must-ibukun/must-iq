@@ -1,8 +1,8 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { prisma } from "@must-iq/db";
-import { IngestionSourceType } from "@must-iq/shared-types";
-import { getActiveSettings, createUtilityLLM } from "@must-iq/config";
-import { ingestDocument } from "./ingest";
+import { IngestionSourceType, ALLOWED_FILE_EXTENSIONS, CODE_EXTENSIONS } from '@must-iq/shared-types';
+import { getActiveSettings, createUtilityLLM } from '@must-iq/config';
+import { ingestDocument, normalizeSourcePath } from './ingest';
 import { INGESTION_ANALYSIS_PROMPT, SOURCE_ANALYSIS_PROMPTS } from "../prompts/ingestion-analysis.prompt";
 
 /**
@@ -120,25 +120,34 @@ export async function pullSlackData(channelId: string, workspace: string, projec
 }
 
 /**
- * Pull GitHub PRs
+ * Pull GitHub PRs — Full-Content File Ingestion
+ *
+ * Strategy:
+ *  1. Fetch merged PRs for the repo.
+ *  2. For each PR, fetch the list of changed files (up to 50).
+ *  3. For each supported file, fetch its FULL content (not the diff).
+ *  4. Atomically replace the existing document in the vector store if content has changed.
+ *  5. Additionally ingest the PR description as an additive knowledge record.
  */
+const MAX_FILES_PER_PR = 50;
+
 export async function pullRepoPRs(repo: string, workspace: string, projectId?: string, startDate?: Date, endDate?: Date) {
     const settings = await getActiveSettings();
     if (!settings.repoIngestionEnabled || !settings.githubToken) {
-        console.log("GitHub ingestion is disabled or token is missing.");
+        console.log('GitHub ingestion is disabled or token is missing.');
         return;
     }
 
-    const res = await fetch(`https://api.github.com/repos/${repo}/pulls?state=closed&per_page=20`, {
-        headers: {
-            Authorization: `Bearer ${settings.githubToken}`,
-            Accept: "application/vnd.github+json",
-        },
-    });
+    const headers = {
+        Authorization: `Bearer ${settings.githubToken}`,
+        Accept: 'application/vnd.github+json',
+    };
+
+    const res = await fetch(`https://api.github.com/repos/${repo}/pulls?state=closed&per_page=20`, { headers });
     const prs = await res.json();
 
     if (!Array.isArray(prs)) {
-        console.error("GitHub API error or invalid repo format.");
+        console.error('GitHub API error or invalid repo format.');
         return;
     }
 
@@ -149,8 +158,70 @@ export async function pullRepoPRs(repo: string, workspace: string, projectId?: s
         if (startDate && mergedDate < startDate) continue;
         if (endDate && mergedDate > endDate) continue;
 
-        const content = `Title: ${pr.title}\nDescription: ${pr.body}\nAuthor: ${pr.user?.login}`;
-        await processAndIngest(content, "github", repo, workspace, projectId);
+        const prDescription = `Title: ${pr.title}\nDescription: ${pr.body ?? ''}\nAuthor: ${pr.user?.login}`;
+        await processAndIngest(prDescription, 'github', repo, workspace, projectId);
+
+        const repoShortName = repo.split('/').pop() ?? repo;
+        const filesRes = await fetch(
+            `https://api.github.com/repos/${repo}/pulls/${pr.number}/files?per_page=${MAX_FILES_PER_PR}`,
+            { headers },
+        );
+        const prFiles: any[] = await filesRes.json();
+
+        if (!Array.isArray(prFiles)) {
+            console.warn(`Could not fetch files for PR #${pr.number}.`);
+            continue;
+        }
+
+        const supportedFiles = prFiles.filter((f: any) => {
+            if (f.status === 'removed') return false;
+            const ext = f.filename ? `.${f.filename.split('.').pop()?.toLowerCase()}` : '';
+            return ALLOWED_FILE_EXTENSIONS.includes(ext);
+        });
+
+        console.log(`PR #${pr.number}: ${supportedFiles.length} supported files to ingest (capped at ${MAX_FILES_PER_PR}).`);
+
+        for (const file of supportedFiles) {
+            try {
+                const contentRes = await fetch(file.raw_url, { headers });
+                if (!contentRes.ok) {
+                    console.warn(`Could not fetch content for ${file.filename} (${contentRes.status}). Skipping.`);
+                    continue;
+                }
+                const fileContent = await contentRes.text();
+
+                if (!fileContent || fileContent.trim().length === 0) continue;
+
+                const ext = `.${file.filename.split('.').pop()?.toLowerCase()}`;
+                const langId = CODE_EXTENSIONS[ext] as string | undefined;
+                const wsRecord = await prisma.workspace.findFirst({
+                    where: { OR: [{ id: workspace }, { identifier: workspace }] },
+                });
+                const layer = wsRecord?.layer || 'code';
+                const techStack = wsRecord?.techStack || null;
+
+                await ingestDocument({
+                    content: fileContent,
+                    metadata: {
+                        source: `${repoShortName}/${file.filename}`,
+                        workspace,
+                        projectId,
+                        source_type: 'github',
+                        layer,
+                        techStack,
+                        pr_number: pr.number,
+                        pr_title: pr.title,
+                        sha: pr.merge_commit_sha,
+                        ingested_at: new Date().toISOString(),
+                        tags: ['github', 'code', ext.replace('.', '')],
+                    },
+                    language: langId,
+                });
+
+            } catch (err: any) {
+                console.error(`Failed to ingest file ${file.filename} from PR #${pr.number}: ${err.message}`);
+            }
+        }
     }
 }
 

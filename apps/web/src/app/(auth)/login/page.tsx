@@ -46,6 +46,10 @@ export default function LoginPage() {
       document.cookie = `must-iq-token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `must-iq-role=${user.role}; path=/; max-age=${maxAge}; SameSite=Lax`;
 
+      if (user.mustChangePassword) {
+        document.cookie = `must-iq-force-change=true; path=/; max-age=${maxAge}; SameSite=Lax`;
+      }
+
       setSuccess(true);
       setTimeout(() => {
         if (user.mustChangePassword) {
@@ -90,7 +94,7 @@ export default function LoginPage() {
             </div>
             <div style={{ fontFamily: '"DM Serif Display",Georgia,serif', fontSize: 26, color: 'var(--ink)' }}>must<span style={{ color: 'var(--primary)' }}>-iq</span></div>
           </Link>
-          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>Must Company Internal AI Platform</div>
+          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>Internal AI Platform</div>
         </div>
 
         {/* Card */}
@@ -154,7 +158,7 @@ export default function LoginPage() {
           </div>
 
           <button style={{ width: '100%', padding: '11px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 9, color: 'var(--ink)', fontSize: 13.5, fontFamily: 'Geist,system-ui,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            🏢 Sign in with Must Company SSO
+            🏢 Sign in with Enterprise SSO
           </button>
 
           <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'center', gap: 16 }}>
@@ -167,7 +171,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'var(--muted)' }}>
-          Need access? <a href="mailto:platform@mustcompany.com" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Contact the platform team</a>
+          Need access? <a href="mailto:platform@must-iq.local" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Contact the platform team</a>
         </div>
       </div>
 

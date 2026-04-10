@@ -198,6 +198,14 @@ export class ChatService {
                 useAgent: useDeepSearch || body.message.toLowerCase().includes('agent'),
                 stream: true,
                 image: body.image,
+                onStatus: (status) => {
+                    let stagePrefix = '1/4';
+                    if (status.includes('HyDE') || status.includes('Search') || status.includes('Retrieving')) stagePrefix = '2/4';
+                    else if (status.includes('Reranking')) stagePrefix = '3/4';
+                    else if (status.includes('Generating')) stagePrefix = '4/4';
+                    
+                    onChunk(JSON.stringify({ thought: `${stagePrefix}: ${status}` }));
+                },
                 onChunk: (chunk) => {
                     fullReply += chunk;
                     onChunk(JSON.stringify({ chunk }));

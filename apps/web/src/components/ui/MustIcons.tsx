@@ -405,6 +405,87 @@ export function IconAlertTriangle(props: IconProps) {
     );
 }
 
+export function IconKey(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M21 2l-2 2" />
+            <circle cx="7" cy="17" r="5" />
+            <path d="M11 13l9-9" />
+            <path d="M17 5l2 2" />
+            <path d="M15 7l2 2" />
+        </Icon>
+    );
+}
+
+export function IconLightbulb(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M9 18h6" />
+            <path d="M10 22h4" />
+            <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z" />
+        </Icon>
+    );
+}
+
+export function IconSun(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </Icon>
+    );
+}
+
+export function IconMoon(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </Icon>
+    );
+}
+
+export function IconBug(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <rect width="8" height="14" x="8" y="5" rx="4" />
+            <path d="M19 7l-3 2" />
+            <path d="M19 19l-3-2" />
+            <path d="M5 7l3 2" />
+            <path d="M5 19l3-2" />
+            <path d="M12 19v3" />
+            <path d="M12 2v3" />
+            <path d="M8 12h8" />
+        </Icon>
+    );
+}
+
+export function IconClipboard(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+        </Icon>
+    );
+}
+
+export function IconCalendar(props: IconProps) {
+    return (
+        <Icon {...props}>
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+        </Icon>
+    );
+}
+
 export function IconBuilding(props: IconProps) {
     return (
         <Icon {...props}>

@@ -9,10 +9,12 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { 
   IconBrain, IconChat, IconKnowledge, IconAudit, IconPlus, 
-  IconSparkles, IconZap, IconPaperclip, IconSend, IconSearch 
+  IconSparkles, IconZap, IconPaperclip, IconSend, IconSearch,
+  IconBug, IconClipboard, IconCalendar
 } from '@must-iq-web/components/ui/MustIcons';
 import remarkGfm from 'remark-gfm';
 import { getLocalImage } from '@must-iq-web/lib/utils/idb';
+import { ProcessingStages } from './ProcessingStages';
 
 function SourceBadge({ type }: { type: Source['sourceType'] }) {
   const icons: Record<string, any> = {
@@ -197,22 +199,13 @@ function MessageBubble({ msg, streaming }: { msg: Message; streaming: boolean })
 
 function TypingIndicator({ thought }: { thought?: string | null }) {
   return (
-    <div className="flex gap-3.5 px-7 py-1.5 max-w-3xl mx-auto w-full animate-pulse">
-      <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center"
+    <div className="flex gap-3.5 px-7 py-5 max-w-3xl mx-auto w-full">
+      <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center mt-1"
         style={{ background: 'rgba(var(--primary-rgb),0.06)', border: '1px solid rgba(var(--primary-rgb),0.18)' }}>
         <IconBrain size={18} color="var(--primary)" />
       </div>
-      <div className="flex-1 pt-2">
-        <div className="flex gap-3 items-center">
-          <div className="flex gap-1.5">
-            <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
-          </div>
-          {thought && (
-            <span className="text-[11px] font-mono italic opacity-50 tracking-tight animate-in fade-in slide-in-from-left-2 duration-300">
-              {thought}
-            </span>
-          )}
-        </div>
+      <div className="flex-1">
+        <ProcessingStages thought={thought} />
       </div>
     </div>
   );
@@ -238,10 +231,11 @@ function EmptyState({ onSuggest }: { onSuggest: (text: string) => void }) {
             onMouseEnter={(e) => { (e.currentTarget).style.borderColor = 'var(--border-2)'; }}
             onMouseLeave={(e) => { (e.currentTarget).style.borderColor = 'var(--border)'; }}
           >
-            <span className="block mb-1.5">
-              {s.icon === '📋' ? <IconKnowledge size={18} color="var(--primary)" /> : 
-               s.icon === '⚡' ? <IconZap size={18} color="var(--primary)" /> : 
-               s.icon === '🧠' ? <IconBrain size={18} color="var(--primary)" /> : 
+            <span className="block mb-1.5" style={{ opacity: 0.8 }}>
+              {s.icon === 'clipboard' ? <IconClipboard size={18} color="var(--primary)" /> : 
+               s.icon === 'zap' ? <IconZap size={18} color="var(--primary)" /> : 
+               s.icon === 'bug' ? <IconBug size={18} color="var(--primary)" /> : 
+               s.icon === 'calendar' ? <IconCalendar size={18} color="var(--primary)" /> : 
                <IconSearch size={18} color="var(--primary)" />}
             </span>
             {s.text}

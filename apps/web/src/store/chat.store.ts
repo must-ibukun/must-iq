@@ -6,35 +6,7 @@ import { chatApi } from '@must-iq-web/lib/api/chat';
 
 const genId = () => Math.random().toString(36).slice(2, 10);
 
-const DEFAULT_TEAMS: TeamScope[] = [
-  { id: 'engineering', name: 'Engineering', color: WORKSPACE_COLORS['engineering'] ?? '#4f46e5', chunks: 8241, workspaces: [
-      { id: 'must-iq/api', type: 'github', label: 'must-iq/api' },
-      { id: 'ENG', type: 'jira', label: 'ENG' },
-      { id: '#engineering', type: 'slack', label: '#engineering' }
-    ] 
-  },
-  { id: 'hr', name: 'HR', color: WORKSPACE_COLORS['hr'] ?? '#06b6d4', chunks: 1102, workspaces: [
-      { id: 'HR', type: 'jira', label: 'HR' },
-      { id: '#human-resources', type: 'slack', label: '#human-resources' }
-    ]
-  },
-  { id: 'finance', name: 'Finance', color: WORKSPACE_COLORS['finance'] ?? '#f59e0b', chunks: 634, workspaces: [
-      { id: 'FIN', type: 'jira', label: 'FIN' },
-      { id: '#finance', type: 'slack', label: '#finance' }
-    ]
-  },
-  { id: 'platform', name: 'Platform', color: WORKSPACE_COLORS['platform'] ?? '#8b5cf6', chunks: 2890, workspaces: [
-      { id: 'must-iq/platform', type: 'github', label: 'must-iq/platform' },
-      { id: 'PLT', type: 'jira', label: 'PLT' },
-      { id: '#platform', type: 'slack', label: '#platform' }
-    ]
-  },
-  { id: 'security', name: 'Security', color: WORKSPACE_COLORS['security'] ?? '#ef4444', chunks: 445, workspaces: [
-      { id: 'SEC', type: 'jira', label: 'SEC' },
-      { id: '#security', type: 'slack', label: '#security' }
-    ]
-  },
-];
+const DEFAULT_TEAMS: TeamScope[] = [];
 
 export const useChatStore = create<ChatState>()(
   persist(

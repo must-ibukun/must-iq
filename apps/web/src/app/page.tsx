@@ -7,11 +7,12 @@ import { useTheme } from 'next-themes';
 import { TERMINAL_LINES, THEME_COLORS, SEARCH_SCOPE_ITEMS, MOCK_SOURCES } from '@must-iq-web/lib/constants/landing.constant';
 
 import { Terminal, Reveal, Tag, H2, Sub } from '@must-iq-web/components/landing';
-import { 
-  MustLogo, MustLogoDark, IconDashboard, IconTeams, IconUsers, IconWorkspaces, 
-  IconAI, IconTokens, IconAudit, IconKnowledge, IconSettings, IconChat, IconZap, 
-  IconSearch, IconRefresh, IconPlus, IconX, IconChevronDown, IconCopy, IconEye, 
-  IconTrash, IconEdit, IconLogout, IconBrain, IconSparkles, IconSend, IconPaperclip 
+import {
+    MustLogo, MustLogoDark, IconDashboard, IconTeams, IconUsers, IconWorkspaces,
+    IconAI, IconTokens, IconAudit, IconKnowledge, IconSettings, IconChat, IconZap,
+    IconSearch, IconRefresh, IconPlus, IconX, IconChevronDown, IconCopy, IconEye,
+    IconTrash, IconEdit, IconLogout, IconBrain, IconSparkles, IconSend, IconPaperclip,
+    IconLock, IconCheck, IconSun, IconMoon
 } from '@must-iq-web/components/ui/MustIcons';
 
 export default function LandingPage() {
@@ -54,7 +55,11 @@ export default function LandingPage() {
                                 fontWeight: 500,
                             }}
                         >
-                            {resolvedTheme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                            {resolvedTheme === 'dark' ? (
+                                <><IconSun size={14} /> Light</>
+                            ) : (
+                                <><IconMoon size={14} /> Dark</>
+                            )}
                         </button>
                     )}
                     <Link href="/admin" className="btn-g" style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: 'var(--surface)', color: THEME_COLORS.text, border: `1px solid ${THEME_COLORS.border2}`, textDecoration: 'none', transition: 'all 0.15s' }}>Admin</Link>
@@ -104,7 +109,7 @@ export default function LandingPage() {
                             <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: THEME_COLORS.muted, padding: '0 4px', marginBottom: 8 }}>Search Scope</div>
                             {SEARCH_SCOPE_ITEMS.map(d => (
                                 <div key={d.n} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 4px', borderRadius: 4, marginBottom: 2, background: d.on ? 'rgba(var(--primary-rgb),0.07)' : 'transparent' }}>
-                                    <div style={{ width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${d.on ? d.c : THEME_COLORS.border2}`, background: d.on ? `${d.c}20` : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6, color: d.c, flexShrink: 0 }}>{d.on && (d.locked ? '🔒' : '✓')}</div>
+                                    <div style={{ width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${d.on ? d.c : THEME_COLORS.border2}`, background: d.on ? `${d.c}20` : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: d.c, flexShrink: 0 }}>{d.on && (d.locked ? <IconLock size={8} /> : <IconCheck size={8} />)}</div>
                                     <span style={{ fontSize: 10.5, color: d.on ? THEME_COLORS.text : THEME_COLORS.muted }}>{d.n}</span>
                                 </div>
                             ))}

@@ -14,9 +14,9 @@ export const TERMINAL_LINES = [
     { text: '💾 Embedding chunk [problem]  → pgvector…  ✓', color: '#00ff9d', delay: 3700 },
     { text: '💾 Embedding chunk [solution] → pgvector…  ✓', color: '#00ff9d', delay: 4100 },
     { text: '', color: '', delay: 4300 },
-    { text: '✅  INFRA-441 → engineering KB · 2 chunks stored', color: '#00ff9d', delay: 4500 },
+    { text: '✓  INFRA-441 → engineering KB · 2 chunks stored', color: '#00ff9d', delay: 4500 },
     { text: '', color: '', delay: 4700 },
-    { text: '⚡  Slack webhook — #backend-help [✅ reacted]', color: '#00d4ff', delay: 5200 },
+    { text: '>>  Slack webhook — #backend-help [✓ reacted]', color: '#00d4ff', delay: 5200 },
     { text: '🧠 Analysing…  knowledge_value → 0.74  ✓', color: '#00ff9d', delay: 6300 },
     { text: '💾 Stored → engineering KB', color: '#00ff9d', delay: 6800 },
     { text: '', color: '', delay: 7000 },
@@ -48,14 +48,14 @@ export const SEARCH_SCOPE_ITEMS = [
 
 export const MOCK_SOURCES = [
     ['JIRA', 'rgba(0,82,204,0.2)', 'rgba(0,82,204,0.4)', '#4c9aff', 'INFRA-441 — ECS health check', '0.91'],
-    ['SLACK', 'rgba(140,40,150,0.2)', 'rgba(140,40,150,0.4)', '#e879f9', '#backend-help · ✅ solved', '0.87'],
+    ['SLACK', 'rgba(140,40,150,0.2)', 'rgba(140,40,150,0.4)', '#e879f9', '#backend-help · solved', '0.87'],
     ['DOC', 'rgba(var(--primary-rgb),0.07)', 'rgba(var(--primary-rgb),0.2)', THEME_COLORS.primary, 'ECS Runbook § 4.2', '0.74']
 ];
 
 /** Suggested prompts shown on the chat empty state */
 export const SUGGESTED_PROMPTS: { icon: string; text: string }[] = [
-    { icon: '🐛', text: 'Has anyone seen a 502 error on ECS deployments?' },
-    { icon: '📋', text: 'Who owns the Payments API and what stack does it use?' },
-    { icon: '📅', text: "What's the annual leave policy for new joiners?" },
-    { icon: '⚡', text: 'What Jira tickets are open for the Redis timeout issue?' },
+    { icon: 'bug', text: 'Has anyone seen a 502 error on ECS deployments?' },
+    { icon: 'clipboard', text: 'Who owns the Payments API and what stack does it use?' },
+    { icon: 'calendar', text: "What's the annual leave policy for new joiners?" },
+    { icon: 'zap', text: 'What Jira tickets are open for the Redis timeout issue?' },
 ];

@@ -10,7 +10,12 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get('must-iq-token')?.value;
   const role = request.cookies.get('must-iq-role')?.value;
+  const forceChange = request.cookies.get('must-iq-force-change')?.value === 'true';
 
+
+  if (forceChange && token && !['/change-password', '/', '/login', '/logout'].includes(pathname)) {
+    return NextResponse.redirect(new URL('/change-password', request.url));
+  }
 
   if (pathname === '/login' && token) {
     if (role === 'ADMIN' || role === 'MANAGER') {

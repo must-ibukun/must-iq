@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@must-iq-web/store/auth.store';
 import { authApi } from '@must-iq-web/lib/api/auth';
 import Link from 'next/link';
+import { IconKey } from '@must-iq-web/components/ui/MustIcons';
+
 
 export default function ChangePasswordPage() {
     const [currentPassword, setCurrentPassword] = useState('');
@@ -33,6 +35,12 @@ export default function ChangePasswordPage() {
         setLoading(true);
         try {
             await authApi.changePassword({ oldPassword: currentPassword, newPassword });
+            
+            // Clear the force-change lock
+            if (typeof document !== 'undefined') {
+                document.cookie = 'must-iq-force-change=; path=/; max-age=0';
+            }
+
             // Clear the flag locally so the user isn't redirected again
             if (user) setUser({ ...user, mustChangePassword: false });
             const role = user?.role;
@@ -64,7 +72,9 @@ export default function ChangePasswordPage() {
                     {/* Header */}
                     <div style={{ marginBottom: 24 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(var(--primary-rgb),0.1)', border: '1px solid rgba(var(--primary-rgb),0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔑</div>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(var(--primary-rgb),0.1)', border: '1px solid rgba(var(--primary-rgb),0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <IconKey size={16} color="var(--primary)" />
+                            </div>
                             <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>Set your password</div>
                         </div>
                         <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>

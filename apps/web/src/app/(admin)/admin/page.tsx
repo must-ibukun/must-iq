@@ -4,6 +4,8 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
 import { useTheme } from 'next-themes';
 import { useAuthStore } from '@must-iq-web/store/auth.store';
 import { Badge, Button, Toggle, ProgressBar, Paginator, ConfirmModal, Spinner } from '@must-iq-web/components/ui';
@@ -38,7 +40,7 @@ import {
   IconLogout, IconEdit, IconTrash,
   IconCopy, IconEye, IconSearch, IconRefresh, IconPlus, IconTokens, IconAudit,
   IconChat, IconUsers, IconKnowledge, IconDollar, IconZap,
-  IconChevronDown, IconX,
+  IconChevronDown, IconX, IconCheck, IconKey, IconLightbulb, IconSparkles, IconAlertTriangle,
   IconBrain,
   IconAI,
   IconInfo,
@@ -80,9 +82,9 @@ const Mermaid = ({ chart }: { chart: string }) => {
   if (!svg) return <div className="animate-pulse h-40 bg-surface rounded-lg my-6" />;
 
   return (
-    <div 
+    <div
       className="mermaid-wrapper my-8 p-6 bg-surface rounded-2xl border border-border overflow-auto flex justify-center shadow-sm"
-      dangerouslySetInnerHTML={{ __html: svg }} 
+      dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
 };
@@ -506,7 +508,7 @@ export default function AdminPage() {
         if (errors.slack) errorMsg += `\n• Slack: ${errors.slack}`;
         if (errors.jira) errorMsg += `\n• Jira: ${errors.jira}`;
         if (errors.github) errorMsg += `\n• GitHub: ${errors.github}`;
-        
+
         showNotification('error', 'Discovery Partial Success', hasResults ? "Some sources were found, but others failed:" : "Failed to discover sources:", errorMsg);
       } else if (hasResults) {
         showToast('✓ Sources discovered. Review and click "Sync Selected"');
@@ -572,7 +574,7 @@ export default function AdminPage() {
     const key = `${type}:${identifier}`;
     const layer = discoveredGuesses[key] || 'docs';
     const techStack = discoveredTechStacks[key] || undefined;
-    
+
     try {
       await createWorkspace({
         type,
@@ -582,9 +584,9 @@ export default function AdminPage() {
         layer,
         techStack
       });
-      
+
       showToast(`✓ ${type} source added`);
-      
+
 
       setDiscoveryResults((prev: any) => {
         const updated = { ...prev };
@@ -698,13 +700,17 @@ export default function AdminPage() {
       <div className="bg-dots" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
 
       <nav style={{ width: 220, flexShrink: 0, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
-        <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Link
+          href="/"
+          className="hover:opacity-80 transition-opacity"
+          style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30 }}>
             <MustLogo size={26} />
           </div>
           <div style={{ fontFamily: '"DM Serif Display",Georgia,serif', fontSize: 16, color: 'var(--ink)' }}>must<span style={{ color: 'var(--primary)' }}>-iq</span></div>
           <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', background: user?.role === 'MANAGER' ? 'rgba(79,70,229,0.12)' : 'rgba(255,183,64,0.12)', border: `1px solid ${user?.role === 'MANAGER' ? 'rgba(79,70,229,0.3)' : 'rgba(255,183,64,0.3)'}`, color: user?.role === 'MANAGER' ? 'var(--primary)' : 'var(--amber)', padding: '2px 7px', borderRadius: 20 }}>{user?.role ?? 'ADMIN'}</span>
-        </div>
+        </Link>
 
         <div style={{ flex: 1, overflow: 'auto', padding: '8px 8px' }}>
           {NAV.filter(item => {
@@ -736,7 +742,7 @@ export default function AdminPage() {
         </div>
 
         <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div 
+          <div
             onClick={() => setSection('profile')}
             style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, cursor: 'pointer', padding: '4px', margin: '-4px', borderRadius: 8 }}
             className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
@@ -766,13 +772,13 @@ export default function AdminPage() {
               <IconRefresh size={14} style={{ marginRight: 6 }} /> {isDiscovering ? 'Discovering...' : 'Discover Sources'}
             </Button>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setIsNavigatingChat(true);
               router.push('/chat?from=admin');
-            }} 
+            }}
             isLoading={isNavigatingChat}
             style={{ color: 'var(--primary)', borderColor: 'rgba(var(--primary-rgb),0.3)' }}
           >
@@ -801,44 +807,44 @@ export default function AdminPage() {
             </div>
           ) : (
             <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
-              <StatCard label="Total Chunks" value={stats ? stats.chunksByWorkspace.reduce((s: number, d: any) => s + d.count, 0).toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Knowledge base" accent="var(--primary)" icon={<IconKnowledge />} />
-              <StatCard label="Active Users" value={stats ? stats.totalUsers.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Registered accounts" accent="var(--green)" icon={<IconUsers />} />
-              <StatCard label="Tokens Today" value={stats ? (stats.tokensToday >= 1000 ? `${(stats.tokensToday / 1000).toFixed(0)}K` : stats.tokensToday.toString()) : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Estimated token usage" accent="var(--amber)" icon={<IconTokens />} />
-              <StatCard label="Total Sessions" value={stats ? stats.totalSessions.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Across all users" accent="var(--purple)" icon={<IconChat />} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
-              <Panel title="Recent Activity" dot="var(--green)" action={<button onClick={() => setSection('audit')} style={{ fontSize: 11.5, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>}>
-                {auditData.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 12, padding: '12px 0', textAlign: 'center' }}>No activity yet</div>}
-                {auditData.slice(0, 4).map((a: any, i: number) => (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: i < 3 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(0,82,204,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
-                      📋
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.action}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3 }}>
-                        {a.user?.name ?? 'System'} · {new Date(a.createdAt).toLocaleTimeString()}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
+                <StatCard label="Total Chunks" value={stats ? stats.chunksByWorkspace.reduce((s: number, d: any) => s + d.count, 0).toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Knowledge base" accent="var(--primary)" icon={<IconKnowledge />} />
+                <StatCard label="Active Users" value={stats ? stats.totalUsers.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Registered accounts" accent="var(--green)" icon={<IconUsers />} />
+                <StatCard label="Tokens Today" value={stats ? (stats.tokensToday >= 1000 ? `${(stats.tokensToday / 1000).toFixed(0)}K` : stats.tokensToday.toString()) : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Estimated token usage" accent="var(--amber)" icon={<IconTokens />} />
+                <StatCard label="Total Sessions" value={stats ? stats.totalSessions.toLocaleString() : (sectionLoading ? <Spinner size={18} /> : '0')} delta="Across all users" accent="var(--purple)" icon={<IconChat />} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
+                <Panel title="Recent Activity" dot="var(--green)" action={<button onClick={() => setSection('audit')} style={{ fontSize: 11.5, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>}>
+                  {auditData.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 12, padding: '12px 0', textAlign: 'center' }}>No activity yet</div>}
+                  {auditData.slice(0, 4).map((a: any, i: number) => (
+                    <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: i < 3 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(0,82,204,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
+                        📋
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.action}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3 }}>
+                          {a.user?.name ?? 'System'} · {new Date(a.createdAt).toLocaleTimeString()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </Panel>
-              <Panel title="Knowledge by Workspace">
-                {stats?.chunksByWorkspace?.length ? (
-                  (() => {
-                    const max = Math.max(...stats.chunksByWorkspace.map((d: any) => d.count), 1);
-                    return stats.chunksByWorkspace.slice(0, 6).map((d: any, i: number) => {
-                      const deptStyle = WORKSPACE_COLORS[d.workspace.toLowerCase()] ?? 'var(--ink)';
-                      return (
-                        <DeptBar key={d.workspace} label={d.workspace} pct={Math.round((d.count / max) * 100)} count={d.count.toLocaleString()} color={deptStyle} />
-                      );
-                    });
-                  })()
-                ) : <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>No chunks yet</div>}
-              </Panel>
-            </div>
-          </>))}
+                  ))}
+                </Panel>
+                <Panel title="Knowledge by Workspace">
+                  {stats?.chunksByWorkspace?.length ? (
+                    (() => {
+                      const max = Math.max(...stats.chunksByWorkspace.map((d: any) => d.count), 1);
+                      return stats.chunksByWorkspace.slice(0, 6).map((d: any, i: number) => {
+                        const deptStyle = WORKSPACE_COLORS[d.workspace.toLowerCase()] ?? 'var(--ink)';
+                        return (
+                          <DeptBar key={d.workspace} label={d.workspace} pct={Math.round((d.count / max) * 100)} count={d.count.toLocaleString()} color={deptStyle} />
+                        );
+                      });
+                    })()
+                  ) : <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>No chunks yet</div>}
+                </Panel>
+              </div>
+            </>))}
 
 
 
@@ -925,7 +931,7 @@ export default function AdminPage() {
                           <div key="u"><div style={{ color: 'var(--ink)' }}>{u.name}</div><div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{u.email}</div></div>,
                           <div key="w" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', maxWidth: 220 }}>
                             {isAdmin ? (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>🔑 ALL TEAMS</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}><IconKey size={10} /> ALL TEAMS</span>
                             ) : !u.teamIds || u.teamIds.length === 0 ? (
                               <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>
                             ) : (
@@ -953,7 +959,7 @@ export default function AdminPage() {
                             <button onClick={() => handleEditUser(u)} title="Edit Details" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d97706', display: 'flex' }}>
                               <IconEdit size={17} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => {
                                 setConfirmCfg({
                                   open: true,
@@ -1265,25 +1271,25 @@ export default function AdminPage() {
                           (!discoverySearch || (item.name || item.full_name || item.key || '').toLowerCase().includes(discoverySearch.toLowerCase())) &&
                           (!discoveryTypeFilter || item.type === discoveryTypeFilter)
                         );
-                        
+
                         return (
                           <>
                             <Table
                               headers={['', 'Source Name', 'Type', 'Architectural Layer', 'Tech Stack', 'Actions']}
                               rows={paginate(allFound, discoveryPage, 10).map((item: any) => [
-                                <input 
-                                  key="chk" 
-                                  type="checkbox" 
-                                  checked={!!selectedToSync[item.key]} 
-                                  onChange={() => setSelectedToSync(prev => ({ ...prev, [item.key]: !prev[item.key] }))} 
+                                <input
+                                  key="chk"
+                                  type="checkbox"
+                                  checked={!!selectedToSync[item.key]}
+                                  onChange={() => setSelectedToSync(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
                                   style={{ width: 15, height: 15, accentColor: 'var(--primary)', cursor: 'pointer' }}
                                 />,
                                 <span key="n" style={{ fontSize: 13, fontWeight: 500 }}>{item.name || item.full_name || item.key}</span>,
                                 <Badge key="t" variant={item.type.toLowerCase() === 'slack' ? 'slack' : item.type.toLowerCase() === 'jira' ? 'jira' : 'info'}>{item.type}</Badge>,
-                                <select 
-                                  key="l" 
-                                  value={discoveredGuesses[item.key]} 
-                                  onChange={e => setDiscoveredGuesses(prev => ({ ...prev, [item.key]: e.target.value }))} 
+                                <select
+                                  key="l"
+                                  value={discoveredGuesses[item.key]}
+                                  onChange={e => setDiscoveredGuesses(prev => ({ ...prev, [item.key]: e.target.value }))}
                                   style={{ padding: '4px 8px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--border-2)', fontSize: 12, color: 'var(--ink)', outline: 'none' }}
                                 >
                                   <option value="docs">Docs / General</option>
@@ -1323,10 +1329,10 @@ export default function AdminPage() {
                                     </div>
                                   )}
                                 </div>,
-                                <Button 
-                                  key="s" 
-                                  variant="primary" 
-                                  size="sm" 
+                                <Button
+                                  key="s"
+                                  variant="primary"
+                                  size="sm"
                                   onClick={() => handleSaveDiscoveredSource(item.name || item.id, item.type, item.identifier, item.name)}
                                   disabled={isSyncingSources}
                                 >
@@ -1433,7 +1439,7 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 6 }}>
                     <div style={{ position: 'relative' }}>
                       <IconSearch size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', opacity: 0.5 }} />
-                      <input 
+                      <input
                         type="text"
                         placeholder="Filter identifiers..."
                         value={workspaceSearch}
@@ -1453,8 +1459,8 @@ export default function AdminPage() {
                 </div>
 
                 {(() => {
-                  const filteredWorkspaces = (groupedWorkspaces[activeWsTab] || []).filter((d: any) => 
-                    !workspaceSearch || 
+                  const filteredWorkspaces = (groupedWorkspaces[activeWsTab] || []).filter((d: any) =>
+                    !workspaceSearch ||
                     d.identifier?.toLowerCase().includes(workspaceSearch.toLowerCase()) ||
                     d.id?.toLowerCase().includes(workspaceSearch.toLowerCase())
                   );
@@ -1569,95 +1575,95 @@ export default function AdminPage() {
             </div>
           ) : (
             <>
-            {(() => {
-              const todayTotal = tokenData?.todayTotal ?? 0;
-              const yesterdayTotal = tokenData?.yesterdayTotal ?? 0;
-              const estCostToday = tokenData?.estCostToday ?? 0;
-              const estCostYesterday = tokenData?.estCostYesterday ?? 0;
+              {(() => {
+                const todayTotal = tokenData?.todayTotal ?? 0;
+                const yesterdayTotal = tokenData?.yesterdayTotal ?? 0;
+                const estCostToday = tokenData?.estCostToday ?? 0;
+                const estCostYesterday = tokenData?.estCostYesterday ?? 0;
 
-              const tokenDelta = yesterdayTotal > 0
-                ? `${todayTotal >= yesterdayTotal ? '↑' : '↓'} ${Math.abs(Math.round(((todayTotal - yesterdayTotal) / yesterdayTotal) * 100))}% vs yesterday`
-                : 'No data yesterday';
-              const costDelta = estCostYesterday > 0
-                ? `${estCostToday >= estCostYesterday ? '↑' : '↓'} $${Math.abs(estCostToday - estCostYesterday).toFixed(2)} vs yesterday`
-                : 'No data yesterday';
+                const tokenDelta = yesterdayTotal > 0
+                  ? `${todayTotal >= yesterdayTotal ? '↑' : '↓'} ${Math.abs(Math.round(((todayTotal - yesterdayTotal) / yesterdayTotal) * 100))}% vs yesterday`
+                  : 'No data yesterday';
+                const costDelta = estCostYesterday > 0
+                  ? `${estCostToday >= estCostYesterday ? '↑' : '↓'} $${Math.abs(estCostToday - estCostYesterday).toFixed(2)} vs yesterday`
+                  : 'No data yesterday';
 
-              // Build last-7-days chart from dailyTotals
-              const days: { label: string; date: string }[] = Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(); d.setDate(d.getDate() - (6 - i));
-                return {
-                  label: i === 6 ? 'Today' : d.toLocaleDateString('en', { weekday: 'short' }),
-                  date: d.toISOString().slice(0, 10),
-                };
-              });
-              const dailyValues = days.map(d => tokenData?.dailyTotals?.[d.date] ?? 0);
-              const maxVal = Math.max(...dailyValues, 1);
+                // Build last-7-days chart from dailyTotals
+                const days: { label: string; date: string }[] = Array.from({ length: 7 }, (_, i) => {
+                  const d = new Date(); d.setDate(d.getDate() - (6 - i));
+                  return {
+                    label: i === 6 ? 'Today' : d.toLocaleDateString('en', { weekday: 'short' }),
+                    date: d.toISOString().slice(0, 10),
+                  };
+                });
+                const dailyValues = days.map(d => tokenData?.dailyTotals?.[d.date] ?? 0);
+                const maxVal = Math.max(...dailyValues, 1);
 
-              const topUsers = tokenData?.topUsers || [];
-              const maxTokens = Math.max(...topUsers.map((u: any) => u.tokens), 1);
+                const topUsers = tokenData?.topUsers || [];
+                const maxTokens = Math.max(...topUsers.map((u: any) => u.tokens), 1);
 
-              return (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14, marginBottom: 24 }}>
-                    <StatCard
-                      label="Total Today"
-                      value={todayTotal >= 1000 ? `${(todayTotal / 1000).toFixed(1)}K` : todayTotal.toString()}
-                      delta={tokenDelta}
-                      accent="var(--primary)"
-                      icon={<IconTokens />}
-                    />
-                    <StatCard
-                      label="Est. Cost Today"
-                      value={`$${estCostToday.toFixed(2)}`}
-                      delta={costDelta}
-                      accent="var(--amber)"
-                      icon={<IconDollar />}
-                    />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-                    <Panel title="Daily Token Usage (7 days)">
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80, paddingBottom: 4 }}>
-                        {days.map((d, i) => {
-                          const h = Math.max(Math.round((dailyValues[i] / maxVal) * 100), dailyValues[i] > 0 ? 4 : 0);
-                          const isToday = i === 6;
-                          return (
-                            <div
-                              key={d.date}
-                              title={`${d.label}: ${dailyValues[i].toLocaleString()} tokens`}
-                              style={{ flex: 1, height: `${h}%`, borderRadius: '3px 3px 0 0', background: isToday ? 'linear-gradient(to top,var(--amber),rgba(255,183,64,0.3))' : 'linear-gradient(to top,var(--primary),rgba(var(--primary-rgb),0.3))', border: isToday ? '1px solid var(--amber)' : 'none', cursor: 'pointer' }}
-                            />
-                          );
-                        })}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                        {days.map((d, i) => (
-                          <span key={d.date} style={{ fontSize: 9.5, color: i === 6 ? 'var(--amber)' : 'var(--muted)', fontFamily: 'monospace' }}>{d.label}</span>
-                        ))}
-                      </div>
-                    </Panel>
-                    <Panel title="Top Users Today">
-                      {topUsers.length === 0 ? (
-                        <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>No activity today yet.</div>
-                      ) : (
-                        <>
-                          {paginate(topUsers, topUsersPage, 10).map((u: any) => (
-                            <DeptBar
-                              key={u.name}
-                              label={u.name}
-                              pct={Math.round((u.tokens / maxTokens) * 100)}
-                              count={u.tokens >= 1000 ? `${(u.tokens / 1000).toFixed(1)}K` : u.tokens.toString()}
-                              color="var(--primary)"
-                            />
+                return (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14, marginBottom: 24 }}>
+                      <StatCard
+                        label="Total Today"
+                        value={todayTotal >= 1000 ? `${(todayTotal / 1000).toFixed(1)}K` : todayTotal.toString()}
+                        delta={tokenDelta}
+                        accent="var(--primary)"
+                        icon={<IconTokens />}
+                      />
+                      <StatCard
+                        label="Est. Cost Today"
+                        value={`$${estCostToday.toFixed(2)}`}
+                        delta={costDelta}
+                        accent="var(--amber)"
+                        icon={<IconDollar />}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+                      <Panel title="Daily Token Usage (7 days)">
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80, paddingBottom: 4 }}>
+                          {days.map((d, i) => {
+                            const h = Math.max(Math.round((dailyValues[i] / maxVal) * 100), dailyValues[i] > 0 ? 4 : 0);
+                            const isToday = i === 6;
+                            return (
+                              <div
+                                key={d.date}
+                                title={`${d.label}: ${dailyValues[i].toLocaleString()} tokens`}
+                                style={{ flex: 1, height: `${h}%`, borderRadius: '3px 3px 0 0', background: isToday ? 'linear-gradient(to top,var(--amber),rgba(255,183,64,0.3))' : 'linear-gradient(to top,var(--primary),rgba(var(--primary-rgb),0.3))', border: isToday ? '1px solid var(--amber)' : 'none', cursor: 'pointer' }}
+                              />
+                            );
+                          })}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                          {days.map((d, i) => (
+                            <span key={d.date} style={{ fontSize: 9.5, color: i === 6 ? 'var(--amber)' : 'var(--muted)', fontFamily: 'monospace' }}>{d.label}</span>
                           ))}
-                          <Paginator page={topUsersPage} setPage={setTopUsersPage} total={totalPages(topUsers, 10)} />
-                        </>
-                      )}
-                    </Panel>
-                  </div>
-                </>
-              );
-            })()}
-          </>))}
+                        </div>
+                      </Panel>
+                      <Panel title="Top Users Today">
+                        {topUsers.length === 0 ? (
+                          <div style={{ color: 'var(--muted)', fontSize: 12, textAlign: 'center', padding: 24 }}>No activity today yet.</div>
+                        ) : (
+                          <>
+                            {paginate(topUsers, topUsersPage, 10).map((u: any) => (
+                              <DeptBar
+                                key={u.name}
+                                label={u.name}
+                                pct={Math.round((u.tokens / maxTokens) * 100)}
+                                count={u.tokens >= 1000 ? `${(u.tokens / 1000).toFixed(1)}K` : u.tokens.toString()}
+                                color="var(--primary)"
+                              />
+                            ))}
+                            <Paginator page={topUsersPage} setPage={setTopUsersPage} total={totalPages(topUsers, 10)} />
+                          </>
+                        )}
+                      </Panel>
+                    </div>
+                  </>
+                );
+              })()}
+            </>))}
 
           {section === 'audit' && (
             <Panel title="Audit Log">
@@ -1679,8 +1685,8 @@ export default function AdminPage() {
                       ])
                     } />
                     <Paginator page={auditPage} setPage={setAuditPage} total={totalPages(auditData)} />
-                   </>
-               }
+                  </>
+              }
             </Panel>
           )}
 
@@ -1702,15 +1708,15 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div style={{ display: 'flex', flex: 1, overflow: 'hidden', padding: '0 32px 32px', gap: 32 }}>
-                <div style={{ 
-                  width: 280, 
-                  flexShrink: 0, 
-                  padding: '12px 8px', 
-                  background: 'var(--surface)', 
-                  borderRadius: 16, 
-                  border: '1px solid var(--border)', 
+                <div style={{
+                  width: 280,
+                  flexShrink: 0,
+                  padding: '12px 8px',
+                  background: 'var(--surface)',
+                  borderRadius: 16,
+                  border: '1px solid var(--border)',
                   overflow: 'auto',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                 }}>
@@ -1718,12 +1724,12 @@ export default function AdminPage() {
                     Available Guides
                   </div>
                   {adminDocs.map(doc => (
-                    <div 
+                    <div
                       key={doc.filename}
                       onClick={() => handleSelectDoc(doc.filename)}
-                      style={{ 
-                        padding: '12px 16px', 
-                        borderRadius: 12, 
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: 12,
                         cursor: 'pointer',
                         fontSize: 14,
                         fontWeight: selectedDoc === doc.filename ? 600 : 500,
@@ -1737,10 +1743,10 @@ export default function AdminPage() {
                       }}
                       className={selectedDoc === doc.filename ? '' : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'}
                     >
-                      <div style={{ 
-                        width: 6, 
-                        height: 6, 
-                        borderRadius: '50%', 
+                      <div style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
                         background: selectedDoc === doc.filename ? 'var(--primary)' : 'var(--border-2)',
                         transition: 'all 0.2s ease'
                       }} />
@@ -1749,13 +1755,13 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                <div style={{ 
-                  flex: 1, 
-                  background: 'var(--bg)', 
-                  borderRadius: 20, 
-                  border: '1px solid var(--border)', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
+                <div style={{
+                  flex: 1,
+                  background: 'var(--bg)',
+                  borderRadius: 20,
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
                   overflow: 'hidden',
                   boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
                 }}>
@@ -1766,7 +1772,7 @@ export default function AdminPage() {
                     </div>
                   ) : selectedDoc ? (
                     <div style={{ flex: 1, overflow: 'auto', padding: '48px 64px' }} className="markdown-body custom-markdown">
-                      <ReactMarkdown 
+                      <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
                           code({ node, inline, className, children, ...props }: any) {
@@ -1929,7 +1935,7 @@ export default function AdminPage() {
                         } else {
                           setUploadResult(result);
                           showNotification('success', 'Knowledge Base Updated!',
-                            `Incredible! Your document "${result.source}" has been successfully indexed into "${result.workspace}". These new insights (all ${result.chunksStored} chunks) are now ready to power your AI conversations! ✨`);
+                            `Incredible! Your document "${result.source}" has been successfully indexed into "${result.workspace}". These new insights (all ${result.chunksStored} chunks) are now ready to power your AI conversations!`);
                         }
 
                         setUploadFile(null);
@@ -1985,7 +1991,7 @@ export default function AdminPage() {
                     gap: 12,
                     alignItems: 'center',
                   }}>
-                    <span>✅</span>
+                    <IconCheck size={14} color="var(--green)" />
                     <span><strong>{uploadResult.chunksStored}</strong> chunks stored from <strong>{uploadResult.source}</strong> into workspace <strong>{uploadResult.workspace}</strong></span>
                   </div>
                 )}
@@ -2171,7 +2177,7 @@ export default function AdminPage() {
                               background: ev.status?.toLowerCase() === 'stored' ? 'rgba(22,163,74,0.1)' : 'rgba(239,68,68,0.1)',
                               color: ev.status?.toLowerCase() === 'stored' ? 'var(--green)' : 'var(--red)',
                             }}>
-                              {ev.status?.toLowerCase() === 'stored' ? '✅ Stored' : '❌ Error'}
+                              {ev.status?.toLowerCase() === 'stored' ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconCheck size={12} color="var(--green)" /> Stored</span> : <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><IconX size={12} color="var(--red)" /> Error</span>}
                             </span>
                           </td>
                           <td style={{ padding: '10px 16px', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>
@@ -2271,7 +2277,7 @@ export default function AdminPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Send Emails via API</div>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Enabled: HTTP post to generic API provider.<br/>Disabled: Standard nodemailer SMTP delivery.</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Enabled: HTTP post to generic API provider.<br />Disabled: Standard nodemailer SMTP delivery.</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
@@ -2289,7 +2295,7 @@ export default function AdminPage() {
                       <div style={{ fontSize: 11, color: 'var(--muted)' }}>Configure how the AI queries knowledge globally</div>
                     </div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(59,130,246,1)' }}><IconSearch size={16} /></div>
@@ -2467,17 +2473,17 @@ export default function AdminPage() {
                       try {
                         // 1. Save system settings (caching toggle, etc.)
                         await saveSystemSettings(systemSettings);
-                        
+
                         // 2. Save LLM settings (L1/L2 TTLs are moved here)
                         // We use silentSave = true to avoid unnecessary UI flickers
                         if (llmSettings) {
                           await handleSaveLLM(undefined, undefined, undefined, undefined, true);
                         }
-                        
-                        setNotification({ 
-                          title: 'Settings Saved', 
-                          message: 'Both system and performance configurations have been updated.', 
-                          type: 'success' 
+
+                        setNotification({
+                          title: 'Settings Saved',
+                          message: 'Both system and performance configurations have been updated.',
+                          type: 'success'
                         });
                       } catch (err) {
                         setNotification({ title: 'Error', message: 'Failed to save settings.', type: 'error' });
@@ -2536,7 +2542,7 @@ export default function AdminPage() {
 
                 <div style={{ background: 'rgba(var(--primary-rgb),0.05)', border: '1px solid rgba(var(--primary-rgb),0.15)', borderRadius: 16, padding: '16px 20px' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>💡</span> Tip
+                    <span style={{ display: 'flex' }}><IconLightbulb size={14} color="var(--amber)" /></span> Tip
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
                     Enable <strong style={{ color: 'var(--ink)' }}>Audit Logging</strong> alongside <strong style={{ color: 'var(--ink)' }}>PII Masking</strong> for a fully compliant and privacy-preserving knowledge workflow.
@@ -2628,9 +2634,9 @@ export default function AdminPage() {
         />
       )}
 
-      <NotificationModal 
-        notification={notification} 
-        onClose={() => setNotification(null)} 
+      <NotificationModal
+        notification={notification}
+        onClose={() => setNotification(null)}
       />
 
       <ConfirmModal
