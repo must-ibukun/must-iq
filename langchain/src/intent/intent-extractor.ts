@@ -143,7 +143,6 @@ export async function extractIntent(query: string, settings: any): Promise<Extra
       new HumanMessage(query),
     ]);
 
-    console.log(`Intent extractor: raw output: "${result.content as string}"`);
     const raw = result.content as string;
     const jsonStr = extractJSON(raw);
 

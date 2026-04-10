@@ -209,7 +209,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         }
 
         if (chunks.length > 0) {
-          context = await buildContext(chunks, settings.contextTokenBudget ?? undefined);
+          context = buildContext(chunks, settings.contextTokenBudget ?? undefined);
 
           if (params.includeSources !== false) {
             sources = chunks.map((d) => {

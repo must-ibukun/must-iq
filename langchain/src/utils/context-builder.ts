@@ -3,21 +3,13 @@
 // Handles deduplication and compression of RAG chunks before LLM injection
 // ============================================================
 
-import { getActiveSettings } from "@must-iq/config";
-
-const DEFAULT_MIN_SCORE = 0.1;
-
-export async function buildContext(chunks: any[], maxTokenBudget?: number): Promise<string> {
-  const settings = await getActiveSettings();
-  const MIN_SCORE = settings.minScore ?? DEFAULT_MIN_SCORE;
+export function buildContext(chunks: any[], maxTokenBudget?: number): string {
   const seen = new Set<string>();
   const deduplicated: any[] = [];
 
-  // 1. Filter out low-confidence chunks before building context
-  const qualified = chunks.filter((c) => typeof c.score !== 'number' || c.score >= MIN_SCORE);
+  // 1. Deduplicate only — quality filtering is handled upstream by the reranker
 
-  // 2. Deduplicate by exact content (normalize whitespace for safe fingerprint)
-  for (const chunk of qualified) {
+  for (const chunk of chunks) {
     if (!chunk.content) continue;
 
     const fp = chunk.content.trim().replace(/\s+/g, ' ');

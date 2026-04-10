@@ -59,7 +59,6 @@ export interface LLMSettings {
   // Reranking Settings
   rerankEnabled?: boolean; // Whether to apply cross-encoder reranking after RRF (ms-marco-MiniLM-L-6-v2)
   rerankTopN?: number;     // Max chunks to keep after cross-encoder reranking (Stage 2 output size)
-  minScore?: number;       // Minimum relevance score threshold for RAG chunks (0.0 – 1.0)
 
   // Cache Settings
   cacheL1Ttl?: number; // In-memory TTL (ms)
@@ -148,7 +147,6 @@ export const DEFAULT_LLM_SETTINGS: Omit<LLMSettings, "apiKeys"> = {
   hybridSearchEnabled: false,
   rerankEnabled: false,
   rerankTopN: 50,
-  minScore: 0.1,
   contextTokenBudget: process.env.CONTEXT_TOKEN_BUDGET ? parseInt(process.env.CONTEXT_TOKEN_BUDGET) : 16000,
 
   // Default Intent Classification
