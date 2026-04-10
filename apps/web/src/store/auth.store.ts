@@ -17,6 +17,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof document !== 'undefined') {
           document.cookie = 'must-iq-token=; path=/; max-age=0';
           document.cookie = 'must-iq-role=; path=/; max-age=0';
+          document.cookie = 'must-iq-force-change=; path=/; max-age=0';
         }
       },
     }),

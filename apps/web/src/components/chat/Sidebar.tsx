@@ -9,6 +9,8 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
 import { Spinner } from '@must-iq-web/components/ui';
+import Link from 'next/link';
+
 
 export function Sidebar() {
   const { sessions, activeSessionId, tokenUsage, setActiveSession, newSession } = useChatStore();
@@ -44,7 +46,11 @@ export function Sidebar() {
       className="flex flex-col flex-shrink-0 overflow-hidden"
       style={{ width: 260, background: 'var(--surface)', borderRight: '1px solid var(--border)' }}
     >
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 px-4 py-5 border-b hover:opacity-80 transition-opacity"
+        style={{ borderColor: 'var(--border)', textDecoration: 'none' }}
+      >
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center text-sm relative"
           style={{ border: '1.5px solid var(--primary)', background: 'rgba(var(--primary-rgb),0.07)', color: 'var(--primary)', fontFamily: '"DM Serif Display",Georgia,serif' }}
@@ -58,7 +64,7 @@ export function Sidebar() {
         <div style={{ fontFamily: '"DM Serif Display",Georgia,serif', fontSize: 18, color: 'var(--ink)' }}>
           must<span style={{ color: 'var(--primary)' }}>-iq</span>
         </div>
-      </div>
+      </Link>
 
       <button
         onClick={newSession}

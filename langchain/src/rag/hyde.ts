@@ -55,7 +55,6 @@ export async function generateHypotheticalDocument(
       return query;
     }
 
-    logger.debug(`HyDE generated (${hypothetical.length} chars): ${hypothetical.slice(0, 120)}...`);
     return hypothetical;
   } catch (err: any) {
     // Never block retrieval because of HyDE failure — just use the raw query

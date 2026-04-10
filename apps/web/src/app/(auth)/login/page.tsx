@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@must-iq-web/store/auth.store';
 import { authApi } from '@must-iq-web/lib/api/auth';
-import { MustLogo, IconLock, IconCheck, IconMail, IconEye, IconEyeOff, IconAlertTriangle, IconBuilding } from '@must-iq-web/components/ui/MustIcons';
+import { MustLogo, IconLock, IconCheck, IconMail, IconEye, IconEyeOff, IconAlertTriangle } from '@must-iq-web/components/ui/MustIcons';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -45,6 +45,10 @@ export default function LoginPage() {
       const maxAge = 60 * 60 * 24 * 7; // 7 days
       document.cookie = `must-iq-token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
       document.cookie = `must-iq-role=${user.role}; path=/; max-age=${maxAge}; SameSite=Lax`;
+
+      if (user.mustChangePassword) {
+        document.cookie = `must-iq-force-change=true; path=/; max-age=${maxAge}; SameSite=Lax`;
+      }
 
       setSuccess(true);
       setTimeout(() => {
@@ -90,7 +94,7 @@ export default function LoginPage() {
             </div>
             <div style={{ fontFamily: '"DM Serif Display",Georgia,serif', fontSize: 26, color: 'var(--ink)' }}>must<span style={{ color: 'var(--primary)' }}>-iq</span></div>
           </Link>
-          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>Must Company Internal AI Platform</div>
+          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>Internal AI Platform</div>
         </div>
 
         {/* Card */}
@@ -100,7 +104,8 @@ export default function LoginPage() {
 
           {error && (
             <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 18, background: 'rgba(255,77,109,0.08)', border: '1px solid rgba(255,77,109,0.25)', color: '#ff8099', fontSize: 12.5, display: 'flex', gap: 10 }}>
-              ⚠ {error}
+              <IconAlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{error}</span>
             </div>
           )}
 
@@ -108,7 +113,9 @@ export default function LoginPage() {
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Work Email</label>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.5 }}>✉</span>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.5, display: 'flex' }}>
+                <IconMail size={14} />
+              </span>
               <input
                 type="email" value={email} onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(''); }}
                 placeholder="you@mustcompany.com"
@@ -132,7 +139,12 @@ export default function LoginPage() {
                 style={{ width: '100%', padding: '11px 36px 11px 36px', background: 'var(--surface)', border: `1px solid ${passErr ? 'rgba(255,51,102,0.8)' : 'var(--border-2)'}`, borderRadius: 9, color: 'var(--ink)', fontSize: 14, fontFamily: 'Geist,system-ui,sans-serif', outline: 'none', boxSizing: 'border-box', boxShadow: passErr ? '0 0 0 2px rgba(255,51,102,0.12)' : undefined }}
                 onKeyDown={e => e.key === 'Enter' && handleSignIn()}
               />
-              <button onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--ink)' }}>👁</button>
+              <button 
+                onClick={() => setShowPass(!showPass)} 
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--ink)' }}
+              >
+                {showPass ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+              </button>
             </div>
             {passErr && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 5, fontWeight: 500 }}>{passErr}</div>}
           </div>
@@ -149,13 +161,7 @@ export default function LoginPage() {
             {loading ? <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid rgba(5,8,15,0.3)', borderTopColor: 'var(--bg)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', verticalAlign: 'middle' }} /> : 'Sign in'}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0', fontSize: 11.5, color: 'var(--muted)' }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />or continue with<div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          </div>
 
-          <button style={{ width: '100%', padding: '11px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 9, color: 'var(--ink)', fontSize: 13.5, fontFamily: 'Geist,system-ui,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            🏢 Sign in with Must Company SSO
-          </button>
 
           <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'center', gap: 16 }}>
             {[['var(--green)', 'Zero data egress'], ['var(--primary)', 'End-to-end encrypted'], ['var(--amber)', 'SOC 2 compliant']].map(([c, t]) => (
@@ -167,7 +173,7 @@ export default function LoginPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'var(--muted)' }}>
-          Need access? <a href="mailto:platform@mustcompany.com" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Contact the platform team</a>
+          Need access? <a href="mailto:platform@must-iq.local" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Contact the platform team</a>
         </div>
       </div>
 

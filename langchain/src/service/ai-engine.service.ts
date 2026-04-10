@@ -89,6 +89,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         let extractedIntent: ExtractedIntent | undefined;
 
         if (shouldClassify) {
+          params.onStatus?.('Extracting intent and technical keywords...');
           extractedIntent = await extractIntent(params.query, settings);
 
           // Store domain on params for buildRAGChain prompt selection
@@ -157,6 +158,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         // HyDE runs on top of the already-enriched query for maximum specificity.
         let queryText = finalQueryForSearch;
         if (settings.hydeEnabled) {
+          params.onStatus?.('Applying HyDE (Hypothetical Document Embedding)...');
           logger.log(`HyDE: generating hypothetical document for query...`);
           queryText = await generateHypotheticalDocument(finalQueryForSearch, taskType);
           logger.log(`HyDE: using hypothetical document (${queryText.length} chars) for embedding.`);
@@ -179,6 +181,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
         let chunks: DocumentChunk[];
         if (settings.hybridSearchEnabled) {
+          params.onStatus?.('Executing Hybrid Search (Vector + BM25 keyword)...');
           logger.log(`Hybrid search: running dense + BM25 in parallel (topK=${topK})...`);
           logger.log(`Hybrid search: BM25 query="${bm25Query.substring(0, 120)}"`);
           const [denseChunks, keywordChunks] = await Promise.all([
@@ -189,6 +192,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
           chunks = reciprocalRankFusion(denseChunks, keywordChunks);
           logger.log(`Hybrid search: merged pool = ${chunks.length} unique chunks.`);
         } else {
+          params.onStatus?.('Retrieving relevant chunks from vector database...');
           chunks = await retrieveChunks(queryVector, workspaces, topK);
           logger.log(`Stage 1: retrieved ${chunks.length} chunks (topK=${topK})`);
         }
@@ -198,13 +202,14 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
         // Reranks against finalQueryForSearch (enriched) not the raw query,
         // so the cross-encoder scores relevance against technical vocabulary.
         if (chunks.length > 0 && settings.rerankEnabled !== false) {
+          params.onStatus?.(`Reranking ${chunks.length} candidates with Cross-Encoder...`);
           const before = chunks.length;
           chunks = await rerank(finalQueryForSearch, chunks, settings.rerankTopN ?? 50);
           logger.log(`Reranker: ${before} → ${chunks.length} chunks after cross-encoder.`);
         }
 
         if (chunks.length > 0) {
-          context = await buildContext(chunks, settings.contextTokenBudget ?? undefined);
+          context = buildContext(chunks, settings.contextTokenBudget ?? undefined);
 
           if (params.includeSources !== false) {
             sources = chunks.map((d) => {
@@ -257,6 +262,7 @@ export async function runAIQuery(params: AIQueryParams): Promise<AIQueryResult> 
 
     if (params.stream && params.onChunk) {
       let fullText = "";
+      params.onStatus?.('Generating final response...');
       for await (const chunk of await chain.stream({
         question: llmQuestion,
         chat_history: safeChatHistory,

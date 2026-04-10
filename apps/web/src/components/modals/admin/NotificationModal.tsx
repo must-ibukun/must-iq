@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@must-iq-web/components/ui';
-import { IconChevronDown } from '@must-iq-web/components/ui/MustIcons';
+import { IconChevronDown, IconSparkles, IconAlertTriangle } from '@must-iq-web/components/ui/MustIcons';
 import { NotificationModalContent } from '@must-iq/shared-types';
 
 interface NotificationModalProps {
@@ -23,7 +23,9 @@ export function NotificationModal({ notification, onClose }: NotificationModalPr
           position: 'relative', overflow: 'hidden'
         }}
       >
-        <div style={{ fontSize: 48, marginBottom: 16 }}>{notification.type === 'success' ? '✨' : '⚠️'}</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          {notification.type === 'success' ? <IconSparkles size={48} color="var(--green)" /> : <IconAlertTriangle size={48} color="var(--red)" />}
+        </div>
         <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, fontFamily: '"DM Serif Display", serif' }}>{notification.title}</h2>
         <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 24 }}>{notification.message}</p>
 

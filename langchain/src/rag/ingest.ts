@@ -19,6 +19,24 @@ dotenv.config();
 
 const logger = new Logger('IngestScript');
 
+const BRANCH_SUFFIXES = ['-main', '-master', '-develop', '-dev', '-staging', '-production', '-prod'];
+
+export function normalizeSourcePath(sourcePath: string): string {
+  const normalized = sourcePath.replace(/\\/g, '/'); // unify separators
+  const slashIdx = normalized.indexOf('/');
+  if (slashIdx === -1) return normalized; // no folder prefix — nothing to strip
+
+  const topFolder = normalized.slice(0, slashIdx);
+  const rest = normalized.slice(slashIdx); // includes leading /
+
+  for (const suffix of BRANCH_SUFFIXES) {
+    if (topFolder.endsWith(suffix)) {
+      return topFolder.slice(0, -suffix.length) + rest;
+    }
+  }
+  return normalized;
+}
+
 function getSplitterForFile(extension: string) {
   const langId = CODE_EXTENSIONS[extension.toLowerCase()];
   if (langId) {
@@ -40,7 +58,6 @@ function getSplitterForFile(extension: string) {
 export async function ingestFile(filePath: string, workspace = "general", taskType = "RETRIEVAL_DOCUMENT", relativeFilePath?: string, layer = "docs"): Promise<{ chunksStored: number }> {
   const ext = path.extname(filePath).toLowerCase();
 
-  // Deduplication: skip if this exact file content was already ingested
   const fileBuffer = fs.readFileSync(filePath);
   const contentHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
   const sourceName = relativeFilePath || path.basename(filePath);
@@ -137,49 +154,89 @@ export async function ingestFile(filePath: string, workspace = "general", taskTy
 
 /**
  * Ingests a raw piece of text (e.g. Slack messages, GitHub PRs, Jira issues, Agent tools)
- * into the active vector store. Deduplicates by SHA-256 hash of content per source+workspace.
+ * into the active vector store.
+ *
+ * For code files (language param provided), uses a language-specific splitter.
+ * For all others, uses a generic text splitter.
+ *
+ * Deduplication strategy — "Source of Truth Replacement":
+ *  - If no document exists for (workspace, source)       → ingest fresh.
+ *  - If a document exists with the SAME contentHash      → skip (unchanged).
+ *  - If a document exists with a DIFFERENT contentHash   → delete old doc (cascades all chunks) then re-ingest.
  */
-export async function ingestDocument({ content, metadata, taskType = "RETRIEVAL_DOCUMENT" }: { content: string, metadata: any, taskType?: string }) {
-  const source = metadata.source || "unknown";
-  const workspace = metadata.workspace || "general";
+export async function ingestDocument({
+  content,
+  metadata,
+  taskType = 'RETRIEVAL_DOCUMENT',
+  language,
+}: {
+  content: string;
+  metadata: any;
+  taskType?: string;
+  language?: string; // e.g. 'js', 'python', 'markdown' — from CODE_EXTENSIONS
+}) {
+  const source = metadata.source || 'unknown';
+  const workspace = metadata.workspace || 'general';
 
-  // Dedup: skip if this exact content from this source was already ingested
-  const contentHash = crypto.createHash("sha256").update(content).digest("hex");
+  const contentHash = crypto.createHash('sha256').update(content).digest('hex');
 
+  // Find any existing document for this source in this workspace
   const existing = await prisma.document.findFirst({
-    where: { workspace, source, contentHash, status: "COMPLETED" },
-    select: { id: true, chunkCount: true },
+    where: { workspace, source },
+    select: { id: true, chunkCount: true, contentHash: true, status: true },
   });
+
   if (existing) {
-    logger.log(`⚡ Skipping ${source} — already ingested (hash match)`);
-    return;
+    if (existing.contentHash === contentHash && existing.status === 'COMPLETED') {
+      logger.log(`⚡ Skipping ${source} — already ingested (hash match)`);
+      return;
+    }
+    // Content changed: atomically replace old document + its chunks
+    logger.log(`🔄 Replacing ${source} — content changed (hash mismatch), deleting old document...`);
+    await prisma.document.delete({ where: { id: existing.id } });
+    // DocumentChunks cascade-delete via schema: onDelete: Cascade
   }
 
-  // Track in Document table (same as ingestFile) for visibility + cleanup on failure
+  // Track in Document table for visibility + rollback on failure
   const docTags: string[] = Array.isArray(metadata.tags) ? metadata.tags : [];
   const document = await prisma.document.create({
     data: {
       filename: source,
       source,
       workspace,
-      status: "PROCESSING",
-      uploadedBy: "system",
+      status: 'PROCESSING',
+      uploadedBy: 'system',
       contentHash,
-      sizeBytes: Buffer.byteLength(content, "utf8"),
+      sizeBytes: Buffer.byteLength(content, 'utf8'),
       tags: docTags,
-    }
+    },
   });
 
-  const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 500, chunkOverlap: 50 });
+  // Choose splitter: language-specific for code, generic for prose/discussions
+  let splitter: any;
+  if (language) {
+    try {
+      splitter = RecursiveCharacterTextSplitter.fromLanguage(
+        language as SupportedTextSplitterLanguage,
+        { chunkSize: 1500, chunkOverlap: 200 },
+      );
+    } catch {
+      // Fallback if LangChain doesn't recognize the language
+      splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1500, chunkOverlap: 200 });
+    }
+  } else {
+    splitter = new RecursiveCharacterTextSplitter({ chunkSize: 500, chunkOverlap: 50 });
+  }
+
   const chunks = await splitter.splitText(content);
-  const docs = chunks.map((chunk, idx) => ({
+  const docs = chunks.map((chunk: string, idx: number) => ({
     pageContent: chunk,
     metadata: {
       ...metadata,
       documentId: document.id,
       chunkIndex: idx,
-      ingested_at: new Date().toISOString()
-    }
+      ingested_at: new Date().toISOString(),
+    },
   }));
 
   try {
@@ -187,14 +244,16 @@ export async function ingestDocument({ content, metadata, taskType = "RETRIEVAL_
     await vectorStore.addDocuments(docs);
   } catch (err: any) {
     logger.error(`Failed to store chunks for ${source}: ${err.message}. Cleaning up...`);
-    await prisma.document.delete({ where: { id: document.id } }).catch(() => {});
+    await prisma.document.delete({ where: { id: document.id } }).catch(() => { });
     throw err;
   }
 
   await prisma.document.update({
     where: { id: document.id },
-    data: { status: "COMPLETED", chunkCount: chunks.length }
+    data: { status: 'COMPLETED', chunkCount: chunks.length },
   });
+
+  logger.log(`✅ Ingested ${chunks.length} chunks from ${source} → ${workspace}`);
 }
 
 if (require.main === module) {

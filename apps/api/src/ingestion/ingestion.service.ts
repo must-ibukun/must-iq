@@ -5,7 +5,7 @@ import { IngestionStatus } from '@must-iq/db';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { ingestFile } from '@must-iq/langchain/rag/ingest';
+import { ingestFile, normalizeSourcePath } from '@must-iq/langchain/rag/ingest';
 import AdmZip from 'adm-zip';
 import { IGNORED_DIRECTORIES, ALLOWED_FILE_EXTENSIONS, IGNORED_FILE_PATTERNS } from '@must-iq/shared-types';
 import { IngestionResult, PaginatedResponse, IngestionEvent, BulkIngestRequest } from '@must-iq/shared-types';
@@ -122,7 +122,8 @@ export class IngestionService {
                                 this.logger.debug(`Skipping ignored file: ${file}`);
                                 continue;
                             }
-                            result.push({ filePath, relativeFilePath: path.relative(extractDir, filePath) });
+                            const rawRelative = path.relative(extractDir, filePath);
+                            result.push({ filePath, relativeFilePath: normalizeSourcePath(rawRelative) });
                         }
                     }
                     return result;
